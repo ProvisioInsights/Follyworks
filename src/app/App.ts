@@ -198,6 +198,7 @@ export class App implements AppContext {
       subtitle: `${labCode(index)} · Physics Lab${progress.solved ? ' · solved' : ''}`,
       brief: true,
       briefIntro: () => labIntro(entry),
+      concepts: [entry.concept],
       onExit: () => this.showLab(),
       exitLabel: 'Lab',
       onNext: index + 1 < LAB.length ? () => this.playLab(index + 1) : undefined,

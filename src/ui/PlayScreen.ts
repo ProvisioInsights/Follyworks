@@ -17,6 +17,7 @@ import { append, clear, h, icon, iconBtn, modal, plural, toast } from './dom';
 import { EditorPanel } from './EditorPanel';
 import { GuideCoach } from './GuideCoach';
 import { conceptsInRun } from '../content/runConcepts';
+import type { ConceptId } from '../content/science';
 import { physicsInMachine, scienceSection } from './science';
 
 export interface PlayConfig {
@@ -29,6 +30,8 @@ export interface PlayConfig {
   brief?: boolean;
   /** Extra content shown at the top of the briefing card (Physics Lab lesson intros). */
   briefIntro?: () => HTMLElement;
+  /** Concepts the level is about (a Physics Lab lesson's idea), listed first under "Physics in your machine". */
+  concepts?: ConceptId[];
   onExit: () => void;
   onNext?: () => void;
   /** Called with the attempt; return true if this was a first solve (for messaging). */
@@ -870,7 +873,7 @@ export class PlayScreen {
       body: [
         h('div', { class: 'stamps' }, stamp('s', 'SOLVED', true, `in ${r.time?.toFixed(1)}s`), stamp('e', 'ELEGANT', r.elegant.earned, r.elegant.reason), r.absurd.available ? stamp('a', 'ABSURD', r.absurd.earned, r.absurd.reason) : null),
         receipt,
-        physicsInMachine(conceptsInRun(r.chain, (id) => this.ctl.run?.sim.entities.get(id)?.type)),
+        physicsInMachine([...new Set([...(this.cfg.concepts ?? []), ...conceptsInRun(r.chain, (id) => this.ctl.run?.sim.entities.get(id)?.type, 6 - (this.cfg.concepts?.length ?? 0))])]),
       ],
       actions,
       width: 600,
