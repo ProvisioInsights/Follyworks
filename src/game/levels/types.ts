@@ -32,4 +32,5 @@ export const CHAPTERS: ChapterInfo[] = [
   { index: 3, title: 'Moving Parts', subtitle: 'Motors, gears, belts, conveyors and Bolt' },
   { index: 4, title: 'Hot Air & Sparks', subtitle: 'Fans, balloons, fire, batteries and magnets' },
   { index: 5, title: 'Ridiculous Machines', subtitle: 'Sensors, logic, explosives and glorious overkill' },
+  { index: 6, title: 'Lasers & Light', subtitle: 'Mirrors, prisms, lenses and beams that burn' },
 ];

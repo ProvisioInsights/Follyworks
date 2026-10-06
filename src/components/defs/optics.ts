@@ -115,7 +115,7 @@ registerComponent({
   category: 'optics',
   domain: 'light',
   description: 'Splits white light into red, green and blue beams fanning toward its base. Coloured beams just bend.',
-  help: 'Red bends least (14°), green more (22°), blue most (30°), always toward the flat base.',
+  help: 'Red bends least (15°), green more (22.5°), blue most (30°), always toward the flat base.',
   tags: ['glass', 'static', 'optic'],
   dynamic: false,
   rotatable: true,
@@ -167,10 +167,10 @@ registerComponent({
   flippable: false,
   rotationStep: 15 * DEG,
   props: [{ key: 'focal', label: 'Focal length', type: 'number', min: 60, max: 400, step: 10, default: 160, unit: 'cm' }],
-  size: () => ({ w: 16, h: 72 }),
+  size: () => ({ w: 18, h: 126 }),
   art: 'lens',
   build(e, sim) {
-    tag(rect(sim, e, { x: 0, y: 0 }, 10, 68, { isStatic: true, friction: 0.3, label: 'lens' }), 'lens');
+    tag(rect(sim, e, { x: 0, y: 0 }, 10, 120, { isStatic: true, friction: 0.3, label: 'lens' }), 'lens');
   },
   isActive: (e) => !!e.activated,
 });

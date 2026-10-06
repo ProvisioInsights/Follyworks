@@ -63,8 +63,8 @@ describe('laser beams', () => {
     expect(fan.map((b) => b.color).sort()).toEqual([1, 2, 4]);
     const ang = (c: number) => Math.atan2(dir(fan.find((b) => b.color === c)!).y, dir(fan.find((b) => b.color === c)!).x);
     // base is down (apex up), so all bend downward: red least, blue most
-    expect(ang(1)).toBeCloseTo(14 * DEG, 6);
-    expect(ang(2)).toBeCloseTo(22 * DEG, 6);
+    expect(ang(1)).toBeCloseTo(15 * DEG, 6);
+    expect(ang(2)).toBeCloseTo(22.5 * DEG, 6);
     expect(ang(4)).toBeCloseTo(30 * DEG, 6);
     expect(s.beams.some((b) => b.inside)).toBe(true);
     // a coloured beam just bends

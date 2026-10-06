@@ -36,7 +36,7 @@ export interface BeamSeg {
 }
 
 /** Prism deviation per colour, radians, always bent toward the prism's base. */
-export const PRISM_BEND: Record<number, number> = { 1: (14 * Math.PI) / 180, 2: (22 * Math.PI) / 180, 4: (30 * Math.PI) / 180 };
+export const PRISM_BEND: Record<number, number> = { 1: (15 * Math.PI) / 180, 2: (22.5 * Math.PI) / 180, 4: (30 * Math.PI) / 180 };
 /** Seconds a full-strength beam must rest on something before it counts as heated (weaker beams take longer). */
 export const HEAT_TIME = 0.25;
 /** Hard caps so a hall of mirrors (or two splitters facing each other) stays cheap and finite. */
@@ -306,7 +306,10 @@ export const traceBeams = (sim: Simulation, live: boolean): BeamSeg[] => {
           break;
       }
       // Stopped by an opaque thing: it warms up.
-      if (e && e.def.onHeat) heated.set(e, (heated.get(e) ?? 0) + r.intensity);
+      if (e && e.def.onHeat) {
+        heated.set(e, (heated.get(e) ?? 0) + r.intensity);
+        if (live && sim.tick % 8 === 0) sim.emit({ t: 'fx', kind: 'sparks', x: hit.x, y: hit.y, dx: hit.nx, dy: hit.ny, scale: 0.5 });
+      }
     }
   }
   if (!live) return beams;
@@ -359,9 +362,28 @@ export const traceBeams = (sim: Simulation, live: boolean): BeamSeg[] => {
     }
     if (crossT === null) continue;
     rope.burn += sim.dt / 0.6;
+    if (sim.tick % 8 === 0) {
+      const p = pointOnPath(pts, crossT);
+      sim.emit({ t: 'fx', kind: 'smoke', x: p.x, y: p.y, scale: 0.5 });
+    }
     if (rope.burn >= 1) sim.breakRope(rope, crossT, 'Laser cut the rope');
   }
   return beams;
+};
+
+const pointOnPath = (pts: Vec[], t: number): Vec => {
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  let left = total * t;
+  for (let i = 1; i < pts.length; i++) {
+    const l = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (left <= l || i === pts.length - 1) {
+      const u = l > 0 ? Math.min(1, left / l) : 0;
+      return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * u, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * u };
+    }
+    left -= l;
+  }
+  return pts[0];
 };
 
 /** Parameter u along a→b where it crosses beam segment s, or null. */

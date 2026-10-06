@@ -6,6 +6,8 @@ import type { Entity } from '../sim/Entity';
 import { gearRadius } from '../components/defs/mechanical';
 import type { TextureBank } from './TextureBank';
 import { ROBOT_EYE } from './art/parts';
+import { LIGHT_RGB } from './art/opticsParts';
+import { laserFiring } from '../sim/optics';
 
 type Params = Record<string, string | number | boolean>;
 type Fn<T> = (e: Entity, t: number) => T;
@@ -25,6 +27,8 @@ export interface PartSpec {
   visible?: Fn<boolean>;
   alpha?: Fn<number>;
   additive?: boolean;
+  /** Colour tint (glows that take the colour of a beam). */
+  tint?: Fn<number>;
   /** Size override in world units (for fx textures). */
   size?: number;
 }
@@ -246,6 +250,24 @@ export const VIEW_SPECS: Record<string, ViewSpec> = {
     ],
   },
   cactus: { parts: [{ tex: 'cactus' }] },
+  laser: {
+    parts: [
+      { tex: 'laser', frame: 'entity', params: (e) => ({ color: e.str('color') || 'red' }) },
+      { tex: 'fx_dot', frame: 'entity', x: 30, y: 0, size: 18, additive: true, visible: (e) => laserFiring(e), tint: (e) => LIGHT_RGB[e.str('color')] ?? 0xffffff, alpha: (_e, t) => 0.8 + 0.2 * Math.sin(t * 37) },
+      { tex: 'fx_glow_warm', frame: 'entity', x: 30, y: 0, size: 46, additive: true, visible: (e) => laserFiring(e), tint: (e) => LIGHT_RGB[e.str('color')] ?? 0xffffff, alpha: () => 0.6 },
+    ],
+  },
+  mirror: { parts: [{ tex: 'mirror', frame: 'entity' }] },
+  beam_splitter: { parts: [{ tex: 'beam_splitter', frame: 'entity' }] },
+  prism: { parts: [{ tex: 'prism', frame: 'entity' }] },
+  color_filter: { parts: [{ tex: 'color_filter', frame: 'entity', params: (e) => ({ color: e.str('color') || 'green' }) }] },
+  lens: { parts: [{ tex: 'lens', frame: 'entity' }] },
+  light_sensor: {
+    parts: [
+      { tex: 'light_sensor', frame: 'entity', params: (e) => ({ color: e.str('color') || 'any' }) },
+      { tex: 'fx_glow_warm', frame: 'entity', y: -2, size: 56, additive: true, visible: (e) => !!e.state.lit, alpha: (_e, t) => 0.75 + 0.15 * Math.sin(t * 20) },
+    ],
+  },
   wall: { parts: [{ tex: 'wall', params: (e) => ({ w: e.num('w'), h: e.num('h'), material: e.str('material') || 'concrete' }) }] },
 };
 
@@ -316,6 +338,7 @@ export class EntityView {
       img.setOrigin(info.ox, info.oy);
       this.applySize(img, ps, info.w, info.h);
       if (ps.additive) img.setBlendMode(Phaser.BlendModes.ADD);
+      if (ps.tint) img.setTint(ps.tint(e, 0));
       holder.add(img);
       this.parts.push({ spec: ps, img, holder, lastTex: info.key });
     }

@@ -20,6 +20,8 @@ const LOOP_FOR: Record<string, LoopName> = {
   rocket: 'rocket',
   candle: 'flame',
   magnet: 'magnet',
+  // a firing laser shares the electromagnet's soft hum
+  laser: 'magnet',
 };
 
 export interface RunCallbacks {

@@ -16,6 +16,7 @@ import {
   speckle, mottle, scratches, grimeBottom, edgeChips, woodGrain,
   rivet, screw, hexBolt, glint, sheen, coilSpring, smoothPath, label, hazard, dropShadow,
 } from './partHelpers';
+import { OPTICS_DEFS } from './opticsParts';
 
 export interface PaintedTexture {
   canvas: HTMLCanvasElement;
@@ -3077,6 +3078,7 @@ const DEFS: Record<string, PartDef> = {
   tool_rope: { size: () => centred(64, 64), paint: paintToolRope },
   tool_belt: { size: () => centred(64, 64), paint: paintToolBelt },
   tool_wire: { size: () => centred(64, 64), paint: paintToolWire },
+  ...OPTICS_DEFS,
 };
 
 /** Internal-only painters (icons). */
