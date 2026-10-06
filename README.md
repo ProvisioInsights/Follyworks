@@ -5,6 +5,8 @@
 Follyworks is a 2D physics contraption puzzle game for the browser. Each puzzle asks for one small, specific thing ("get the crate into the shipping bay", "wake the cat"). You drag parts from a limited parts bin into a cutaway workshop, press RUN, and watch your machine succeed, fail, or do something you did not expect. Then you rewind, nudge a ramp, and try again.
 
 - **56 missions**: a 6-mission guided tutorial, then five groups of 10 (Workshop Basics, Levers & Lines, Moving Parts, Hot Air & Sparks, Ridiculous Machines). Each group mixes gravity, springs, ropes, gears, air, heat, magnets and electricity, and missions get busier and need more parts as you go.
+- **Easy / Normal / Hard for every mission**, picked in the briefing: Easy adds time, spare parts and one part already in place; Hard cuts the clock, trims the bin and caps parts at the simplest known solution. Beaten difficulties show on the campaign map.
+- **Tiered hints**: a nudge, then the parts you'll need, then glowing outlines of where parts go, one at a time. Ghost outlines withhold ELEGANT.
 - **Optional on-screen guidance** in the tutorial: a step card, an arrow at the right part or button, and a glowing outline of one good spot. Hide it from the card, the compass button, or Settings.
 - **31 parts** plus three connectors (rope, drive belt, wire): balls, dominoes, planks, seesaws, trampolines, buckets, pulleys, gears, motors, conveyors, fans, balloons, candles, rockets, cannons, dynamite, magnets, batteries, switches, pressure plates, timers, logic gates, light bulbs, a boxing glove, a cactus and a small walking robot called Bolt.
 - **Three results per puzzle**: SOLVED, ELEGANT (few parts or a quick finish) and ABSURD (a long chain reaction). The results card explains each one.
@@ -52,6 +54,7 @@ node e2e/smoke.mjs           # the main loop with real mouse and keyboard: place
 node e2e/acceptance.mjs      # move/rotate/duplicate/delete, pan/zoom, slow motion, frame step, exact reset,
                              # level rename/duplicate/import/delete, test-and-return, saves surviving reload, corrupt save
 node e2e/campaign.mjs        # plays every level with its reference solution in the real browser
+node e2e/difficulty.mjs      # difficulty picker, HUD badge, every hint tier, per-difficulty progress and map badges
 ```
 
 Each takes an optional URL argument and exits non-zero on failure. Set `SHOTS=<dir>` to save screenshots. Set `CHROMIUM=<path>` if Chromium is not at `/opt/pw-browsers/chromium`.
