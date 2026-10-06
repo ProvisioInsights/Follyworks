@@ -1,7 +1,7 @@
 // Menu, campaign map, custom-level manager and settings.
 
 import type { AppContext } from '../app/context';
-import { exportLevel, parseLevel } from '../core/level';
+import { exportLevel, parseLevel, STANDARD_WORLD } from '../core/level';
 import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/campaign';
 import { ENVIRONMENTS } from '../render/art/environment';
 import { h, icon, modal, toast } from './dom';
@@ -198,7 +198,7 @@ export const levelsScreen = (app: AppContext, refresh: () => void): Screen => {
               name: 'Untitled contraption',
               description: 'Explain what the player should make happen.',
               environment: 'garage',
-              world: { width: 1600, height: 900, gravity: 1 },
+              world: { ...STANDARD_WORLD },
               fixedObjects: [],
               startingObjects: [],
               connections: [],
@@ -338,7 +338,7 @@ export const settingsDialog = (app: AppContext) => {
     inp.addEventListener('change', () => app.sfx('click'));
     return [h('span', null, label), inp];
   };
-  const check = (label: string, key: 'muted' | 'reducedMotion' | 'snap' | 'showForces' | 'ghostTrails' | 'unlockAll' | 'tips', note?: string) => {
+  const check = (label: string, key: 'muted' | 'reducedMotion' | 'snap' | 'showForces' | 'ghostTrails' | 'unlockAll' | 'tips' | 'guidance', note?: string) => {
     const cb = h('input', { type: 'checkbox', checked: s[key] }) as HTMLInputElement;
     cb.addEventListener('change', () => app.updateSettings({ [key]: cb.checked }));
     return [h('span', null, label, note ? h('div', { class: 'muted', style: { fontSize: '12px' } }, note) : null), h('label', null, cb)];
@@ -366,6 +366,7 @@ export const settingsDialog = (app: AppContext) => {
         h('span', null, 'Text size'),
         text,
         ...check('Reduce motion', 'reducedMotion', 'No camera shake or ambient animation'),
+        ...check('Tutorial guidance', 'guidance', 'Step-by-step pointers in the first missions'),
         ...check('Snap to grid', 'snap'),
         ...check('Ghost trails', 'ghostTrails', 'Show where things went last run'),
         ...check('Show physics shapes', 'showForces', 'Collision outlines and motion arrows'),

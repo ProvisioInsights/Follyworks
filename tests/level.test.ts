@@ -108,7 +108,7 @@ describe('parseLevel: round trips', () => {
     expect(b.schemaVersion).toBe(LEVEL_SCHEMA_VERSION);
     expect(b.name).toBe('My Blank');
     expect(b.environment).toBe('garage');
-    expect(b.world).toEqual({ width: 1600, height: 900, gravity: 1 });
+    expect(b.world).toEqual({ width: 1120, height: 630, gravity: 1 });
     expect(b.metadata?.author).toBe('You');
     expect(Number.isNaN(Date.parse(b.metadata!.created!))).toBe(false);
     const { level: back, problems } = parseLevel(exportLevel(b));

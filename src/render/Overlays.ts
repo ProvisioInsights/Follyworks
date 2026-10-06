@@ -41,6 +41,8 @@ export interface OverlayState {
   editor: boolean;
   /** Level editor only: currently selected goal index for region handles. */
   selectedGoal: number | null;
+  /** Tutorial guidance: outlines of where a part could go, and a spot to point at. */
+  guide?: { ghosts: Entity[]; point: Vec | null } | null;
 }
 
 const ROPE = 0xc9a46a;
@@ -144,8 +146,11 @@ export class Overlays {
         const compatible = wireTool && (!st.pending || st.pending.portDir !== p.dir);
         if (st.mode === 'run') continue;
         const col = p.dir === 'out' ? PORT_OUT : PORT_IN;
-        const r = wireTool ? (compatible ? 7 : 4) : 4.5;
-        tp.fillStyle(0x120d0a, 0.9);
+        const r = wireTool ? (compatible ? 8 : 4.5) : 6;
+        // A cream outer ring keeps sockets visible on dark machinery and busy walls alike.
+        tp.fillStyle(0xfff2d8, wireTool && !compatible ? 0.3 : 0.85);
+        tp.fillCircle(pw.x, pw.y, r + 3.5);
+        tp.fillStyle(0x120d0a, 0.95);
         tp.fillCircle(pw.x, pw.y, r + 2);
         tp.fillStyle(col, wireTool && !compatible ? 0.35 : 1);
         tp.fillCircle(pw.x, pw.y, r);
@@ -191,6 +196,44 @@ export class Overlays {
       this.outline(tp, e, col, a, sel ? 2 : 1.5);
     }
     if (st.showForces) this.drawForces(tp, sim);
+    if (st.guide && st.mode === 'build') this.drawGuide(tp, st.guide, st.t);
+  }
+
+  /** A pulsing translucent silhouette of each ghost part, plus a beacon on the pointed spot. */
+  private drawGuide(g: Phaser.GameObjects.Graphics, guide: NonNullable<OverlayState['guide']>, t: number) {
+    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
+    const zero = { x: 0, y: 0 };
+    for (const e of guide.ghosts) {
+      g.fillStyle(0xfff2a8, 0.28 + 0.14 * pulse);
+      for (const b of e.bodies) {
+        const parts = b.parts.length > 1 ? b.parts.slice(1) : b.parts;
+        for (const p of parts) {
+          if (p.circleRadius) {
+            g.fillCircle(p.position.x, p.position.y, p.circleRadius);
+            continue;
+          }
+          g.beginPath();
+          g.moveTo(p.vertices[0].x, p.vertices[0].y);
+          for (let i = 1; i < p.vertices.length; i++) g.lineTo(p.vertices[i].x, p.vertices[i].y);
+          g.closePath();
+          g.fillPath();
+        }
+      }
+      g.lineStyle(5, 0x0b0806, 0.45);
+      this.bodyPaths(g, e, zero);
+      g.lineStyle(2.5, 0xffe066, 0.6 + 0.4 * pulse);
+      this.bodyPaths(g, e, zero);
+    }
+    const p = guide.point;
+    if (p) {
+      const r = 16 + 10 * ((t * 1.2) % 1);
+      g.lineStyle(4, 0x0b0806, 0.5);
+      g.strokeCircle(p.x, p.y, 15);
+      g.lineStyle(3, 0xffe066, 0.95);
+      g.strokeCircle(p.x, p.y, 15);
+      g.lineStyle(2, 0xffe066, 1 - ((t * 1.2) % 1));
+      g.strokeCircle(p.x, p.y, r);
+    }
   }
 
   private outline(g: Phaser.GameObjects.Graphics, e: Entity, col: number, a: number, w: number) {

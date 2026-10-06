@@ -1328,3 +1328,102 @@ body.reduced * {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------------------------------------------------------- tutorial guidance */
+
+.guide-card {
+  position: absolute;
+  top: 66px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(640px, calc(100vw - 480px));
+  padding: 10px 12px 10px 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 2px solid var(--brass);
+  box-shadow: var(--shadow), 0 0 0 4px rgba(226, 165, 74, 0.15);
+  z-index: 5;
+  animation: guide-in 0.25s ease-out;
+}
+.guide-card .guide-step {
+  flex: none;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 6px;
+  border-radius: 17px;
+  display: grid;
+  place-items: center;
+  background: var(--brass);
+  color: var(--ink);
+  font: 700 15px var(--font-head);
+}
+.guide-card .guide-text {
+  flex: 1;
+  font-size: calc(16px * var(--ts));
+  line-height: 1.35;
+  color: var(--cream);
+}
+.guide-card .btn {
+  flex: none;
+}
+@keyframes guide-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+}
+
+.guide-arrow {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffe066;
+  color: var(--ink);
+  display: none;
+  pointer-events: none;
+  z-index: 6;
+  box-shadow: 0 0 0 3px rgba(18, 13, 10, 0.7), 0 0 18px rgba(255, 224, 102, 0.7);
+}
+.guide-arrow svg {
+  width: 24px;
+  height: 24px;
+  margin: 6px;
+  stroke-width: 3;
+}
+.guide-arrow[data-dir='left'] {
+  animation: guide-bob-x 0.9s ease-in-out infinite;
+}
+.guide-arrow[data-dir='down'] {
+  animation: guide-bob-y 0.9s ease-in-out infinite;
+}
+.guide-arrow[data-dir='down'] svg {
+  transform: rotate(-90deg);
+}
+.guide-arrow[data-dir='up'] {
+  animation: guide-bob-y 0.9s ease-in-out infinite reverse;
+}
+.guide-arrow[data-dir='up'] svg {
+  transform: rotate(90deg);
+}
+@keyframes guide-bob-x {
+  50% {
+    translate: 8px 0;
+  }
+}
+@keyframes guide-bob-y {
+  50% {
+    translate: 0 -8px;
+  }
+}
+.guide-glow {
+  outline: 3px solid #ffe066 !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 16px rgba(255, 224, 102, 0.6) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guide-arrow {
+    animation: none !important;
+  }
+}

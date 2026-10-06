@@ -15,6 +15,7 @@ import { goalLabel } from '../sim/goals';
 import type { Simulation } from '../sim/Simulation';
 import { append, clear, h, icon, iconBtn, modal, plural, toast } from './dom';
 import { EditorPanel } from './EditorPanel';
+import { GuideCoach } from './GuideCoach';
 
 export interface PlayConfig {
   kind: SessionKind;
@@ -85,6 +86,7 @@ export class PlayScreen {
   private keyUpHandler: (e: KeyboardEvent) => void;
   private resizeObs: ResizeObserver | null = null;
   private dead = false;
+  private guide: GuideCoach | null = null;
 
   constructor(app: AppContext, cfg: PlayConfig) {
     this.app = app;
@@ -109,6 +111,16 @@ export class PlayScreen {
     });
     this.ctl.editor.snap = app.settings.snap;
     this.build();
+    if (cfg.level.guide?.length && (cfg.kind === 'campaign' || cfg.kind === 'test')) {
+      this.guide = new GuideCoach(cfg.level, {
+        root: this.root,
+        ctl: this.ctl,
+        enabled: app.settings.guidance,
+        target: (key) => this.guideTarget(key),
+        onToggle: (v) => this.setGuide(v),
+        sfx: () => app.sfx('ui'),
+      });
+    }
     this.ctl.onChange(() => this.schedule());
     this.keyHandler = (e) => this.onKey(e);
     this.keyUpHandler = (e) => this.onKeyUp(e);
@@ -117,7 +129,7 @@ export class PlayScreen {
     this.render(true);
     this.applyInsets();
     if (cfg.brief) this.showBrief();
-    else if (cfg.kind === 'campaign' && cfg.level.metadata?.tutorial) this.nextHint();
+    else if (cfg.kind === 'campaign' && cfg.level.metadata?.tutorial && !this.guideShowing) this.nextHint();
     app.audio.setMusicIntensity(0.3);
   }
 
@@ -128,6 +140,7 @@ export class PlayScreen {
     window.removeEventListener('keyup', this.keyUpHandler);
     this.resizeObs?.disconnect();
     this.resultModal?.close();
+    this.guide?.destroy();
     this.ctl.destroy();
     this.editorPanel?.destroy();
     this.root.remove();
@@ -158,7 +171,9 @@ export class PlayScreen {
     const title = h('div', { class: 'title' }, h('span', { class: 't' }, cfg.title), h('span', { class: 'c' }, cfg.subtitle));
     this.els.goals = h('div', { class: 'goals' });
     const right = h('div', { style: { display: 'flex', gap: '4px', alignItems: 'center' } });
-    if (cfg.level.hints?.length && cfg.kind !== 'editor') right.append(iconBtn('bulb', 'Hint <kbd>H</kbd>', () => this.nextHint()));
+    if (cfg.level.guide?.length && (cfg.kind === 'campaign' || cfg.kind === 'test'))
+      right.append((this.els.guideBtn = iconBtn('map', 'Step-by-step guide on/off', () => this.setGuide(!this.guide?.visible))));
+    if (cfg.level.hints?.length && cfg.kind !== 'editor') right.append((this.els.hintBtn = iconBtn('bulb', 'Hint <kbd>H</kbd>', () => this.nextHint())));
     if (cfg.sandbox) {
       const sel = h(
         'select',
@@ -289,6 +304,7 @@ export class PlayScreen {
   }
 
   private applyInsets() {
+    this.guide?.update();
     const bin = this.els.leftCol.getBoundingClientRect();
     const right = this.cfg.kind === 'editor' ? 320 : 20;
     this.app.scene.setInsets({ top: 58, left: bin.right + 6, right, bottom: 78 });
@@ -351,6 +367,32 @@ export class PlayScreen {
       this.renderProps();
     }
     this.editorPanel?.render();
+    this.els.guideBtn?.classList.toggle('on', !!this.guide?.visible);
+    this.guide?.update();
+  }
+
+  private get guideShowing() {
+    return !!this.guide && this.guide.visible && !this.guide.finished;
+  }
+
+  private setGuide(v: boolean) {
+    if (!this.guide) return;
+    this.app.updateSettings({ guidance: v });
+    this.guide.setVisible(v);
+    if (v) this.els.tip.style.display = 'none';
+    this.render(true);
+  }
+
+  private guideTarget(key: string): HTMLElement | null {
+    if (key.startsWith('bin:')) return this.els.binList.querySelector<HTMLElement>(`[data-type="${key.slice(4)}"]`);
+    const hud: Record<string, HTMLElement | undefined> = {
+      'hud:run': this.els.runBtn,
+      'hud:reset': this.els.runBtn,
+      'hud:rotate': this.els.rotR,
+      'hud:flip': this.els.flip,
+      'hud:hint': this.els.hintBtn,
+    };
+    return hud[key] ?? null;
   }
 
   private renderGoals() {
@@ -723,7 +765,8 @@ export class PlayScreen {
       strip: 'hazard',
       actions: [{ label: 'Let’s build', kind: 'primary', icon: 'wrench', onClick: () => {} }],
       onClose: () => {
-        if (l.metadata?.tutorial) this.nextHint();
+        if (l.metadata?.tutorial && !this.guideShowing) this.nextHint();
+        this.guide?.update();
       },
     });
   }

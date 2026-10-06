@@ -4,7 +4,7 @@
 
 Follyworks is playable from first launch to the last campaign puzzle:
 
-- a menu, a 25-level campaign (5 tutorials plus 20 campaign levels in 10 chapters), a sandbox and a level editor;
+- a menu, a 56-mission campaign (a 6-mission guided tutorial plus five groups of 10), a sandbox and a level editor;
 - 31 parts plus rope, belt and wire connectors;
 - deterministic physics with rewind, scrub, slow motion and frame step;
 - SOLVED / ELEGANT / ABSURD scoring with explanations;
@@ -16,8 +16,8 @@ Every level is verified solvable both by headless tests and by playing it in a r
 ## Implemented scope
 
 **Campaign**
-- 5 tutorial levels (place, redirect, trigger, connect, a tiny machine).
-- 20 campaign levels: Cause & Effect, Gravity, Momentum, Springs & Levers, Ropes & Pulleys, Mechanical Power, Air/Heat/Energy, Electricity, Sensors & Logic, Ridiculous Machines.
+- 6 tutorial missions (drop, ramp, knock-on, lights, wiring, a tiny machine) with optional step-by-step guidance: a card, an arrow at the part or button, and a glowing outline of a good spot. Guidance can be hidden at any time.
+- 50 missions in five groups of 10: Workshop Basics, Levers & Lines, Moving Parts, Hot Air & Sparks, Ridiculous Machines. Every group mixes physics, motion and electricity. Within a group the missions start with more machinery in the room and need more parts; each group starts at least as hard as the last and its hardest mission beats the previous group's hardest. Tests enforce both.
 - Each level has a briefing, goals shown in the top bar, progressive hints, a time limit, ELEGANT targets (parts and/or time) and an ABSURD chain target.
 - Unlocking is soft: a level opens when it is within 3 of your solved count, or with "unlock all" in settings.
 
@@ -80,7 +80,7 @@ Every level is verified solvable both by headless tests and by playing it in a r
 
 All numbers are from the final state of the code.
 
-- **Unit and simulation tests (Vitest)**: 666 pass, plus 2 expected failures that document a Matter limitation (see Known defects). They cover:
+- **Unit and simulation tests (Vitest)**: 1,214 pass (including the level tests below), plus 2 expected failures that document a Matter limitation (see Known defects). They cover:
   - level parsing and repair;
   - session undo/redo and inventory rules;
   - placement validation;
@@ -105,7 +105,7 @@ All numbers are from the final state of the code.
     - settings and progress surviving a reload;
     - the editor's test-and-return; level rename, duplicate, import (including bad JSON) and delete;
     - a corrupt save booting cleanly and being kept aside.
-  - `e2e/campaign.mjs` loads all 25 levels in the browser, plays a reference solution and records the SOLVED/ELEGANT/ABSURD stamps and any console errors. It was run twice: with the simplest solutions, all 25 solve and none earns ABSURD; with the ABSURD builds, all 25 solve and all 20 campaign levels earn ABSURD. Neither run had console errors.
+  - `e2e/campaign.mjs` loads all 56 missions in the browser, plays a reference solution and records the SOLVED/ELEGANT/ABSURD stamps and any console errors. It was run twice: with the simplest solutions, all 56 solve; with the ABSURD builds, all 56 solve and all 50 group missions earn ABSURD. Neither run had console errors.
   - Final runs: smoke 16/16 checks, acceptance 24/24 checks.
 - **A fast-bounce bug found while authoring ABSURD builds.** A contact that began and ended inside one tick was missed, so a trampoline could act as a plain block depending on sub-pixel placement. It is fixed and covered by a regression test.
 - **Visual inspection**: screenshots of every screen and of all levels, reviewed by me during development. They found and drove fixes for:
@@ -130,12 +130,12 @@ All numbers are from the final state of the code.
 
 ## Known defects and rough edges
 
-- **Parts read small on smaller screens.** The world is 1600×900 and is fitted between the HUD panels; at 1440×860 the zoom is about 0.75 in puzzles and lower in the editor. Zoom fixes it, but first impressions would be better with larger parts.
+- **Engine limits found while authoring the 50 missions** (worked around, not fixed): a winch cannot lift a loaded bucket; pressure plates ignore what is inside a bucket; rope ends over a pulley drift together; a flying rocket shoves balloons aside instead of popping them; magnets cannot usefully pull a bowling ball; long domino lines are unreliable as triggers.
 - **Some goal zones are bare dashed rectangles** rather than visible bins or bays painted into the environment.
 - **The domino assist is not physics.** It gives believable chains, but a deliberately odd domino arrangement can behave "too helpfully".
 - **Rewind display is approximate between snapshots.** Snapshots are every 2 ticks, so a scrub lands on even ticks. Resuming is exact (see `RunController.resync`).
 - **Placement constraints** are only partly visible: the 600 px conveyor length cap and similar prop limits appear only as slider ranges.
-- **ABSURD targets are tuned against one authored build per level.** Players will find other ways, but a target could still feel steep on levels whose best authored build only just reaches it (1-1, 3-1, 7-1). There is no ABSURD bonus in the five tutorials: their parts bins can't beat the plain solution, so none is shown.
+- **ABSURD targets are tuned against one authored build per level.** Players will find other ways, but a target could still feel steep on levels whose best authored build only just reaches it. There is no ABSURD bonus in the tutorial: their parts bins can't beat the plain solution, so none is shown.
 - **Two `it.fails` tests** in `tests/history.test.ts` document that Matter cannot resume bit-exactly from a restored snapshot. This is a known engine limitation that the game works around.
 
 ## Compromised requirements
@@ -147,11 +147,11 @@ All numbers are from the final state of the code.
 
 ## Five highest-value next improvements
 
-1. **Human playtests** of the tutorial and chapters 1–4 with 3–5 people, watching for where they stall. Tune hints, briefings and time limits from that.
-2. **Larger, more readable parts and goal props.** Raise the default zoom by cropping the room margins, and paint real bins, bays and pockets for goal zones.
+1. **Human playtests** of the tutorial and the first two groups with 3–5 people, watching for where they stall. Tune hints, briefings and time limits from that.
+2. **Paint real goal props.** Parts are now about 1.5× larger (smaller room, tighter margins) and outlined against the background, but some goal zones are still dashed boxes.
 3. **A failure explainer.** After a stalled or timed-out run, point at the last thing that happened and the goal that was missed ("the ball stopped here, 140 px short"). The data already exists in the chain log and the goal state.
 4. **A real-GPU performance pass and a cross-browser check** (Firefox, Safari), including a frame-time budget for the largest levels and particle bursts.
-5. **More campaign content per chapter** (3–4 levels each), plus level sharing by URL so custom levels travel without file handling.
+5. **Level sharing by URL** so custom levels travel without file handling.
 
 ## Architecture risks
 
@@ -174,8 +174,8 @@ What works, from playing it repeatedly while tuning:
 
 Where it falls short today:
 
-- **The first impression undersells it.** Parts look small at the default zoom and some goal zones are bare dashed boxes, so the workshop looks prettier than the machine inside it.
+- **Some goal zones are still bare dashed boxes**, so the workshop can look prettier than the machine inside it.
 - **A few late levels lean on precise timing** (fan cut-off times, trampoline angles). These are the levels most likely to feel like guesswork to a new player, and only playtests will show it.
-- **25 levels is a short campaign.** The sandbox and editor extend it, but the difficulty curve between chapters is my judgement, not measured.
+- **The difficulty curve is measured by parts and machinery, not by people.** Tests guarantee missions ask for more as you go, but only playtests will show whether the steps feel even.
 
 Bottom line: a player can enter a puzzle, understand the goal from the briefing and top bar, place a few silly parts, run it, see why it failed, rewind or reset, change it and want to go again. That is the central Follyworks experience, and it is in place. The next most valuable step is watching real people play the first ten levels.

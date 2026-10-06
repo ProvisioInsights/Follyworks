@@ -34,7 +34,7 @@ The central rule is that **the simulation is pure data in, data out**. A level a
 | `src/components` | The component registry and every part definition (`defs/basic, mechanical, force, chaos, control, creature`). `kit.ts` holds shared body builders. |
 | `src/sim` | `Simulation`, `Entity`, and the subsystems: electricity (`power.ts`), the gear/belt rotation network (`rotation.ts`), ropes and pulleys (`ropes.ts`), goal evaluation (`goals.ts`), rewind snapshots (`history.ts`) and the Matter import and patch (`matter.ts`). |
 | `src/editor` | `Session` (the editable document plus undo/redo) and inventory rules. |
-| `src/game` | Controllers (`PlayController`, `EditorController`, `RunController`), placement validation, scoring, and the campaign (`levels/ch00`–`ch10`). |
+| `src/game` | Controllers (`PlayController`, `EditorController`, `RunController`), placement validation, scoring, tutorial guidance logic (`guide.ts`), and the campaign (`levels/tutorial.ts`, `levels/group1.ts`–`group5.ts`). |
 | `src/render` | The Phaser scene, entity views, overlays (ropes, wires, sockets, goal zones, selection, ghost trails), particles and labels, environments, and the procedural art painters. |
 | `src/ui` | DOM screens and the in-game HUD. |
 | `src/audio` | The audio engine: one-shot effects, continuous machine loops and generative music, all synthesised. |
@@ -45,9 +45,10 @@ The central rule is that **the simulation is pure data in, data out**. A level a
 - **LevelDef** — world size and gravity, environment, `fixedObjects` (immovable scenery and machinery), `startingObjects` (part of the puzzle, not editable by the player), level `connections` (ropes, belts, wires), `inventory` (what the player may place, `-1` = unlimited), `goals`, `restrictions` (time limit, part cap) and `bonus` (ELEGANT and ABSURD targets).
 - **BuildDef** — what the player added: `objects` and `connections`. It is stored per level, separately from the level.
 - **ObjectDef** — `{ id, type, x, y, angle?, flip?, props? }`. `type` is a stable registry key; levels never refer to code.
+- **GuideStep** (optional `guide` on a level) — text, an optional pointer (a world point, a parts-bin entry or a HUD control), an optional ghost part, and an `until` trigger (`place`, `connect`, `run` or `ack`). The current step is the first whose trigger is not met, so guidance follows the build rather than a script, and it never restricts what the player can do.
 - **GoalDef** — generic primitives: `enterRegion` (with optional hold time), `contact`, `activate`, `containerCount`, `height` and `destroyed`. Selectors pick targets by id, type or tag. The engine checks whether things happened and has no idea of an "intended solution".
 
-Campaign levels are TypeScript files that export plain data plus `solutions`: reference builds used only by tests.
+Campaign levels are TypeScript files that export plain data plus `solutions`: reference builds used only by tests. Every campaign level uses the standard room (`STANDARD_WORLD`, 1120×630).
 
 ## Components
 
@@ -103,6 +104,7 @@ The simulation is deterministic for a given (level, build): the same inputs give
 
 - The HUD is DOM layered over the canvas, so text is crisp and accessible, and the canvas never has to lay out UI.
 - `PlayScreen` is shared by campaign, sandbox, level editor and test play; `cfg.kind` switches features on and off.
+- `GuideCoach` draws tutorial guidance: a DOM card and arrow, plus the ghost outline through `PlayController.guideOverlay`.
 - The level editor adds `EditorPanel` with three tabs: level settings, parts bin (inventory) and goals.
 
 ## Persistence
@@ -121,5 +123,5 @@ The simulation is deterministic for a given (level, build): the same inputs give
 ## Tests
 
 - `tests/*.test.ts` — unit tests for level parsing, session and undo, placement, scoring, saves and history; component behaviour tests; and "feel" tests (dominoes topple at realistic gaps, balls keep rolling, the robot climbs kerbs and turns at walls).
-- `tests/levels/*.test.ts` — every campaign level is solvable with its reference solutions, unsolved with an empty build, and protected against known shortcuts.
+- `tests/levels/campaign.test.ts` — every campaign level is solvable with its reference solutions, unsolved with an empty build, and protected against known shortcuts. It also checks the campaign shape (tutorial size, ten-ish missions per group) and that difficulty ramps within and across groups.
 - `e2e/*.mjs` — Playwright scripts against the production build: smoke, acceptance, and a full campaign play-through.
