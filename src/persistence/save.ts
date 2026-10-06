@@ -1,0 +1,288 @@
+// Versioned local persistence. Everything the player owns lives in one JSON document in
+// localStorage. Loading never throws: malformed data is quarantined and replaced by defaults.
+
+import { parseBuild, parseLevel } from '../core/level';
+import type { BuildDef, LevelDef } from '../core/types';
+
+export const SAVE_KEY = 'follyworks.save';
+export const SAVE_VERSION = 2;
+
+export interface Settings {
+  master: number;
+  sfx: number;
+  music: number;
+  muted: boolean;
+  /** UI text scale: 1, 1.15 or 1.3 */
+  textScale: number;
+  reducedMotion: boolean;
+  snap: boolean;
+  showForces: boolean;
+  ghostTrails: boolean;
+  unlockAll: boolean;
+  tips: boolean;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  master: 0.8,
+  sfx: 0.8,
+  music: 0.45,
+  muted: false,
+  textScale: 1,
+  reducedMotion: false,
+  snap: true,
+  showForces: false,
+  ghostTrails: true,
+  unlockAll: false,
+  tips: true,
+};
+
+export interface LevelProgress {
+  solved: boolean;
+  elegant: boolean;
+  absurd: boolean;
+  bestParts: number | null;
+  bestStages: number;
+  bestTime: number | null;
+  attempts: number;
+  solvedAt: string | null;
+}
+
+export const emptyProgress = (): LevelProgress => ({
+  solved: false,
+  elegant: false,
+  absurd: false,
+  bestParts: null,
+  bestStages: 0,
+  bestTime: null,
+  attempts: 0,
+  solvedAt: null,
+});
+
+export interface SandboxSlot {
+  id: string;
+  name: string;
+  environment: string;
+  build: BuildDef;
+  updated: string;
+}
+
+export interface SaveData {
+  version: number;
+  settings: Settings;
+  progress: Record<string, LevelProgress>;
+  /** Autosaved player machines per level id (campaign and custom). */
+  builds: Record<string, BuildDef>;
+  customLevels: LevelDef[];
+  sandboxSlots: SandboxSlot[];
+  /** Id of the custom level open in the editor, to resume. */
+  editorLevelId: string | null;
+}
+
+export const defaultSave = (): SaveData => ({
+  version: SAVE_VERSION,
+  settings: { ...DEFAULT_SETTINGS },
+  progress: {},
+  builds: {},
+  customLevels: [],
+  sandboxSlots: [],
+  editorLevelId: null,
+});
+
+/** Minimal storage interface so tests can inject a fake. */
+export interface KV {
+  getItem(k: string): string | null;
+  setItem(k: string, v: string): void;
+  removeItem(k: string): void;
+}
+
+const isObj = (v: unknown): v is Record<string, any> => !!v && typeof v === 'object' && !Array.isArray(v);
+const n01 = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : d);
+const bool = (v: unknown, d: boolean) => (typeof v === 'boolean' ? v : d);
+
+export const parseSettings = (raw: unknown): Settings => {
+  const r = isObj(raw) ? raw : {};
+  const d = DEFAULT_SETTINGS;
+  const ts = typeof r.textScale === 'number' && [1, 1.15, 1.3].includes(r.textScale) ? r.textScale : d.textScale;
+  return {
+    master: n01(r.master, d.master),
+    sfx: n01(r.sfx, d.sfx),
+    music: n01(r.music, d.music),
+    muted: bool(r.muted, d.muted),
+    textScale: ts,
+    reducedMotion: bool(r.reducedMotion, d.reducedMotion),
+    snap: bool(r.snap, d.snap),
+    showForces: bool(r.showForces, d.showForces),
+    ghostTrails: bool(r.ghostTrails, d.ghostTrails),
+    unlockAll: bool(r.unlockAll, d.unlockAll),
+    tips: bool(r.tips, d.tips),
+  };
+};
+
+const parseProgress = (raw: unknown): LevelProgress => {
+  const r = isObj(raw) ? raw : {};
+  const p = emptyProgress();
+  p.solved = bool(r.solved, false);
+  p.elegant = bool(r.elegant, false);
+  p.absurd = bool(r.absurd, false);
+  p.bestParts = typeof r.bestParts === 'number' ? r.bestParts : null;
+  p.bestStages = typeof r.bestStages === 'number' ? r.bestStages : 0;
+  p.bestTime = typeof r.bestTime === 'number' ? r.bestTime : null;
+  p.attempts = typeof r.attempts === 'number' ? Math.max(0, Math.floor(r.attempts)) : 0;
+  p.solvedAt = typeof r.solvedAt === 'string' ? r.solvedAt : null;
+  return p;
+};
+
+/** Upgrade older save versions. v1 stored custom levels as an id->level map. */
+export const migrateSave = (raw: Record<string, any>): Record<string, any> => {
+  const v = typeof raw.version === 'number' ? raw.version : 1;
+  if (v < 2) {
+    if (isObj(raw.customLevels)) raw.customLevels = Object.values(raw.customLevels);
+    raw.version = 2;
+  }
+  return raw;
+};
+
+export const parseSave = (text: string | null): { data: SaveData; recovered: boolean } => {
+  if (!text) return { data: defaultSave(), recovered: false };
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { data: defaultSave(), recovered: true };
+  }
+  if (!isObj(raw)) return { data: defaultSave(), recovered: true };
+  if (typeof raw.version === 'number' && raw.version > SAVE_VERSION) {
+    // From a newer build: keep what we understand, never crash.
+  }
+  const r = migrateSave({ ...raw });
+  const data = defaultSave();
+  let recovered = false;
+  data.settings = parseSettings(r.settings);
+  if (isObj(r.progress)) for (const [k, v] of Object.entries(r.progress)) data.progress[k] = parseProgress(v);
+  if (Array.isArray(r.customLevels)) {
+    for (const l of r.customLevels) {
+      try {
+        data.customLevels.push(parseLevel(l).level);
+      } catch {
+        recovered = true;
+      }
+    }
+  }
+  if (isObj(r.builds)) {
+    for (const [k, v] of Object.entries(r.builds)) {
+      // Builds are re-validated against their level at load time; here keep structure only.
+      if (isObj(v) && Array.isArray(v.objects) && Array.isArray(v.connections)) data.builds[k] = v as BuildDef;
+      else recovered = true;
+    }
+  }
+  if (Array.isArray(r.sandboxSlots)) {
+    for (const s of r.sandboxSlots) {
+      if (!isObj(s) || typeof s.id !== 'string') {
+        recovered = true;
+        continue;
+      }
+      data.sandboxSlots.push({
+        id: s.id,
+        name: typeof s.name === 'string' ? s.name.slice(0, 60) : 'Sandbox machine',
+        environment: typeof s.environment === 'string' ? s.environment : 'garage',
+        build: isObj(s.build) && Array.isArray(s.build.objects) ? (s.build as BuildDef) : { objects: [], connections: [] },
+        updated: typeof s.updated === 'string' ? s.updated : new Date(0).toISOString(),
+      });
+    }
+  }
+  data.editorLevelId = typeof r.editorLevelId === 'string' ? r.editorLevelId : null;
+  return { data, recovered };
+};
+
+export class SaveStore {
+  data: SaveData;
+  /** True when the stored save was damaged and had to be partially or fully reset. */
+  recovered = false;
+  private kv: KV | null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(kv?: KV | null) {
+    this.kv = kv === undefined ? safeLocalStorage() : kv;
+    let text: string | null = null;
+    try {
+      text = this.kv?.getItem(SAVE_KEY) ?? null;
+    } catch {
+      text = null;
+    }
+    const { data, recovered } = parseSave(text);
+    this.data = data;
+    this.recovered = recovered;
+    if (recovered && text) {
+      try {
+        this.kv?.setItem(`${SAVE_KEY}.corrupt-${Date.now()}`, text);
+      } catch {
+        /* storage full or unavailable: ignore */
+      }
+    }
+  }
+
+  /** Persist soon (debounced). */
+  save() {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.flush(), 250);
+  }
+
+  flush() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    try {
+      this.kv?.setItem(SAVE_KEY, JSON.stringify(this.data));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  progress(levelId: string): LevelProgress {
+    return this.data.progress[levelId] ?? emptyProgress();
+  }
+
+  setProgress(levelId: string, p: LevelProgress) {
+    this.data.progress[levelId] = p;
+    this.save();
+  }
+
+  getBuild(level: LevelDef): BuildDef | null {
+    const b = this.data.builds[level.id];
+    return b ? parseBuild(b, level) : null;
+  }
+
+  setBuild(levelId: string, build: BuildDef) {
+    this.data.builds[levelId] = build;
+    this.save();
+  }
+
+  upsertCustomLevel(level: LevelDef) {
+    const i = this.data.customLevels.findIndex((l) => l.id === level.id);
+    if (i >= 0) this.data.customLevels[i] = level;
+    else this.data.customLevels.unshift(level);
+    this.save();
+  }
+
+  deleteCustomLevel(id: string) {
+    this.data.customLevels = this.data.customLevels.filter((l) => l.id !== id);
+    delete this.data.builds[id];
+    delete this.data.progress[id];
+    if (this.data.editorLevelId === id) this.data.editorLevelId = null;
+    this.save();
+  }
+}
+
+const safeLocalStorage = (): KV | null => {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const k = '__fw_probe';
+    localStorage.setItem(k, '1');
+    localStorage.removeItem(k);
+    return localStorage;
+  } catch {
+    return null;
+  }
+};
