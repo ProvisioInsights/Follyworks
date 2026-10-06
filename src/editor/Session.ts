@@ -188,6 +188,19 @@ export class Session {
     });
   }
 
+  /** Position, angle and props in one undo step (used by the on-canvas rotate and resize handles). */
+  reshapeObject(id: string, t: { x: number; y: number; angle: number; props?: Props }) {
+    return this.commit('reshape', () => {
+      const o = this.editableObjects().find((q) => q.id === id);
+      const def = o && getComponent(o.type);
+      if (!o || !def) return false;
+      o.x = Math.round(t.x * 10) / 10;
+      o.y = Math.round(t.y * 10) / 10;
+      if (def.rotatable) o.angle = normalizeAngle(t.angle);
+      if (t.props) o.props = normalizeProps(def, { ...(o.props ?? {}), ...t.props });
+    });
+  }
+
   rotateObjects(ids: string[], delta: number) {
     return this.commit('rotate', () => {
       let any = false;

@@ -761,3 +761,45 @@ describe('Session: the editor edits the level itself', () => {
     expect(p.allConnections()).toHaveLength(2);
   });
 });
+
+describe('Rotate and resize handles', () => {
+  const plankLevel = () => {
+    const l = circuitLevel();
+    l.inventory.push({ type: 'plank', count: 2 }, { type: 'seesaw', count: 1 });
+    return l;
+  };
+
+  it('reshapes position, angle and size in one undo step, clamped to the prop range', () => {
+    const s = player(plankLevel());
+    const p = s.makeObject('plank', 400, 300);
+    s.addObject(p);
+    expect(s.reshapeObject(p.id, { x: 420.04, y: 300, angle: 0.3, props: { length: 9999 } })).toBe(true);
+    expect(s.find(p.id)).toMatchObject({ x: 420, y: 300, props: { length: 600 } });
+    expect(s.find(p.id)!.angle).toBeCloseTo(0.3, 6);
+    s.undo();
+    expect(s.find(p.id)).toMatchObject({ x: 400, y: 300, angle: 0, props: { length: 160 } });
+  });
+
+  it('never rotates a part that is not rotatable and refuses level parts', () => {
+    const s = player(plankLevel());
+    const sw = s.makeObject('seesaw', 400, 300);
+    s.addObject(sw);
+    s.reshapeObject(sw.id, { x: 400, y: 300, angle: 1, props: { length: 300 } });
+    expect(s.find(sw.id)).toMatchObject({ angle: 0, props: { length: 300 } });
+    expect(s.reshapeObject('bat', { x: 0, y: 0, angle: 1 })).toBe(false);
+  });
+
+  it('only parts whose bodies are built from a size prop offer resize handles', async () => {
+    const { allComponents } = await import('../src/components/registry');
+    for (const def of allComponents()) {
+      for (const key of Object.values(def.resize ?? {})) {
+        const spec = def.props.find((q) => q.key === key);
+        expect(spec?.type, `${def.type}.${key}`).toBe('number');
+        // the nominal footprint follows the prop, so the handles sit on the part's real edges
+        const lo = def.size({ [key]: (spec as any).min });
+        const hi = def.size({ [key]: (spec as any).max });
+        expect(hi.w * hi.h, `${def.type}.${key}`).toBeGreaterThan(lo.w * lo.h);
+      }
+    }
+  });
+});

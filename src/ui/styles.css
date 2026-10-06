@@ -662,6 +662,120 @@ input[type='checkbox'] {
   height: 100%;
   background: var(--green);
 }
+.goal-chip {
+  cursor: default;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.goal-chip .gl {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.goal-chip .gd,
+.goal-chip .dot,
+.goal-chip .gk,
+.goal-chip .bar {
+  flex: none;
+}
+.goal-chip .dot {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: calc(12px * var(--ts));
+  color: var(--green);
+}
+.goal-chip .gk {
+  display: grid;
+  place-items: center;
+  color: var(--green);
+  opacity: 0.8;
+}
+.goal-chip .gk svg {
+  stroke-width: 2.2;
+}
+.goal-chip.met .gk {
+  color: #ffe08a;
+}
+.goal-chip .gd {
+  font-family: var(--font-head);
+  font-weight: 700;
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+.goal-chip:hover {
+  background: rgba(124, 240, 160, 0.14);
+  border-color: rgba(124, 240, 160, 0.7);
+}
+
+/* numbered goal tags that sit in the room next to what each goal is about */
+.layer > .goal-tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+.goal-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 3px;
+  border-radius: 14px;
+  background: rgba(14, 22, 16, 0.86);
+  border: 1.5px solid rgba(124, 240, 160, 0.75);
+  color: var(--cream);
+  font-size: calc(12.5px * var(--ts));
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  transition: opacity 0.15s, border-color 0.15s;
+  will-change: transform;
+}
+.goal-tag::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: rgba(124, 240, 160, 0.75);
+  border-bottom: 0;
+}
+.goal-tag .n {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #0d1a10;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-head);
+  font-size: calc(12px * var(--ts));
+}
+.goal-tag .d {
+  font-family: var(--font-head);
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+.goal-tag.met {
+  border-color: #ffe08a;
+  opacity: 0.8;
+}
+.goal-tag.met::after {
+  border-top-color: #ffe08a;
+}
+.goal-tag.met .n {
+  background: #ffe08a;
+}
+.goal-tag.focus {
+  border-color: #fff;
+  background: rgba(30, 60, 40, 0.95);
+  z-index: 2;
+  box-shadow: 0 0 0 3px rgba(124, 240, 160, 0.35), 0 4px 14px rgba(0, 0, 0, 0.5);
+}
 
 .leftcol {
   position: absolute;

@@ -104,6 +104,8 @@ The simulation is deterministic for a given (level, build): the same inputs give
 
 - The HUD is DOM layered over the canvas, so text is crisp and accessible, and the canvas never has to lay out UI.
 - `PlayScreen` is shared by campaign, sandbox, level editor and test play; `cfg.kind` switches features on and off.
+- `GoalMarkers` keeps a numbered tag in the room for each goal, positioned every frame from `goalMarker` (`sim/goals.ts`); the matching chips in the top bar highlight their goal on hover through `PlayController.focusGoal`.
+- `EditorController.handles()` gives the rotate knob and resize grips of the selected part; `Overlays` draws them and the controller's `reshape` drag edits them, committing once through `Session.reshapeObject`.
 - `GuideCoach` draws tutorial guidance: a DOM card and arrow, plus the ghost outline through `PlayController.guideOverlay`.
 - The level editor adds `EditorPanel` with three tabs: level settings, parts bin (inventory) and goals.
 

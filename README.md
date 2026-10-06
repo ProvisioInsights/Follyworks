@@ -9,7 +9,8 @@ Follyworks is a 2D physics contraption puzzle game for the browser. Each puzzle 
 - **31 parts** plus three connectors (rope, drive belt, wire): balls, dominoes, planks, seesaws, trampolines, buckets, pulleys, gears, motors, conveyors, fans, balloons, candles, rockets, cannons, dynamite, magnets, batteries, switches, pressure plates, timers, logic gates, light bulbs, a boxing glove, a cactus and a small walking robot called Bolt.
 - **Three results per puzzle**: SOLVED, ELEGANT (few parts or a quick finish) and ABSURD (a long chain reaction). The results card explains each one.
 - **Rewind and timeline scrub**, pause, frame step, half-speed and quarter-speed slow motion, and exact reset.
-- **Undo/redo**, copy/paste, duplicate, rotate, flip, grid snap, pan and zoom.
+- **Undo/redo**, copy/paste, duplicate, rotate and resize handles on the selected part, flip, grid snap, pan and zoom.
+- **Numbered goals** in the top bar, each with a matching tag in the room on the thing it is about, a live count or hold timer, and a highlight when you point at it.
 - **Sandbox** with every part and no rules, plus named save slots.
 - **Level editor** with fixed and starting objects, inventory, goals, instant test-and-return, local saves, and JSON import and export.
 - All art, music and sound are generated procedurally at runtime. There are no asset files.
@@ -52,6 +53,7 @@ node e2e/smoke.mjs           # the main loop with real mouse and keyboard: place
 node e2e/acceptance.mjs      # move/rotate/duplicate/delete, pan/zoom, slow motion, frame step, exact reset,
                              # level rename/duplicate/import/delete, test-and-return, saves surviving reload, corrupt save
 node e2e/campaign.mjs        # plays every level with its reference solution in the real browser
+node e2e/transform.mjs       # rotate and resize handles by mouse, overlap refusal, in-room goal tags
 ```
 
 Each takes an optional URL argument and exits non-zero on failure. Set `SHOTS=<dir>` to save screenshots. Set `CHROMIUM=<path>` if Chromium is not at `/opt/pw-browsers/chromium`.
@@ -62,7 +64,8 @@ Each takes an optional URL argument and exits non-zero on failure. Set `SHOTS=<d
 | --- | --- |
 | Place a part | Drag from the parts bin, or click it then click the stage |
 | Move / select | Drag a part; drag on empty space to box-select |
-| Rotate | `Q` / `E` (hold `Shift` for fine steps), or Alt + wheel |
+| Rotate | Drag the round knob above the selected part, `Q` / `E` (hold `Shift` for fine steps), or Alt + wheel. Hold `Alt` while dragging the knob for 1° steps |
+| Resize | Drag the square grips on the ends of a plank, seesaw or conveyor (all four edges of a wall in the level editor); the far end stays put |
 | Flip | `F` |
 | Duplicate, copy, paste | `Ctrl+D`, `Ctrl+C`, `Ctrl+V` |
 | Delete | `Del` or `Backspace` |

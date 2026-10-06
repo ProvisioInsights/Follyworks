@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import '../src/components';
 import { parseLevel } from '../src/core/level';
 import { CAMPAIGN } from '../src/game/campaign';
-import { describeMiss } from '../src/sim/goals';
+import { describeMiss, goalMarker } from '../src/sim/goals';
 import { Simulation } from '../src/sim/Simulation';
 import { level, obj } from './helpers';
 
@@ -63,5 +63,31 @@ describe('stalled-run detection', () => {
       expect(typeof text, entry.level.id).toBe('string');
       expect(text!.length).toBeGreaterThan(10);
     }
+  });
+});
+
+describe('in-room goal tags', () => {
+  it('every campaign goal has a tag with text and a spot in the room', () => {
+    for (const entry of CAMPAIGN) {
+      const lv = parseLevel(JSON.parse(JSON.stringify(entry.level))).level;
+      const sim = new Simulation(lv, { objects: [], connections: [] }, { lenient: true });
+      lv.goals.forEach((g, i) => {
+        const m = goalMarker(g, sim);
+        expect(m.text.length, `${lv.id} goal ${i}`).toBeGreaterThan(3);
+        expect(m.at, `${lv.id} goal ${i}`).not.toBeNull();
+        expect(m.at!.x).toBeGreaterThanOrEqual(0);
+        expect(m.at!.x).toBeLessThanOrEqual(lv.world.width);
+      });
+    }
+  });
+
+  it('counts live: a container tag shows how many are inside', () => {
+    const bucket = obj('bucket', 600, 800, {}, { id: 'b' });
+    const ball = obj('ball', 600, 790, {}, { id: 'ball' });
+    const lv = level([bucket, ball], [], [{ kind: 'containerCount', container: 'b', count: 2, filter: { type: 'ball' } }]);
+    const sim = new Simulation(lv, { objects: [], connections: [] });
+    for (let i = 0; i < 60; i++) sim.step();
+    const m = goalMarker(lv.goals[0], sim, sim.goals.status[0]);
+    expect(m).toMatchObject({ text: 'Fill with balls', detail: '1/2' });
   });
 });

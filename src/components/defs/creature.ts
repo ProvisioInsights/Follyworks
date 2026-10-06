@@ -115,6 +115,7 @@ registerComponent({
   rotatable: true,
   flippable: false,
   rotationStep: 5 * DEG,
+  resize: { w: 'w', h: 'h' },
   props: [
     { key: 'w', label: 'Width', type: 'number', min: 6, max: 1600, step: 10, default: 200, unit: 'cm' },
     { key: 'h', label: 'Height', type: 'number', min: 6, max: 1200, step: 10, default: 40, unit: 'cm' },

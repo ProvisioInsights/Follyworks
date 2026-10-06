@@ -7,6 +7,7 @@ import type { Entity } from '../sim/Entity';
 import { matches } from '../sim/goals';
 import type { Simulation } from '../sim/Simulation';
 import type { Rope } from '../sim/ropes';
+import type { TransformHandles } from '../game/EditorController';
 
 export type ToolKind = 'rope' | 'belt' | 'wire';
 
@@ -43,6 +44,12 @@ export interface OverlayState {
   selectedGoal: number | null;
   /** Tutorial guidance: outlines of where a part could go, and a spot to point at. */
   guide?: { ghosts: Entity[]; point: Vec | null } | null;
+  /** Rotate / resize handles of the selected part (build mode). */
+  handles?: TransformHandles | null;
+  /** Camera zoom, so handles keep a constant on-screen size. */
+  zoom?: number;
+  /** Goal highlighted from the HUD. */
+  focusGoal?: number | null;
 }
 
 const ROPE = 0xc9a46a;
@@ -197,6 +204,55 @@ export class Overlays {
     }
     if (st.showForces) this.drawForces(tp, sim);
     if (st.guide && st.mode === 'build') this.drawGuide(tp, st.guide, st.t);
+    if (st.handles && st.mode === 'build') this.drawHandles(tp, st.handles, 1 / Math.max(0.3, st.zoom ?? 1));
+  }
+
+  /** Rotate knob on a stem above the part, and square grips on the edges that can be dragged to resize. */
+  private drawHandles(g: Phaser.GameObjects.Graphics, hs: TransformHandles, k: number) {
+    const SEL = 0x6fe3ff;
+    const INK = 0x0b0806;
+    if (hs.rotate) {
+      const { pos, base } = hs.rotate;
+      g.lineStyle(4 * k, INK, 0.5);
+      g.lineBetween(base.x, base.y, pos.x, pos.y);
+      g.lineStyle(2 * k, SEL, 0.9);
+      g.lineBetween(base.x, base.y, pos.x, pos.y);
+      g.fillStyle(INK, 0.9);
+      g.fillCircle(pos.x, pos.y, 11 * k);
+      g.fillStyle(SEL, 1);
+      g.fillCircle(pos.x, pos.y, 9 * k);
+      // a small curved arrow inside the knob
+      g.lineStyle(1.8 * k, INK, 0.95);
+      g.beginPath();
+      g.arc(pos.x, pos.y, 4.5 * k, -2.4, 1.4, false);
+      g.strokePath();
+      const ax = pos.x + Math.cos(1.4) * 4.5 * k;
+      const ay = pos.y + Math.sin(1.4) * 4.5 * k;
+      g.fillStyle(INK, 0.95);
+      g.fillTriangle(ax - 2.4 * k, ay - 0.6 * k, ax + 1.6 * k, ay - 2.2 * k, ax + 0.8 * k, ay + 2 * k);
+    }
+    for (const q of hs.resize) {
+      const ax = q.axis === 'w' ? hs.u : hs.v;
+      const bx = q.axis === 'w' ? hs.v : hs.u;
+      const corner = (s: number, t: number) => ({ x: q.pos.x + ax.x * s + bx.x * t, y: q.pos.y + ax.y * s + bx.y * t });
+      const quad = (r: number) => {
+        const pts = [corner(-r, -r), corner(r, -r), corner(r, r), corner(-r, r)];
+        g.beginPath();
+        g.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < 4; i++) g.lineTo(pts[i].x, pts[i].y);
+        g.closePath();
+        g.fillPath();
+      };
+      g.fillStyle(INK, 0.9);
+      quad(8 * k);
+      g.fillStyle(0xfff2d8, 1);
+      quad(6.5 * k);
+      // two ticks pointing the way it stretches
+      g.lineStyle(1.6 * k, INK, 0.9);
+      const a = corner(-2.6 * k, 0);
+      const b = corner(2.6 * k, 0);
+      g.lineBetween(a.x, a.y, b.x, b.y);
+    }
   }
 
   /** A pulsing translucent silhouette of each ghost part, plus a beacon on the pointed spot. */
@@ -524,7 +580,7 @@ export class Overlays {
       const status = sim.goals.status[i];
       const col = met ? 0xffe08a : GOAL;
       const pulse = 0.5 + 0.5 * Math.sin(t * 3 + i);
-      const selected = st.selectedGoal === i;
+      const selected = st.selectedGoal === i || st.focusGoal === i;
       const targets = (sel: any) => (sel ? sim.list.filter((e) => e.alive && matches(e, sel)) : []);
       const ring = (e: Entity, color: number) => {
         const b = e.body;
@@ -557,7 +613,10 @@ export class Overlays {
             g.fillStyle(col, 0.8);
             g.fillRect(r.x, r.y + r.h + 4, r.w * status.progress, 4);
           }
-          for (const e of targets(goal.target)) ring(e, col);
+          for (const e of targets(goal.target)) {
+            ring(e, col);
+            if (st.mode === 'build' && 'id' in goal.target) this.goalArrow(g, lerpPoint(e, { x: 0, y: 0 }, 0, st.alpha), r, col, t, selected);
+          }
           break;
         }
         case 'contact':
@@ -580,6 +639,42 @@ export class Overlays {
         }
       }
     });
+  }
+
+  /** A dashed curve from a goal's target to the near edge of its zone, ending in an arrow head. */
+  private goalArrow(g: Phaser.GameObjects.Graphics, from: Vec, r: { x: number; y: number; w: number; h: number }, col: number, t: number, strong: boolean) {
+    const to = { x: Math.min(r.x + r.w, Math.max(r.x, from.x)), y: Math.min(r.y + r.h, Math.max(r.y, from.y)) };
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 90) return;
+    // bow the curve upwards like a thrown arc, and trim both ends clear of the part and the zone
+    const bow = Math.min(120, len * 0.25);
+    const c = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 - bow };
+    const at = (k: number) => ({
+      x: (1 - k) * (1 - k) * from.x + 2 * (1 - k) * k * c.x + k * k * to.x,
+      y: (1 - k) * (1 - k) * from.y + 2 * (1 - k) * k * c.y + k * k * to.y,
+    });
+    const a0 = 34 / len;
+    const a1 = 1 - 10 / len;
+    const steps = Math.max(12, Math.round(len / 9));
+    const phase = (t * 0.8) % 1;
+    g.lineStyle(strong ? 3 : 2, col, strong ? 0.9 : 0.5);
+    for (let i = 0; i < steps; i++) {
+      if ((i + Math.floor(phase * 2)) % 2) continue;
+      const p = at(a0 + ((a1 - a0) * i) / steps);
+      const q = at(a0 + ((a1 - a0) * (i + 1)) / steps);
+      g.lineBetween(p.x, p.y, q.x, q.y);
+    }
+    const tip = at(a1);
+    const back = at(a1 - 14 / len);
+    const ux = tip.x - back.x;
+    const uy = tip.y - back.y;
+    const ul = Math.hypot(ux, uy) || 1;
+    const nx = -uy / ul;
+    const ny = ux / ul;
+    g.fillStyle(col, strong ? 0.95 : 0.6);
+    g.fillTriangle(tip.x + (ux / ul) * 4, tip.y + (uy / ul) * 4, back.x + nx * 6, back.y + ny * 6, back.x - nx * 6, back.y - ny * 6);
   }
 
   private dashedRect(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, phase: number) {

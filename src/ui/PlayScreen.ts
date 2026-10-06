@@ -6,15 +6,17 @@ import type { AppContext } from '../app/context';
 import type { SfxName } from '../audio/AudioEngine';
 import { CONNECTION_TOOLS, isToolType } from '../components';
 import { CATEGORY_LABELS, getComponent, paletteComponents, type Category, type PropSpec } from '../components/registry';
-import type { BuildDef, LevelDef } from '../core/types';
+import type { BuildDef, GoalDef, LevelDef } from '../core/types';
 import type { SessionKind } from '../editor/Session';
 import { PlayController } from '../game/PlayController';
+import { invalidPlacements } from '../game/placement';
 import type { AttemptResult } from '../game/scoring';
 import { paintIcon } from '../render/art/parts';
-import { goalLabel } from '../sim/goals';
+import { goalLabel, goalMarker } from '../sim/goals';
 import type { Simulation } from '../sim/Simulation';
 import { append, clear, h, icon, iconBtn, modal, plural, toast } from './dom';
 import { EditorPanel } from './EditorPanel';
+import { GoalMarkers } from './GoalMarkers';
 import { GuideCoach } from './GuideCoach';
 
 export interface PlayConfig {
@@ -67,6 +69,15 @@ const SPEEDS = [
   { v: 0.25, label: '¼×' },
 ];
 
+const GOAL_ICONS: Record<GoalDef['kind'], string> = {
+  enterRegion: 'target',
+  containerCount: 'box',
+  height: 'up',
+  activate: 'bolt',
+  destroyed: 'boom',
+  contact: 'link',
+};
+
 export class PlayScreen {
   readonly root: HTMLDivElement;
   readonly ctl: PlayController;
@@ -87,6 +98,7 @@ export class PlayScreen {
   private resizeObs: ResizeObserver | null = null;
   private dead = false;
   private guide: GuideCoach | null = null;
+  private goalTags: GoalMarkers;
 
   constructor(app: AppContext, cfg: PlayConfig) {
     this.app = app;
@@ -111,6 +123,7 @@ export class PlayScreen {
     });
     this.ctl.editor.snap = app.settings.snap;
     this.build();
+    this.goalTags = new GoalMarkers({ root: this.root, canvas: app.canvas, ctl: this.ctl, scene: app.scene });
     if (cfg.level.guide?.length && (cfg.kind === 'campaign' || cfg.kind === 'test')) {
       this.guide = new GuideCoach(cfg.level, {
         root: this.root,
@@ -141,6 +154,7 @@ export class PlayScreen {
     this.resizeObs?.disconnect();
     this.resultModal?.close();
     this.guide?.destroy();
+    this.goalTags.destroy();
     this.ctl.destroy();
     this.editorPanel?.destroy();
     this.root.remove();
@@ -170,6 +184,7 @@ export class PlayScreen {
     const back = h('button', { class: 'btn ghost small', onClick: () => this.exit(), tip: cfg.kind === 'test' ? 'Back to the editor' : 'Leave (your machine is saved)' }, icon('back'), cfg.exitLabel ?? 'Menu');
     const title = h('div', { class: 'title' }, h('span', { class: 't' }, cfg.title), h('span', { class: 'c' }, cfg.subtitle));
     this.els.goals = h('div', { class: 'goals' });
+    this.els.goals.addEventListener('pointerleave', () => (this.ctl.focusGoal = null));
     const right = h('div', { style: { display: 'flex', gap: '4px', alignItems: 'center' } });
     if (cfg.level.guide?.length && (cfg.kind === 'campaign' || cfg.kind === 'test'))
       right.append((this.els.guideBtn = iconBtn('map', 'Step-by-step guide on/off', () => this.setGuide(!this.guide?.visible))));
@@ -399,7 +414,9 @@ export class PlayScreen {
     const el = this.els.goals;
     const goals = this.session.level.goals;
     const run = this.ctl.run;
-    const key = JSON.stringify([goals.length, run?.sim.goals.status.map((s) => [s.met, Math.round(s.progress * 10)])]);
+    const sim = run?.sim ?? this.editor.buildSim;
+    const markers = goals.map((g, i) => goalMarker(g, sim, run?.sim.goals.status[i]));
+    const key = JSON.stringify([goals.map(goalLabel), run?.sim.goals.status.map((s) => [s.met, Math.round(s.progress * 10)]), markers.map((m) => m.detail)]);
     if (el.dataset.key === key) return;
     el.dataset.key = key;
     clear(el);
@@ -410,15 +427,21 @@ export class PlayScreen {
     goals.forEach((g, i) => {
       const st = run?.sim.goals.status[i];
       const met = !!st?.met;
-      el.append(
-        h(
-          'div',
-          { class: `goal-chip ${met ? 'met' : ''}`, tip: met ? 'Done!' : 'Goal' },
-          h('span', { class: 'dot' }, met ? icon('check', 12) : null),
-          goalLabel(g),
-          st && !met && st.progress > 0 ? h('span', { class: 'bar' }, h('i', { style: { width: `${Math.round(st.progress * 100)}%` } })) : null,
-        ),
+      const detail = markers[i].detail;
+      const chip = h(
+        'div',
+        { class: `goal-chip ${met ? 'met' : ''}`, tip: met ? 'Done!' : `Goal ${i + 1}: ${markers[i].text}. Point here to find it in the room.` },
+        h('span', { class: 'dot' }, met ? icon('check', 12) : String(i + 1)),
+        h('span', { class: 'gk' }, icon(GOAL_ICONS[g.kind], 14)),
+        h('span', { class: 'gl' }, goalLabel(g)),
+        detail ? h('span', { class: 'gd' }, detail) : null,
+        st && !met && st.progress > 0 ? h('span', { class: 'bar' }, h('i', { style: { width: `${Math.round(st.progress * 100)}%` } })) : null,
       );
+      chip.addEventListener('pointerenter', () => (this.ctl.focusGoal = i));
+      chip.addEventListener('pointerleave', () => {
+        if (this.ctl.focusGoal === i) this.ctl.focusGoal = null;
+      });
+      el.append(chip);
     });
   }
 
@@ -568,8 +591,7 @@ export class PlayScreen {
       const inp = h('input', { type: 'range', min: String(spec.min), max: String(spec.max), step: String(spec.step), value: String(v), 'aria-label': spec.label }) as HTMLInputElement;
       inp.addEventListener('input', () => (val.textContent = `${inp.value}${spec.unit ? ` ${spec.unit}` : ''}`));
       inp.addEventListener('change', () => {
-        this.session.setProp(id, spec.key, Number(inp.value));
-        this.checkAfterEdit(id);
+        if (this.session.setProp(id, spec.key, Number(inp.value))) this.checkAfterEdit(id);
       });
       return h('div', { class: 'row' }, h('div', { class: 'line' }, h('span', null, spec.label), val), inp);
     }
@@ -580,16 +602,20 @@ export class PlayScreen {
     }
     const sel = h('select', { 'aria-label': spec.label }, spec.options.map((o) => h('option', { value: o.value, selected: (raw ?? spec.default) === o.value }, o.label))) as HTMLSelectElement;
     sel.addEventListener('change', () => {
-      this.session.setProp(id, spec.key, sel.value);
-      this.checkAfterEdit(id);
+      if (this.session.setProp(id, spec.key, sel.value)) this.checkAfterEdit(id);
     });
     return h('div', { class: 'row' }, h('div', { class: 'line' }, h('span', null, spec.label), sel));
   }
 
-  /** A resize can make a part overlap; undo it if so. */
+  /** A size change from the panel can make a part overlap its neighbours; undo it if so. */
   private checkAfterEdit(id: string) {
-    void id;
-    // invalidPlacements is enforced on move/rotate; size changes are allowed but flagged.
+    const o = this.session.find(id);
+    if (!o) return;
+    if (invalidPlacements(this.editor.buildSim, [o], new Set([id])).length) {
+      this.session.undo();
+      this.app.sfx('error');
+      toast('No room to make it that size.', 'warn');
+    }
   }
 
   // ------------------------------------------------------------------ actions

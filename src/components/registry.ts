@@ -73,6 +73,12 @@ export interface ComponentDef {
   flippable: boolean;
   /** Snap rotation increments in radians when snapping is on. */
   rotationStep?: number;
+  /**
+   * Which number props are the part's width and height, so the editor can show drag handles to
+   * resize it. Only parts whose physics is built from these props get handles: the body is
+   * rebuilt at the new size, so nothing is scaled after the fact.
+   */
+  resize?: { w?: string; h?: string };
   props: PropSpec[];
   ports?: PortSpec[] | ((props: Props) => PortSpec[]);
   anchors?: AnchorSpec[] | ((props: Props) => AnchorSpec[]);

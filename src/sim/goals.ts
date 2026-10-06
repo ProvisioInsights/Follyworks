@@ -1,7 +1,7 @@
 // Generic goal primitives. The engine checks whether things happened; it never knows an
 // "intended solution".
 
-import type { GoalDef, Selector } from '../core/types';
+import type { GoalDef, Selector, Vec } from '../core/types';
 import { pointInRect } from '../core/util';
 import type { Entity } from './Entity';
 import type { Simulation } from './Simulation';
@@ -185,6 +185,71 @@ export const describeMiss = (sim: Simulation): string | null => {
     case 'destroyed': {
       const left = sim.select(g.target).length;
       return `${left} ${left === 1 ? 'target is' : 'targets are'} still standing.`;
+    }
+  }
+};
+
+/** A short in-room tag for one goal: where to draw it and what it says right now. */
+export interface GoalMarker {
+  /** World point the tag sits on (its bottom centre), or null when the target is gone. */
+  at: Vec | null;
+  text: string;
+  /** Live progress, e.g. "2/3" for a container or "1.4/3s" for a hold, when it applies. */
+  detail?: string;
+}
+
+const topOf = (e: Entity | undefined): Vec | null => {
+  if (!e?.alive || !e.body) return null;
+  let minY = Infinity;
+  for (const b of e.bodies) minY = Math.min(minY, b.bounds.min.y);
+  return { x: e.body.position.x, y: minY - 6 };
+};
+
+const secs = (held: number, need: number) => `${Math.min(held, need).toFixed(1)}/${need}s`;
+
+/** Authored goal labels short enough to sit on an in-room tag are used as they are. */
+const TAG_LABEL_MAX = 34;
+
+export const goalMarker = (g: GoalDef, sim: Simulation, st?: GoalStatus): GoalMarker => {
+  const m = rawMarker(g, sim, st);
+  return g.label && g.label.length <= TAG_LABEL_MAX ? { ...m, text: g.label } : m;
+};
+
+const rawMarker = (g: GoalDef, sim: Simulation, st?: GoalStatus): GoalMarker => {
+  const first = (sel: Selector) => sim.select(sel).find((e) => e.alive && e.body);
+  switch (g.kind) {
+    case 'enterRegion': {
+      const hold = g.hold ?? 0.25;
+      return {
+        at: { x: g.region.x + g.region.w / 2, y: g.region.y - 4 },
+        text: `${cap(describeSelector(g.target, sim))} here`,
+        detail: hold >= 1 && st ? secs(st.held, hold) : undefined,
+      };
+    }
+    case 'containerCount': {
+      const c = sim.entities.get(g.container);
+      const n = c?.alive && c.def.interior ? sim.countInside(c, g.filter) : 0;
+      return { at: topOf(c), text: g.filter ? `Fill with ${describeSelector(g.filter, sim).replace(/^an? /, '')}${'type' in g.filter && g.count > 1 ? 's' : ''}` : 'Fill this', detail: `${st?.met ? g.count : Math.min(n, g.count)}/${g.count}` };
+    }
+    case 'height': {
+      const e = first(g.target);
+      const x = e?.body ? Math.min(sim.bounds.w - 80, Math.max(80, e.body.position.x)) : sim.bounds.w / 2;
+      return { at: { x, y: g.maxY - 4 }, text: `Lift ${describeSelector(g.target, sim)} above this line` };
+    }
+    case 'activate': {
+      const e = first(g.target);
+      return {
+        at: topOf(e),
+        text: g.duration ? `Keep ${describeSelector(g.target, sim)} on` : `Switch ${describeSelector(g.target, sim)} on`,
+        detail: g.duration && st ? secs(st.held, g.duration) : undefined,
+      };
+    }
+    case 'destroyed':
+      return { at: topOf(first(g.target)), text: `Get rid of ${describeSelector(g.target, sim)}` };
+    case 'contact': {
+      const a = topOf(first(g.a));
+      const b = topOf(first(g.b));
+      return { at: a && b ? { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) } : a ?? b, text: 'Make these touch' };
     }
   }
 };

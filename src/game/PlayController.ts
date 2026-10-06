@@ -39,6 +39,8 @@ export class PlayController {
   private trails: Vec[][] = [];
   /** Number of runs this session (for attempts). */
   runs = 0;
+  /** Goal the player is pointing at in the top bar: its zone and tag are highlighted. */
+  focusGoal: number | null = null;
 
   constructor(scene: WorkshopScene, canvas: HTMLCanvasElement, opts: PlayOptions) {
     this.scene = scene;
@@ -133,6 +135,9 @@ export class PlayController {
       editor: this.session.editsLevel,
       selectedGoal: this.session.editsLevel ? ed.selectedGoal : null,
       guide: this.guideOverlay,
+      handles: this.mode === 'build' ? ed.handles() : null,
+      zoom: this.scene.zoom,
+      focusGoal: this.focusGoal,
     };
   }
 
