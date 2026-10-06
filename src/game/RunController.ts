@@ -158,7 +158,7 @@ export class RunController {
       if (!audio) continue;
       switch (ev.t) {
         case 'impact':
-          audio.impact(ev.matA, ev.matB, ev.speed, this.pan(ev.x));
+          audio.impact(ev.matA, ev.matB, ev.speed, this.pan(ev.x), ev.kindA, ev.kindB);
           break;
         case 'sfx':
           audio.play(ev.name as SfxName, { vol: ev.vol, pan: this.pan(ev.x) });

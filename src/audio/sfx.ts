@@ -1,7 +1,9 @@
 // One-shot sound recipes. Each recipe schedules nodes into `v.out` starting at `v.t`
 // and returns its total length in seconds (relative to v.t).
 
-import { NoiseBank, clamp, filterNode, gainNode, glide, noiseNode, oscNode, perc } from './synth';
+import { Inst } from './instruments';
+import type { MusicTheme } from './themes';
+import { NoiseBank, clamp, filterNode, gainNode, glide, midiToHz, noiseNode, oscNode, perc } from './synth';
 
 export interface Voice {
   ctx: BaseAudioContext;
@@ -10,6 +12,8 @@ export interface Voice {
   /** pitch multiplier */
   p: number;
   nb: NoiseBank;
+  /** current theme, for themed stingers */
+  theme?: MusicTheme;
 }
 
 type NoiseKind = 'white' | 'pink' | 'brown';
@@ -113,10 +117,255 @@ function tick(v: Voice, at: number, f: number, amp: number, len = 0.03): number 
   return Math.max(a, b);
 }
 
+/** Sparse crackle (fire / debris fizz) through a high-pass. */
+function crackle(v: Voice, at: number, dur: number, amp: number, hp: number): number {
+  const { ctx } = v;
+  const t = v.t + at;
+  const s = noiseNode(ctx, v.nb.crackle, t, t + dur, 1.4);
+  const f = filterNode(ctx, 'highpass', hp, 0.7);
+  const g = gainNode(ctx, 0);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(amp, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(amp * 0.001, t + dur);
+  g.gain.setValueAtTime(0, t + dur + 0.001);
+  s.connect(f).connect(g).connect(v.out);
+  return at + dur + 0.01;
+}
+
+/** Falling debris: n small wood ticks and metal pings scattered over `spread` seconds, fading. */
+function debris(v: Voice, at: number, spread: number, n: number, amp: number): number {
+  let e = 0;
+  for (let i = 0; i < n; i++) {
+    const u = Math.pow(Math.random(), 0.8);
+    const tt = at + u * spread;
+    const a = amp * (1 - 0.7 * u) * rnd(0.5, 1);
+    if (Math.random() < 0.6) {
+      const f = rnd(900, 2400);
+      e = Math.max(e, noise(v, 'white', tt, 0.012, a, 'bandpass', f, null, 3, 0.0005));
+      e = Math.max(e, tone(v, 'sine', f * 0.45, null, tt, 0.03, a * 0.5, 0.001));
+    } else {
+      e = Math.max(e, modal(v, tt, rnd(1400, 3200), [1, 2.76], [0.06, 0.03], [1, 0.4], a * 0.6));
+    }
+  }
+  return e;
+}
+
+// ---------------------------------------------------------------------------
+// Themed stingers: 'ding' (a goal met), 'success' (results card), 'goal' (level solved).
+
+const TONIC: Record<MusicTheme, number> = { modern: 53, stone: 50, steam: 48, retro: 55, comic: 46, future: 57 };
+
+function sparkle(v: Voice, at: number, len: number, amp: number): number {
+  return noise(v, 'white', at, len, amp, 'highpass', 7000, null, 0.7, 0.04);
+}
+
+function whump(v: Voice, at: number, amp: number): number {
+  return tone(v, 'sine', 90, 42, at, 0.45, amp, 0.003, 0.2);
+}
+
+/** Steam whistle: two detuned pipe tones with breath, a small upward scoop. */
+function whistle(v: Voice, at: number, len: number, m: number): number {
+  const { ctx } = v;
+  const t = v.t + at;
+  const f = midiToHz(m);
+  const end = t + len + 0.15;
+  const g = gainNode(ctx, 0);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.12, t + 0.05);
+  g.gain.setValueAtTime(0.12, t + len);
+  g.gain.exponentialRampToValueAtTime(0.0001, end);
+  g.gain.setValueAtTime(0, end + 0.001);
+  g.connect(v.out);
+  for (const r of [1, 1.26]) {
+    const o = oscNode(ctx, 'sine', f * r * 0.94, t, end);
+    o.frequency.exponentialRampToValueAtTime(f * r, t + 0.08);
+    o.connect(g);
+  }
+  const n = noise(v, 'white', at, len, 0.06, 'bandpass', f * 1.1, null, 3, 0.04);
+  return Math.max(n, at + len + 0.16);
+}
+
+/** Per-theme loudness trims (dB), measured from offline renders so every theme's stinger lands alike. */
+const STINGER_TRIM: Record<'ding' | 'success' | 'goal', Record<MusicTheme, number>> = {
+  ding: { modern: 1, stone: 0, steam: -3, retro: 6, comic: -1, future: 4 },
+  success: { modern: 0, stone: 3, steam: -3, retro: 3, comic: 0, future: -1 },
+  goal: { modern: 0, stone: 3, steam: -2, retro: 3, comic: 1, future: 0 },
+};
+
+export function stinger(v0: Voice, size: 'ding' | 'success' | 'goal'): number {
+  const th: MusicTheme = v0.theme ?? 'modern';
+  const trim = gainNode(v0.ctx, Math.pow(10, STINGER_TRIM[size][th] / 20));
+  trim.connect(v0.out);
+  const v: Voice = { ...v0, out: trim };
+  const k = new Inst(v.ctx, v.nb);
+  const o = v.out;
+  const K = TONIC[th];
+  const maj = (r: number): number[] => [r, r + 4, r + 7];
+  const at = (x: number): number => v.t + x;
+  let e = 0;
+
+  if (size === 'ding') {
+    switch (th) {
+      case 'modern':
+        return modal(v, 0, 1318.5, [1, 2.0, 2.76, 5.4, 8.93], [1.3, 0.7, 0.5, 0.2, 0.08], [1, 0.25, 0.3, 0.12, 0.05], 0.3, 0.002);
+      case 'stone':
+        k.mallet(at(0), K + 31, 0.28, o, 'kalimba');
+        k.mallet(at(0.09), K + 36, 0.3, o, 'kalimba');
+        k.logDrum(at(0), K + 7, 0.25, o);
+        return 1.2;
+      case 'steam':
+        k.mallet(at(0), K + 31, 0.28, o, 'musicbox');
+        k.mallet(at(0.1), K + 36, 0.3, o, 'musicbox');
+        k.triangleBell(at(0.1), 0.08, o);
+        return 1.8;
+      case 'retro':
+        k.lead(at(0), K + 28, 0.16, 0.06, o, 'square');
+        k.lead(at(0.07), K + 35, 0.16, 0.22, o, 'square');
+        k.lead(at(0.25), K + 35, 0.05, 0.12, o, 'square');
+        return 0.6;
+      case 'comic':
+        k.mallet(at(0), K + 31, 0.25, o, 'glock');
+        k.mallet(at(0.08), K + 36, 0.28, o, 'glock');
+        k.stab(at(0.08), maj(K + 24), 0.16, 0.12, o, 'brass');
+        return 1.5;
+      case 'future':
+        k.lead(at(0), K + 24, 0.22, 0.3, o, 'fmbell');
+        k.arp(at(0.06), K + 31, 0.12, 0.6, o);
+        k.arp(at(0.12), K + 36, 0.1, 0.7, o);
+        return 1.3;
+    }
+  }
+
+  if (size === 'success') {
+    // a short confirmation: rising tonic arpeggio + chord
+    const arp = [K + 12, K + 16, K + 19, K + 24];
+    const chord = maj(K + 12).concat([K + 24]);
+    switch (th) {
+      case 'modern':
+        arp.forEach((m, i) => { e = Math.max(e, fmPluck(v, i * 0.085, midiToHz(m + 12), 3, 1.2, 0.06, 0.26 - i * 0.02, 0.6)); });
+        chord.forEach((m, i) => k.ep(at(0.38 + i * 0.012), m, 0.12, 0.6, o));
+        k.bass(at(0.38), K - 12, 0.2, 0.7, o, 'round');
+        return Math.max(e, 2.0);
+      case 'stone':
+        arp.forEach((m, i) => k.mallet(at(i * 0.08), m + 12, 0.24, o, 'marimba'));
+        chord.forEach((m) => k.mallet(at(0.36), m + 12, 0.14, o, 'kalimba'));
+        k.logDrum(at(0.36), K, 0.3, o);
+        k.hand(at(0.36), 'bass', 0.25, o);
+        return 1.5;
+      case 'steam':
+        arp.forEach((m, i) => k.mallet(at(i * 0.09), m + 24, 0.2, o, 'musicbox'));
+        k.stab(at(0.4), chord, 0.2, 0.6, o, 'organ');
+        k.bass(at(0.4), K - 12, 0.25, 0.6, o, 'tuba');
+        return 2.0;
+      case 'retro':
+        arp.forEach((m, i) => k.lead(at(i * 0.06), m + 12, 0.13, 0.05, o, 'square'));
+        k.stab(at(0.27), chord.map((m) => m + 12), 0.16, 0.35, o, 'square');
+        k.bass(at(0.27), K - 12, 0.25, 0.35, o, 'fm');
+        k.kick(at(0.27), 0.3, o, 'machine');
+        return 1.0;
+      case 'comic':
+        k.roll(at(0), 0.3, 0.03, 0.12, o);
+        k.stab(at(0.32), chord.map((m) => m + 12), 0.25, 0.5, o, 'brass');
+        k.timpani(at(0.32), K - 12, 0.3, o);
+        k.crash(at(0.32), 0.08, o, 1.2);
+        return 1.7;
+      case 'future':
+        arp.forEach((m, i) => k.arp(at(i * 0.06), m + 12, 0.12, 0.5 + i * 0.1, o));
+        k.pad(at(0.25), chord, 0.16, 0.6, o, 'analog');
+        k.bass(at(0.25), K - 24, 0.3, 0.5, o, 'sub');
+        return 2.2;
+    }
+  }
+
+  // size === 'goal': level solved. Pickup run, a big chord hit at H, sub whump and sparkle.
+  const H = 0.55;
+  e = Math.max(whump(v, H, 0.55), sparkle(v, H, 1.0, 0.035));
+  switch (th) {
+    case 'modern': {
+      [72, 74, 77, 79, 81, 84, 86].forEach((m, i) => k.mallet(at(i * 0.07), m + (K - 53), 0.22, o, 'kalimba', (i - 3) * 0.1));
+      [K, K + 4, K + 7, K + 11, K + 14].forEach((m, i) => k.ep(at(H + i * 0.014), m, 0.13, 1.2, o));
+      k.bass(at(H), K - 12, 0.28, 1.2, o, 'round');
+      k.mallet(at(H), K + 36, 0.16, o, 'glock');
+      k.kick(at(H), 0.3, o, 'soft');
+      return Math.max(e, 2.8);
+    }
+    case 'stone': {
+      // log-drum triplet pickup, marimba run, then a marimba tremolo chord
+      [0, 7, 12].forEach((x, i) => k.logDrum(at(i * 0.1), K + 12 + x, 0.3, o, (i - 1) * 0.3));
+      [K + 14, K + 16, K + 19, K + 21, K + 24].forEach((m, i) => k.mallet(at(0.25 + i * 0.06), m + 12, 0.18, o, 'marimba'));
+      for (let r = 0; r < 8; r++) {
+        const a = 0.14 * (1 - r / 10);
+        [K + 24, K + 28, K + 31].forEach((m) => k.mallet(at(H + r * 0.07), m, a, o, 'marimba'));
+      }
+      k.mallet(at(H), K + 36, 0.22, o, 'kalimba');
+      k.bass(at(H), K - 12, 0.35, 0.8, o, 'wood');
+      k.hand(at(H), 'bass', 0.3, o);
+      k.hand(at(H + 0.15), 'slap', 0.25, o, 0.3);
+      k.rainstick(at(H), 1.4, 0.07, o);
+      return Math.max(e, 2.4);
+    }
+    case 'steam': {
+      // steam whistle, music-box run, then the calliope chord
+      e = Math.max(e, whistle(v, 0, 0.5, K + 36));
+      [K + 24, K + 28, K + 31, K + 36].forEach((m, i) => k.mallet(at(0.08 + i * 0.09), m, 0.2, o, 'musicbox'));
+      k.stab(at(H), [K + 12, K + 16, K + 19, K + 24], 0.24, 1.0, o, 'organ');
+      k.lead(at(H), K + 28, 0.16, 1.0, o, 'calliope');
+      k.bass(at(H), K - 12, 0.3, 1.0, o, 'tuba');
+      k.triangleBell(at(H), 0.1, o);
+      k.chuff(at(H + 0.2), 0.12, o, -0.3);
+      k.chuff(at(H + 0.4), 0.1, o, 0.3);
+      return Math.max(e, 2.8);
+    }
+    case 'retro': {
+      // an original "stage clear": quick square arpeggio, a held chord with a bouncing echo
+      [K + 12, K + 16, K + 19, K + 24, K + 28, K + 31].forEach((m, i) => k.lead(at(i * 0.07), m + 12, 0.12, 0.06, o, 'square'));
+      k.stab(at(H), [K + 24, K + 28, K + 31], 0.22, 0.5, o, 'square');
+      k.lead(at(H), K + 36, 0.12, 0.6, o, 'square');
+      k.stab(at(H + 0.22), [K + 24, K + 28, K + 31], 0.08, 0.3, o, 'square');
+      k.bass(at(H), K - 12, 0.3, 0.25, o, 'fm');
+      k.bass(at(H + 0.25), K, 0.22, 0.3, o, 'fm');
+      k.kick(at(H), 0.35, o, 'machine');
+      k.hat(at(H), 0.08, o, true);
+      return Math.max(e, 2.0);
+    }
+    case 'comic': {
+      // snare roll, "ta-ta-taaa!" brass, crash and timpani
+      k.roll(at(0), 0.42, 0.03, 0.16, o);
+      k.lead(at(0.3), K + 19, 0.16, 0.09, o, 'brass');
+      k.lead(at(0.42), K + 19, 0.16, 0.09, o, 'brass');
+      k.lead(at(H), K + 24, 0.2, 1.0, o, 'brass');
+      k.stab(at(H), [K + 12, K + 16, K + 19], 0.26, 1.0, o, 'brass');
+      k.timpani(at(H), K - 12, 0.35, o);
+      k.timpani(at(H + 0.3), K - 5, 0.2, o);
+      k.crash(at(H), 0.12, o, 1.8);
+      k.mallet(at(H), K + 36, 0.14, o, 'glock');
+      return Math.max(e, 2.8);
+    }
+    case 'future': {
+      // riser + 16th sweep, then a major pad (a bright resolve) with a sub drop
+      k.riser(at(0), H, 0.08, o);
+      [0, 3, 5, 7, 10, 12, 15, 17].forEach((x, i) => k.arp(at(i * 0.055), K + 12 + x, 0.11, 0.4 + i * 0.07, o, i % 2 ? 0.4 : -0.4));
+      k.pad(at(H), [K, K + 4, K + 7, K + 14], 0.26, 1.1, o, 'analog');
+      k.lead(at(H), K + 24, 0.16, 0.9, o, 'fmbell');
+      k.bass(at(H), K - 24, 0.4, 0.8, o, 'sub');
+      k.kick(at(H), 0.35, o, 'deep');
+      return Math.max(e, 3.0);
+    }
+  }
+  return e;
+}
+
 export type Recipe = (v: Voice) => number;
 
 export const RECIPES: Record<string, Recipe> = {
-  click: (v) => Math.max(tick(v, 0, 3200, 0.35, 0.025), tone(v, 'sine', 2100, 1900, 0, 0.02, 0.12)),
+  click: (v) => {
+    // crisp: bright transient, small plastic body, a hint of low "seat"
+    const a = noise(v, 'white', 0, 0.006, 0.3, 'highpass', 4200, null, 0.8, 0.0006);
+    const b = tick(v, 0, 3200, 0.3, 0.022);
+    const c = tone(v, 'sine', 2100, 1700, 0, 0.018, 0.12, 0.001, 0.015);
+    const d = tone(v, 'sine', 420, 300, 0, 0.03, 0.08, 0.001, 0.02);
+    return Math.max(a, b, c, d);
+  },
 
   uiHover: (v) => tone(v, 'sine', 1750, 1850, 0, 0.035, 0.07, 0.004),
 
@@ -131,11 +380,13 @@ export const RECIPES: Record<string, Recipe> = {
   },
 
   place: (v) => {
-    // wood-block "thock" + low body
-    const a = modal(v, 0, 470, [1, 2.71, 4.4], [0.09, 0.04, 0.02], [1, 0.35, 0.12], 0.42);
-    const b = tone(v, 'sine', 150, 105, 0, 0.11, 0.45, 0.002, 0.06);
-    const c = noise(v, 'white', 0, 0.01, 0.18, 'bandpass', 2200, null, 1.5);
-    return Math.max(a, b, c);
+    // satisfying snap: bright click, wood-block "thock", low thump, then a tiny latch "seat"
+    const a = noise(v, 'white', 0, 0.007, 0.32, 'bandpass', 3600, null, 1.6, 0.0006);
+    const b = modal(v, 0, 520, [1, 2.71, 4.4], [0.08, 0.035, 0.018], [1, 0.35, 0.12], 0.42);
+    const c = tone(v, 'sine', 160, 92, 0, 0.12, 0.55, 0.0015, 0.05);
+    const d = tick(v, 0.03, 4200, 0.13, 0.016);
+    const e = tone(v, 'sine', 1240, null, 0.03, 0.03, 0.05, 0.001);
+    return Math.max(a, b, c, d, e);
   },
 
   pickup: (v) => {
@@ -281,11 +532,15 @@ export const RECIPES: Record<string, Recipe> = {
   },
 
   boom: (v) => {
-    const a = noise(v, 'brown', 0, 1.1, 0.95, 'lowpass', 1400, 90, 0.8, 0.004);
-    const b = tone(v, 'sine', 85, 32, 0, 0.7, 0.75, 0.003, 0.5);
-    const c = noise(v, 'white', 0, 0.06, 0.25, 'lowpass', 3500, 800, 0.7);
-    const d = noise(v, 'pink', 0.05, 0.6, 0.18, 'bandpass', 500, 150, 0.8, 0.03);
-    return Math.max(a, b, c, d);
+    // sub thump + crack + rolling body + crackle + falling debris
+    const sub = tone(v, 'sine', 72, 27, 0, 0.95, 0.95, 0.002, 0.45);
+    const crack = noise(v, 'white', 0, 0.035, 0.55, 'highpass', 1200, null, 0.7, 0.0005);
+    const body = noise(v, 'brown', 0, 1.2, 0.95, 'lowpass', 1800, 90, 0.8, 0.003);
+    const mid = noise(v, 'pink', 0.03, 0.7, 0.22, 'bandpass', 600, 160, 0.8, 0.02);
+    let e = Math.max(sub, crack, body, mid);
+    e = Math.max(e, crackle(v, 0.06, 1.1, 0.35, 1300));
+    e = Math.max(e, debris(v, 0.18, 1.2, 9, 0.12));
+    return e;
   },
 
   snap: (v) => {
@@ -327,17 +582,18 @@ export const RECIPES: Record<string, Recipe> = {
   },
 
   cannon: (v) => {
-    const a = tone(v, 'sine', 120, 38, 0, 0.55, 0.85, 0.002, 0.25);
-    const b = noise(v, 'brown', 0, 0.7, 0.8, 'lowpass', 1800, 120, 0.8);
-    const c = noise(v, 'white', 0, 0.04, 0.35, 'bandpass', 1200, 500, 0.8);
+    const a = tone(v, 'sine', 120, 36, 0, 0.6, 0.9, 0.0015, 0.22);
+    const b = noise(v, 'brown', 0, 0.75, 0.8, 'lowpass', 2000, 120, 0.8);
+    const c = noise(v, 'white', 0, 0.03, 0.5, 'bandpass', 1500, 500, 0.8, 0.0005);
     const d = tone(v, 'triangle', 300, 140, 0, 0.1, 0.25, 0.001, 0.08);
-    return Math.max(a, b, c, d);
+    // the barrel rings briefly
+    const ring = modal(v, 0.005, 240, [1, 2.76, 5.1], [0.35, 0.2, 0.1], [1, 0.4, 0.15], 0.07);
+    const smoke = crackle(v, 0.05, 0.45, 0.15, 1800);
+    return Math.max(a, b, c, d, ring, smoke);
   },
 
-  ding: (v) => {
-    // small bell: inharmonic partials with longer low decay
-    return modal(v, 0, 1318.5, [1, 2.0, 2.76, 5.4, 8.93], [1.3, 0.7, 0.5, 0.2, 0.08], [1, 0.25, 0.3, 0.12, 0.05], 0.3, 0.002);
-  },
+  // goal met: a themed bell ping (see stinger())
+  ding: (v) => stinger(v, 'ding'),
 
   switch: (v) => {
     const a = tick(v, 0, 2600, 0.38, 0.025);
@@ -374,37 +630,9 @@ export const RECIPES: Record<string, Recipe> = {
     return Math.max(a, b, c, d);
   },
 
-  success: (v) => {
-    // F major kalimba arpeggio: F5 A5 C6 F6 then a soft dyad
-    const notes = [698.46, 880.0, 1046.5, 1396.9];
-    let e = 0;
-    notes.forEach((f, i) => {
-      e = Math.max(e, fmPluck(v, i * 0.085, f, 3, 1.2, 0.06, 0.26 - i * 0.02, 0.6));
-      e = Math.max(e, tone(v, 'sine', f, null, i * 0.085, 0.5, 0.1, 0.003));
-    });
-    e = Math.max(e, fmPluck(v, 0.38, 880, 1, 0.8, 0.3, 0.14, 1.1, v.out, 0.008));
-    e = Math.max(e, fmPluck(v, 0.38, 1318.5, 1, 0.6, 0.3, 0.1, 1.1, v.out, 0.008));
-    e = Math.max(e, tone(v, 'sine', 349.23, null, 0.38, 1.0, 0.16, 0.01));
-    return e;
-  },
-
-  goal: (v) => {
-    // bigger celebration: two-bar rising kalimba run, bell, warm chord
-    const run = [523.25, 587.33, 698.46, 880.0, 1046.5, 1174.7, 1396.9];
-    let e = 0;
-    run.forEach((f, i) => {
-      e = Math.max(e, fmPluck(v, i * 0.07, f, 3, 1.1, 0.05, 0.2, 0.5));
-    });
-    const tc = 0.55;
-    const chord = [349.23, 440.0, 523.25, 659.25, 880.0];
-    chord.forEach((f, i) => {
-      e = Math.max(e, fmPluck(v, tc + i * 0.012, f, 1, 1.0, 0.4, 0.1, 1.9, v.out, 0.01));
-    });
-    e = Math.max(e, modal(v, tc, 1396.9, [1, 2.0, 2.76, 5.4], [1.6, 0.9, 0.6, 0.2], [1, 0.25, 0.3, 0.1], 0.16, 0.002));
-    e = Math.max(e, tone(v, 'sine', 174.61, null, tc, 1.6, 0.25, 0.02));
-    e = Math.max(e, noise(v, 'white', tc, 0.9, 0.04, 'highpass', 7000, null, 0.7, 0.05));
-    return e;
-  },
+  // results card / level solved: themed flourishes (see stinger())
+  success: (v) => stinger(v, 'success'),
+  goal: (v) => stinger(v, 'goal'),
 
   rewind: (v) => {
     const { ctx } = v;
@@ -464,6 +692,31 @@ export const RECIPES: Record<string, Recipe> = {
     return Math.max(dur + 0.01, b, c);
   },
 
+  // --- optics (best effort; the optics parts may or may not call these)
+  laserOn: (v) => {
+    const a = tone(v, 'sawtooth', 220, 1760, 0, 0.14, 0.12, 0.002, 0.12);
+    const b = tone(v, 'sine', 330, 2640, 0, 0.16, 0.16, 0.002, 0.14);
+    const c = tone(v, 'sine', 120, 110, 0, 0.35, 0.25, 0.004);
+    const d = tone(v, 'sine', 880, null, 0.12, 0.25, 0.06, 0.02);
+    const e = noise(v, 'white', 0, 0.008, 0.18, 'highpass', 3000, null, 0.7, 0.0005);
+    return Math.max(a, b, c, d, e);
+  },
+
+  beamHit: (v) => {
+    const a = noise(v, 'white', 0, 0.07, 0.6, 'bandpass', 4200, 2200, 1.5, 0.001);
+    const b = tone(v, 'sine', 3100, 2400, 0, 0.05, 0.2, 0.001);
+    const c = tone(v, 'square', 1800, 900, 0, 0.03, 0.08, 0.001);
+    const d = tone(v, 'sine', 700, 500, 0, 0.04, 0.12, 0.001);
+    return Math.max(a, b, c, d);
+  },
+
+  sensorOn: (v) => {
+    const a = fmPluck(v, 0, 1318.5, 2, 0.7, 0.04, 0.2, 0.14);
+    const b = fmPluck(v, 0.07, 1975.5, 2, 0.7, 0.04, 0.18, 0.2);
+    const c = tick(v, 0, 3800, 0.12, 0.012);
+    return Math.max(a, b, c);
+  },
+
   splash: (v) => {
     let e = noise(v, 'white', 0, 0.35, 0.4, 'bandpass', 2600, 900, 0.6, 0.006);
     e = Math.max(e, noise(v, 'pink', 0, 0.2, 0.35, 'lowpass', 900, 300, 0.7));
@@ -492,22 +745,51 @@ export function normMaterial(m: string): Material {
   }
 }
 
-/** Synthesises one material layer of a collision. e = energy 0..1, amp = layer gain. */
-export function impactLayer(v: Voice, mat: Material, e: number, amp: number): number {
+/** What a body is, beyond its material, for impact flavour ('' when nothing special). */
+export type ImpactKind = '' | 'domino' | 'heavy' | 'ball' | 'floor';
+
+export function normKind(k: unknown): ImpactKind {
+  return k === 'domino' || k === 'heavy' || k === 'ball' || k === 'floor' ? k : '';
+}
+
+/**
+ * Synthesises one material layer of a collision: a short transient (the "click" of contact), a
+ * body (modal partials / pitched thump) and a material tail. e = energy 0..1, amp = layer gain.
+ */
+export function impactLayer(v: Voice, mat: Material, e: number, amp: number, kind: ImpactKind = ''): number {
   const bright = 0.45 + 0.55 * e;
   const j = rnd(0.94, 1.06);
+  if (kind === 'heavy') {
+    // bowling ball / cannonball: a deep thud with weight, a little floor rumble, a dull ring
+    const body = tone(v, 'sine', 95 * j, 44 * j, 0, 0.18 + 0.12 * e, amp * (0.55 + 0.35 * e), 0.002, 0.08);
+    const knock = tone(v, 'triangle', 190 * j, 120 * j, 0, 0.06, amp * 0.25 * bright, 0.001, 0.04);
+    const trans = noise(v, 'white', 0, 0.006, amp * 0.22 * bright, 'bandpass', 1400, null, 1.1, 0.0005);
+    const rumble = noise(v, 'brown', 0, 0.2 + 0.2 * e, amp * 0.45 * e, 'lowpass', 260, 120, 0.9, 0.004);
+    const ring = mat === 'metal' && e > 0.35 ? modal(v, 0, 420 * j, [1, 2.71, 5.2], [0.25, 0.15, 0.08], [1, 0.35, 0.12], amp * 0.06 * e) : 0;
+    return Math.max(body, knock, trans, rumble, ring);
+  }
+  if (kind === 'domino') {
+    // the classic clack: bright, short, slightly hollow; lower against the floor
+    const f = (mat === 'wood' ? 1150 : 900) * j;
+    const trans = noise(v, 'white', 0, 0.004, amp * 0.4 * bright, 'bandpass', 3400 * j, null, 2, 0.0004);
+    const body = modal(v, 0, f, [1, 1.73, 2.94], [0.035, 0.02, 0.012], [1, 0.45 * bright, 0.2 * bright], amp * 0.6);
+    const knock = tone(v, 'sine', 520 * j, 380 * j, 0, 0.03, amp * 0.35 * (0.3 + 0.7 * e), 0.001, 0.02);
+    return Math.max(trans, body, knock);
+  }
   switch (mat) {
     case 'wood': {
+      const trans = noise(v, 'white', 0, 0.006, amp * 0.28 * bright, 'bandpass', 2400, null, 1.4, 0.0005);
       const a = modal(v, 0, 300 * j * (1 + 0.15 * e), [1, 2.31, 4.1], [0.09, 0.045, 0.025], [1, 0.45 * bright, 0.2 * bright], amp * 0.55);
-      const b = noise(v, 'white', 0, 0.01, amp * 0.25 * bright, 'bandpass', 1900, null, 1.2);
-      const c = tone(v, 'sine', 140 * j, 100 * j, 0, 0.07, amp * 0.3 * e);
-      return Math.max(a, b, c);
+      const c = tone(v, 'sine', 140 * j, 96 * j, 0, 0.07 + 0.03 * e, amp * 0.35 * e, 0.001, 0.05);
+      return Math.max(trans, a, c);
     }
     case 'metal': {
-      const d = 0.15 + 0.35 * e;
-      const a = modal(v, 0, 620 * j, [1, 2.76, 5.4, 8.9], [d, d * 0.7, d * 0.4, d * 0.2], [1, 0.5 * bright, 0.3 * bright, 0.15 * bright], amp * 0.3);
-      const b = noise(v, 'white', 0, 0.008, amp * 0.25 * bright, 'highpass', 3000, null, 0.8);
-      return Math.max(a, b);
+      // clang: detuned partial pairs beat against each other; harder hits ring longer
+      const d = 0.18 + 0.55 * e;
+      const trans = noise(v, 'white', 0, 0.006, amp * 0.28 * bright, 'highpass', 3000, null, 0.8, 0.0004);
+      const a = modal(v, 0, 620 * j, [1, 1.007, 2.76, 2.79, 5.4, 8.9], [d, d * 0.9, d * 0.7, d * 0.6, d * 0.4, d * 0.2], [1, 0.6, 0.5 * bright, 0.3 * bright, 0.3 * bright, 0.15 * bright], amp * 0.26);
+      const thunk = tone(v, 'sine', 180 * j, 130 * j, 0, 0.06, amp * 0.3 * e, 0.001, 0.04);
+      return Math.max(trans, a, thunk);
     }
     case 'glass': {
       const d = 0.12 + 0.3 * e;
@@ -516,10 +798,27 @@ export function impactLayer(v: Voice, mat: Material, e: number, amp: number): nu
       return Math.max(a, b);
     }
     case 'rubber': {
+      // soft thump; a bouncing ball (or a hard bounce) adds a little "boing"
       const a = tone(v, 'sine', 160 * j, 85 * j, 0, 0.12, amp * 0.6, 0.004, 0.06);
       const b = noise(v, 'pink', 0, 0.05, amp * 0.25 * bright, 'lowpass', 600 * (0.6 + e), null, 1.4);
       const c = tone(v, 'sine', 320 * j, 210 * j, 0, 0.05, amp * 0.15 * e, 0.002);
-      return Math.max(a, b, c);
+      let boing = 0;
+      if (kind === 'ball' || e > 0.55) {
+        const { ctx } = v;
+        const t = v.t;
+        const dur = 0.16 + 0.14 * e;
+        const o = oscNode(ctx, 'sine', 210 * j * v.p, t, t + dur);
+        o.frequency.setValueAtTime(190 * j * v.p, t);
+        o.frequency.exponentialRampToValueAtTime(340 * j * v.p, t + dur);
+        const lfo = oscNode(ctx, 'sine', 24, t, t + dur);
+        const lg = gainNode(ctx, 30 * v.p);
+        lfo.connect(lg).connect(o.frequency);
+        const g = gainNode(ctx, 0);
+        perc(g.gain, t + 0.004, amp * 0.22 * e, 0.006, dur - 0.01);
+        o.connect(g).connect(v.out);
+        boing = dur + 0.02;
+      }
+      return Math.max(a, b, c, boing);
     }
     case 'paper': {
       const a = noise(v, 'white', 0, 0.045, amp * 0.25, 'bandpass', 3200 * j, null, 0.9, 0.003);
@@ -533,10 +832,12 @@ export function impactLayer(v: Voice, mat: Material, e: number, amp: number): nu
       return Math.max(a, b, c);
     }
     case 'stone': {
+      // thud + grit
       const a = noise(v, 'brown', 0, 0.08, amp * 0.6, 'lowpass', 700 * (0.6 + e), null, 1.0);
-      const b = tone(v, 'sine', 100 * j, 70 * j, 0, 0.1, amp * 0.45);
-      const c = noise(v, 'white', 0, 0.006, amp * 0.2 * bright, 'bandpass', 2300, null, 1.2);
-      return Math.max(a, b, c);
+      const b = tone(v, 'sine', 100 * j, 66 * j, 0, 0.1, amp * 0.45, 0.002, 0.06);
+      const c = noise(v, 'white', 0, 0.006, amp * 0.2 * bright, 'bandpass', 2300, null, 1.2, 0.0005);
+      const grit = e > 0.4 ? crackle(v, 0.002, 0.05 + 0.05 * e, amp * 0.25 * e, 2500) : 0;
+      return Math.max(a, b, c, grit);
     }
   }
 }

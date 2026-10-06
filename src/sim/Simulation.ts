@@ -27,7 +27,7 @@ export type FxKind =
   | 'bounce';
 
 export type SimEvent =
-  | { t: 'impact'; x: number; y: number; speed: number; matA: string; matB: string }
+  | { t: 'impact'; x: number; y: number; speed: number; matA: string; matB: string; kindA?: string; kindB?: string }
   | { t: 'activate'; key: string; label: string; domain: string; x: number; y: number }
   | { t: 'sfx'; name: string; x: number; y: number; vol?: number }
   | { t: 'fx'; kind: FxKind; x: number; y: number; dx?: number; dy?: number; scale?: number }
@@ -69,6 +69,8 @@ export interface SimOptions {
 
 const MATERIALS = ['metal', 'wood', 'rubber', 'glass', 'paper', 'robot', 'stone'];
 const materialOf = (e: Entity | null) => (e ? e.def.tags.find((t) => MATERIALS.includes(t)) ?? 'wood' : 'stone');
+/** Audio flavour for impacts: dominoes clack, heavy balls thud; null = the room itself. */
+const impactKindOf = (e: Entity | null) => (!e ? 'floor' : e.def.tags.includes('domino') ? 'domino' : e.def.tags.includes('heavy') ? 'heavy' : e.def.tags.includes('ball') ? 'ball' : '');
 
 const SUBSTEPS = 2;
 
@@ -557,7 +559,7 @@ export class Simulation {
     // approaching speed of b towards a along normal (a->b): negative dot means approaching
     const approach = -(rvx * c.normal.x + rvy * c.normal.y);
     if (!c.isSensor && approach > 1.2) {
-      this.emit({ t: 'impact', x: c.point.x, y: c.point.y, speed: approach, matA: materialOf(c.a), matB: materialOf(c.b) });
+      this.emit({ t: 'impact', x: c.point.x, y: c.point.y, speed: approach, matA: materialOf(c.a), matB: materialOf(c.b), kindA: impactKindOf(c.a), kindB: impactKindOf(c.b) });
     }
     // Two loose things knocking into each other is a stage of the chain reaction ("Ball hit the crate").
     if (!c.isSensor && approach > 1.5 && c.a && c.b && !ba.isStatic && !bb.isStatic) {
