@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { AudioEngine, type SfxName } from '../audio/AudioEngine';
 import { blankLevel, parseBuild } from '../core/level';
+import { themeFor, type ThemeId, type ThemeSetting } from '../core/themes';
 import { deepClone } from '../core/util';
 import { emptyBuild, type BuildDef, type LevelDef } from '../core/types';
 import { CAMPAIGN, CHAPTERS, levelCode } from '../game/campaign';
@@ -25,6 +26,11 @@ export class App implements AppContext {
   private screen: Screen | null = null;
   private play: PlayScreen | null = null;
   private demo: { run: RunController; unhook: () => void; doneAt: number } | null = null;
+  /** Chapter whose era picks the theme on 'auto' (undefined: sandbox, editor, custom levels). */
+  private themeChapter: number | undefined = undefined;
+  /** Theme picked in the sandbox or editor for this visit only (overrides the setting there). */
+  private sessionTheme: ThemeSetting = 'auto';
+  private musicTheme: ThemeId | null = null;
 
   constructor() {
     this.ui = document.getElementById('ui')!;
@@ -100,6 +106,41 @@ export class App implements AppContext {
       this.scene.env.reducedMotion = s.reducedMotion;
     }
     if (this.play) this.play.ctl.editor.snap = s.snap;
+    this.refreshTheme();
+  }
+
+  // ------------------------------------------------------------------ themes
+
+  /** The theme in force right now: session pick, else the setting, else the era of the chapter. */
+  get theme(): ThemeId {
+    return themeFor(this.themeChapter, this.sessionTheme !== 'auto' ? this.sessionTheme : this.settings.theme);
+  }
+
+  /** Called on a screen change, before the new screen sets its sim and room. */
+  private setThemeContext(chapter: number | undefined, session: ThemeSetting = 'auto') {
+    this.themeChapter = chapter;
+    this.sessionTheme = session;
+    this.refreshTheme(true);
+  }
+
+  /** Sandbox / editor theme picker: applies to this visit only. */
+  setSessionTheme(t: ThemeSetting) {
+    this.sessionTheme = t;
+    this.refreshTheme();
+  }
+
+  private refreshTheme(deferred = false) {
+    const id = this.theme;
+    document.documentElement.dataset.theme = id;
+    if (this.scene && this.scene.currentTheme !== id) {
+      this.scene.setTheme(id, deferred);
+      this.play?.refreshTheme();
+    }
+    if (this.musicTheme !== id) {
+      this.musicTheme = id;
+      // Provided by the audio engine when themed music is available.
+      (this.audio as any).setMusicTheme?.(id);
+    }
   }
 
   openSettings() {
@@ -123,6 +164,7 @@ export class App implements AppContext {
 
   showMenu() {
     this.teardown();
+    this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = mainMenu(this);
     this.audio.setMusicIntensity(0.2);
@@ -130,12 +172,14 @@ export class App implements AppContext {
 
   showCampaign() {
     this.teardown();
+    this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = campaignScreen(this);
   }
 
   showLevels() {
     this.teardown();
+    this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = levelsScreen(this, () => this.showLevels());
   }
@@ -149,6 +193,7 @@ export class App implements AppContext {
     const entry = CAMPAIGN[index];
     if (!entry) return this.showCampaign();
     this.teardown();
+    this.setThemeContext(entry.chapter);
     const level = entry.level;
     const build = this.store.getBuild(level) ?? emptyBuild();
     const chapter = CHAPTERS.find((c) => c.index === entry.chapter);
@@ -172,6 +217,7 @@ export class App implements AppContext {
     const level = this.store.data.customLevels.find((l) => l.id === levelId);
     if (!level) return this.showLevels();
     this.teardown();
+    this.setThemeContext(undefined);
     this.play = new PlayScreen(this, {
       kind: 'custom',
       level,
@@ -189,7 +235,9 @@ export class App implements AppContext {
   editLevel(levelId: string, restore?: { level: LevelDef }) {
     const stored = this.store.data.customLevels.find((l) => l.id === levelId);
     if (!stored) return this.showLevels();
+    const keep = this.sessionTheme;
     this.teardown();
+    this.setThemeContext(undefined, restore ? keep : 'auto');
     const level = restore?.level ?? stored;
     this.store.data.editorLevelId = levelId;
     this.play = new PlayScreen(this, {
@@ -205,6 +253,7 @@ export class App implements AppContext {
         this.store.upsertCustomLevel(deepClone(l));
       },
       onTest: (l) => this.testLevel(levelId, deepClone(l)),
+      theme: { value: () => this.sessionTheme, set: (t) => this.setSessionTheme(t) },
     });
   }
 
@@ -226,7 +275,9 @@ export class App implements AppContext {
   }
 
   openSandbox(slotId?: string) {
+    const keep = this.play?.cfgKind === 'sandbox' ? this.sessionTheme : 'auto';
     this.teardown();
+    this.setThemeContext(undefined, keep);
     const slot = slotId ? this.store.data.sandboxSlots.find((s) => s.id === slotId) : null;
     const auto = this.store.data.sandboxSlots.find((s) => s.id === 'autosave');
     const src = slot ?? auto;
@@ -255,6 +306,7 @@ export class App implements AppContext {
           this.openSandbox();
         },
       },
+      theme: { value: () => this.sessionTheme, set: (t) => this.setSessionTheme(t) },
     });
   }
 
@@ -316,12 +368,21 @@ export class App implements AppContext {
 
   // ------------------------------------------------------------------ attract mode
 
-  private startDemo() {
-    if (this.demo) return;
-    const pick =
+  private demoPick() {
+    return (
       [...CAMPAIGN].reverse().find((c) => c.chapter === CHAPTERS[CHAPTERS.length - 1].index && c.solutions.length) ??
       [...CAMPAIGN].reverse().find((c) => c.solutions.length) ??
-      null;
+      null
+    );
+  }
+
+  private demoChapter() {
+    return this.demoPick()?.chapter;
+  }
+
+  private startDemo() {
+    if (this.demo) return;
+    const pick = this.demoPick();
     if (!pick) return;
     const level = deepClone(pick.level);
     const build = deepClone(pick.solutions[0]);

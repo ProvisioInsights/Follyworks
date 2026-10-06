@@ -11,7 +11,9 @@ import type { SessionKind } from '../editor/Session';
 import { PlayController } from '../game/PlayController';
 import { invalidPlacements } from '../game/placement';
 import type { AttemptResult } from '../game/scoring';
+import { THEMES, type ThemeId, type ThemeSetting } from '../core/themes';
 import { paintIcon } from '../render/art/parts';
+import { skinCanvas } from '../render/skin';
 import { goalLabel, goalMarker } from '../sim/goals';
 import type { Simulation } from '../sim/Simulation';
 import { append, clear, h, icon, iconBtn, modal, plural, toast } from './dom';
@@ -38,28 +40,27 @@ export interface PlayConfig {
   onReturn?: () => void;
   exitLabel?: string;
   sandbox?: { onSave: (name: string, build: BuildDef, env: string) => void; onLoad: () => void; onEnv: (env: string) => void };
+  /** Sandbox / editor: a theme picker in the top bar for this visit. */
+  theme?: { value: () => ThemeSetting; set: (t: ThemeSetting) => void };
 }
 
-const iconCache = new Map<string, string>();
-const iconFor = (type: string, size = 112): HTMLCanvasElement => {
-  const key = `${type}:${size}`;
+/** Painted parts-bin icons per theme (small canvases; drawn synchronously from the cache). */
+const iconCache = new Map<string, HTMLCanvasElement>();
+const iconFor = (type: string, theme: ThemeId = 'modern', size = 112): HTMLCanvasElement => {
+  const key = `${type}:${size}:${theme}`;
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  const cached = iconCache.get(key);
   const ctx = c.getContext('2d')!;
-  if (cached) {
-    const img = new Image();
-    img.onload = () => ctx.drawImage(img, 0, 0);
-    img.src = cached;
-    return c;
+  let src = iconCache.get(key);
+  if (!src) {
+    try {
+      src = skinCanvas(paintIcon(type, {}, size), theme, type, size / 56, true);
+      iconCache.set(key, src);
+    } catch {
+      return c; // art not available: leave blank
+    }
   }
-  try {
-    const src = paintIcon(type, getComponent(type) ? {} : {}, size);
-    ctx.drawImage(src, 0, 0, size, size);
-    iconCache.set(key, c.toDataURL());
-  } catch {
-    /* art not available: leave blank */
-  }
+  ctx.drawImage(src, 0, 0, size, size);
   return c;
 };
 
@@ -146,6 +147,15 @@ export class PlayScreen {
     app.audio.setMusicIntensity(0.3);
   }
 
+  get cfgKind() {
+    return this.cfg.kind;
+  }
+
+  /** The theme changed: repaint the parts-bin icons (the scene reskins itself). */
+  refreshTheme() {
+    if (!this.dead) this.renderBin();
+  }
+
   destroy() {
     this.dead = true;
     cancelAnimationFrame(this.raf);
@@ -202,6 +212,15 @@ export class PlayScreen {
         h('button', { class: 'btn small', onClick: () => this.sandboxSave() }, 'Save'),
         h('button', { class: 'btn small', onClick: () => cfg.sandbox!.onLoad() }, 'Load'),
       );
+    }
+    if (cfg.theme) {
+      const pick = h(
+        'select',
+        { 'aria-label': 'Theme', tip: 'Theme for this visit (Settings sets it everywhere)', onChange: (e: Event) => cfg.theme!.set((e.target as HTMLSelectElement).value as ThemeSetting) },
+        h('option', { value: 'auto', selected: cfg.theme.value() === 'auto' }, 'Theme: as Settings'),
+        ...THEMES.map((t) => h('option', { value: t.id, selected: cfg.theme!.value() === t.id }, t.name)),
+      );
+      right.append(pick);
     }
     if (isEditor && cfg.onTest)
       right.append(h('button', { class: 'btn go small', onClick: () => cfg.onTest!(this.session.level), tip: 'Play your level exactly as a player would' }, icon('play'), 'Test'));
@@ -492,7 +511,7 @@ export class PlayScreen {
           tip: `<b>${name}</b><br>${desc}${empty ? '<br><i>None left</i>' : ''}`,
           'aria-label': `${name}${r.remaining >= 0 ? `, ${r.remaining} left` : ''}`,
         },
-        iconFor(r.type),
+        iconFor(r.type, this.app.scene.currentTheme),
         h('span', { class: 'n' }, name),
         unlimited || r.remaining < 0 ? null : h('span', { class: 'count' }, String(r.remaining)),
       );
