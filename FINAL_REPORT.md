@@ -105,7 +105,7 @@ All numbers are from the final state of the code.
     - settings and progress surviving a reload;
     - the editor's test-and-return; level rename, duplicate, import (including bad JSON) and delete;
     - a corrupt save booting cleanly and being kept aside.
-  - `e2e/campaign.mjs` loads all 25 levels in the browser, plays a reference solution and records the SOLVED/ELEGANT/ABSURD stamps and any console errors. It was run twice: with the simplest solutions, all 25 solve and none earns ABSURD; with the ABSURD builds, all 25 solve and all 20 campaign levels earn ABSURD. Neither run had console errors.
+  - `e2e/campaign.mjs` loads all 56 missions in the browser, plays a reference solution and records the SOLVED/ELEGANT/ABSURD stamps and any console errors. It was run twice: with the simplest solutions, all 56 solve; with the ABSURD builds, all 56 solve and all 50 group missions earn ABSURD. Neither run had console errors.
   - Final runs: smoke 16/16 checks, acceptance 24/24 checks.
 - **A fast-bounce bug found while authoring ABSURD builds.** A contact that began and ended inside one tick was missed, so a trampoline could act as a plain block depending on sub-pixel placement. It is fixed and covered by a regression test.
 - **Visual inspection**: screenshots of every screen and of all levels, reviewed by me during development. They found and drove fixes for:
