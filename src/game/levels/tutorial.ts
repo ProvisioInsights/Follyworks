@@ -246,7 +246,6 @@ const t6: CampaignEntry = {
     environment: 'garage',
     world: WORLD,
     fixedObjects: [
-      o('t6-ramp', 'plank', 220, 360, { length: 300 }, NOTCH),
       o('t6-battery', 'battery', 120, 601),
       o('t6-switch', 'toggle_switch', 320, 389, {}, NOTCH),
       o('t6-shelf', 'wall', 700, 400, { w: 240, h: 14, material: 'wood' }),
@@ -263,10 +262,10 @@ const t6: CampaignEntry = {
     ],
     goals: [{ kind: 'enterRegion', target: { id: 't6-ball' }, region: { x: 907, y: 520, w: 126, h: 110 }, hold: 0.5, label: 'Blow the shelf ball into the bin' }],
     restrictions: { timeLimit: 20 },
-    bonus: { elegantParts: 1, elegantTime: 4, absurdStages: 0 },
+    bonus: { elegantParts: 2, elegantTime: 4, absurdStages: 0 },
     hints: [
       'The fan only blows while it has power, and nothing is wired to it yet.',
-      'Wire the switch’s OUT to the fan’s IN, then drop a ball on the ramp so it rolls through the switch.',
+      'Wire the switch’s OUT to the fan’s IN, then build a ramp down to the switch and drop a ball on it.',
     ],
     guide: [
       {
@@ -277,7 +276,12 @@ const t6: CampaignEntry = {
     ],
     metadata: meta(6, 'Ball, switch, fan, bin. A real machine!'),
   },
-  solutions: [{ objects: [o('ball-a', 'ball', 110, 250)], connections: [wire('wire-a', 't6-switch', 'out', 't6-fan', 'in')] }],
+  solutions: [
+    {
+      objects: [o('plank-a', 'plank', 220, 360, { length: 300 }, NOTCH), o('ball-a', 'ball', 110, 250)],
+      connections: [wire('wire-a', 't6-switch', 'out', 't6-fan', 'in')],
+    },
+  ],
 };
 
 export const TUTORIAL: CampaignEntry[] = [t1, t2, t3, t4, t5, t6];
