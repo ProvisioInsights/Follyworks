@@ -33,6 +33,11 @@ export function clear(el: HTMLElement) {
 }
 
 const P: Record<string, string> = {
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
+  bolt: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
+  up: '<path d="M12 19V6"/><path d="m6 11 6-6 6 6"/><path d="M4 21h16"/>',
+  boom: '<path d="m12 3 1.8 5 5-2-2.6 4.6L21 13l-5 1 1 5-4.2-3L9 20l-.6-5-5 .4L7.2 12 3.6 8.6l5.2.4z"/>',
+  link: '<path d="M9.5 14.5 14.5 9.5"/><path d="M11 6.5 13 4.5a4 4 0 0 1 5.6 5.6l-2 2"/><path d="M13 17.5 11 19.5a4 4 0 0 1-5.6-5.6l2-2"/>',
   play: '<path d="M7 4.5v15l12.5-7.5z" fill="currentColor" stroke="none"/>',
   pause: '<rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/>',
   reset: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>',

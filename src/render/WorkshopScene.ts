@@ -3,12 +3,14 @@
 // Controllers drive it through setSim / setOverlay / frame callbacks.
 
 import Phaser from 'phaser';
+import type { ThemeId } from '../core/themes';
 import type { Vec } from '../core/types';
 import type { Entity } from '../sim/Entity';
 import type { Simulation, SimEvent } from '../sim/Simulation';
 import { EnvironmentView } from './Environment';
 import { Fx } from './Fx';
 import { Overlays, type OverlayState } from './Overlays';
+import { roomFor } from './skin';
 import { TextureBank } from './TextureBank';
 import { EntityView } from './views';
 
@@ -30,6 +32,9 @@ export class WorkshopScene extends Phaser.Scene {
   private views = new Map<string, EntityView>();
   private sim: Simulation | null = null;
   private envId = '';
+  /** The level's own environment id; the room shown may be the theme's instead. */
+  private levelEnv = 'garage';
+  private theme: ThemeId = 'modern';
   insets: Insets = { top: 60, right: 20, bottom: 110, left: 20 };
   /** Fitted zoom for the current world; user zoom is relative to it. */
   private fitZoom = 1;
@@ -74,7 +79,9 @@ export class WorkshopScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ world + sim
 
-  setEnvironment(id: string, w: number, h: number) {
+  setEnvironment(levelEnv: string, w: number, h: number) {
+    this.levelEnv = levelEnv;
+    const id = roomFor(this.theme, levelEnv);
     const changedSize = w !== this.worldW || h !== this.worldH;
     this.worldW = w;
     this.worldH = h;
@@ -85,6 +92,33 @@ export class WorkshopScene extends Phaser.Scene {
     }
     if (changedSize) this.resetView();
     this.applyCamera();
+  }
+
+  get currentTheme(): ThemeId {
+    return this.theme;
+  }
+
+  /**
+   * Reskin the room and the parts. Purely visual: the simulation is untouched, and the old theme's
+   * textures are released. Views of the current simulation are rebuilt with the new skin.
+   * With `deferred` (a screen change is about to set a new sim and room) nothing is repainted
+   * now: the old views are dropped and the next setSim / setEnvironment paints in the new theme.
+   */
+  setTheme(theme: ThemeId, deferred = false) {
+    if (theme === this.theme) return;
+    this.theme = theme;
+    if (deferred) {
+      for (const v of this.views.values()) v.destroy();
+      this.views.clear();
+      this.sim = null;
+      this.bank?.setTheme(theme);
+      return;
+    }
+    if (this.bank) {
+      this.bank.setTheme(theme);
+      if (this.sim) this.setSim(this.sim);
+    }
+    if (this.env && this.envId) this.setEnvironment(this.levelEnv, this.worldW, this.worldH);
   }
 
   /** Show a simulation. Views are rebuilt (textures are cached, so this is cheap). */

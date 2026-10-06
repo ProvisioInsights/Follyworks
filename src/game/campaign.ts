@@ -7,13 +7,14 @@ import { GROUP_2 } from './levels/group2';
 import { GROUP_3 } from './levels/group3';
 import { GROUP_4 } from './levels/group4';
 import { GROUP_5 } from './levels/group5';
+import { GROUP_6 } from './levels/group6';
 import { TUTORIAL } from './levels/tutorial';
 import { CHAPTERS, type CampaignEntry } from './levels/types';
 
 export { CHAPTERS };
 export type { CampaignEntry };
 
-export const CAMPAIGN: CampaignEntry[] = [...TUTORIAL, ...GROUP_1, ...GROUP_2, ...GROUP_3, ...GROUP_4, ...GROUP_5];
+export const CAMPAIGN: CampaignEntry[] = [...TUTORIAL, ...GROUP_1, ...GROUP_2, ...GROUP_3, ...GROUP_4, ...GROUP_5, ...GROUP_6];
 
 export const campaignIndex = (id: string) => CAMPAIGN.findIndex((c) => c.level.id === id);
 

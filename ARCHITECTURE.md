@@ -34,7 +34,8 @@ The central rule is that **the simulation is pure data in, data out**. A level a
 | `src/components` | The component registry and every part definition (`defs/basic, mechanical, force, chaos, control, creature`). `kit.ts` holds shared body builders. |
 | `src/sim` | `Simulation`, `Entity`, and the subsystems: electricity (`power.ts`), the gear/belt rotation network (`rotation.ts`), ropes and pulleys (`ropes.ts`), goal evaluation (`goals.ts`), rewind snapshots (`history.ts`) and the Matter import and patch (`matter.ts`). |
 | `src/editor` | `Session` (the editable document plus undo/redo) and inventory rules. |
-| `src/game` | Controllers (`PlayController`, `EditorController`, `RunController`), placement validation, scoring, tutorial guidance logic (`guide.ts`), and the campaign (`levels/tutorial.ts`, `levels/group1.ts`–`group5.ts`). |
+| `src/game` | Controllers (`PlayController`, `EditorController`, `RunController`), placement validation, scoring, tutorial guidance logic (`guide.ts`), and the campaign (`levels/tutorial.ts`, `levels/group1.ts`–`group5.ts`). The Physics Lab (`levels/lab.ts`) is a separate list in the same entry shape, outside `CAMPAIGN`. |
+| `src/content` | Pure teaching content: the science cards and part-to-concept map (`science.ts`) and the run-concept picker that reads chain stages (`runConcepts.ts`). |
 | `src/render` | The Phaser scene, entity views, overlays (ropes, wires, sockets, goal zones, selection, ghost trails), particles and labels, environments, and the procedural art painters. |
 | `src/ui` | DOM screens and the in-game HUD. |
 | `src/audio` | The audio engine: one-shot effects, continuous machine loops and generative music, all synthesised. |
@@ -48,7 +49,7 @@ The central rule is that **the simulation is pure data in, data out**. A level a
 - **GuideStep** (optional `guide` on a level) — text, an optional pointer (a world point, a parts-bin entry or a HUD control), an optional ghost part, and an `until` trigger (`place`, `connect`, `run` or `ack`). The current step is the first whose trigger is not met, so guidance follows the build rather than a script, and it never restricts what the player can do.
 - **GoalDef** — generic primitives: `enterRegion` (with optional hold time), `contact`, `activate`, `containerCount`, `height` and `destroyed`. Selectors pick targets by id, type or tag. The engine checks whether things happened and has no idea of an "intended solution".
 
-Campaign levels are TypeScript files that export plain data plus `solutions`: reference builds used only by tests. Every campaign level uses the standard room (`STANDARD_WORLD`, 1120×630).
+Campaign levels are TypeScript files that export plain data plus `solutions`: reference builds used by tests, and in the game only to derive Easy and Hard (`game/difficulty.ts`, a pure `applyDifficulty(entry, d)`) and to feed the hint ladder (`game/hints.ts`: nudge, parts list, then ghost outlines drawn through `PlayController.hintGhosts` alongside the tutorial guide overlay). Every campaign level uses the standard room (`STANDARD_WORLD`, 1120×630).
 
 ## Components
 
@@ -76,8 +77,10 @@ Adding a part means adding one definition plus its art in `render/art/parts.ts` 
 5. Run two Matter substeps of 1/120 s each, re-applying component forces for the second.
 6. Solve ropes (four velocity iterations), then report rope tension to the parts at each end.
 7. Collect contacts and fire `onCollide` (with the pre-step approach speed). The first meaningful activation of each part becomes a chain-reaction stage.
-8. Run each `afterStep` (sensors), spread heat, and cull anything that fell out of the world.
+8. Run each `afterStep` (sensors), trace laser beams (`sim/optics.ts`), spread heat, and cull anything that fell out of the world.
 9. Advance the clock and evaluate goals.
+
+Beams are a per-tick raycast, not bodies: `traceBeams` follows each firing laser through the polygon vertices of every body tagged `plugin.optic` (mirrors reflect, splitters fork, prisms bend and fan by colour, filters mask the colour bitmask, lenses steer toward the focal point, light sensors light up) and stops on any other solid, non-sensor body, with a 160-segment and depth-32 cap. Lit targets build up a heat dwell and get `onHeat` after 0.25 s, and ropes a beam crosses burn through. The result is kept in `sim.beams` for `render/Overlays.ts` to draw. Beams are never snapshotted: the history restores entity state (including the dwell) and `restore()` re-traces them from the restored world.
 
 The simulation is deterministic for a given (level, build): the same inputs give the same run, tick for tick. Tests rely on this, and so does rewind.
 
@@ -97,6 +100,9 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - `WorkshopScene` draws whatever simulation it is handed. It interpolates poses between ticks and manages the camera (fit to the world inside the HUD insets, plus user pan and zoom).
 - Entity sprites are layered textures from `TextureBank`, which paints each texture once with Canvas 2D (`render/art/*`) and caches it by key and parameters.
 - Environments are three layers: a painted far wall, an additive light pass, and a near-layer silhouette frame kept outside the play area.
+- Themes (`core/themes.ts`): `App.theme` resolves the session pick (sandbox/editor), then `settings.theme`, then the era of the chapter (`CHAPTER_THEME`). `App.refreshTheme` sets `<html data-theme>` for the HUD CSS, calls `WorkshopScene.setTheme` and the audio engine's optional `setMusicTheme`.
+- Part skins (`render/skin.ts`) are applied by `TextureBank` at paint time: the painted canvas is graded per theme (posterize and ink lines, halftone, earthy grain, brass and rivets, neon rim) with alpha left untouched, and cached under `key@theme`. The rim halo style is per theme too. On a theme change the bank removes every texture it painted, so only one theme's art is in GPU memory. Glow overlays and `fx_` sprites are left raw. Bin icons use the same `skinCanvas`.
+- Theme rooms (`render/art/envThemes.ts`: cave, foundry, toolbox, rooftop, neonlab) are ordinary `EnvDef`s. `roomFor(theme, levelEnv)` picks the room; Modern keeps the level's own environment. On a screen change the repaint is deferred to the next `setSim` / `setEnvironment`.
 - Particles and labels (`Fx.ts`) are pooled and hard-capped.
 - Phaser runs with `maxTextures: 1` (see DECISIONS.md).
 
@@ -104,24 +110,33 @@ The simulation is deterministic for a given (level, build): the same inputs give
 
 - The HUD is DOM layered over the canvas, so text is crisp and accessible, and the canvas never has to lay out UI.
 - `PlayScreen` is shared by campaign, sandbox, level editor and test play; `cfg.kind` switches features on and off.
+- `GoalMarkers` keeps a numbered tag in the room for each goal, positioned every frame from `goalMarker` (`sim/goals.ts`); the matching chips in the top bar highlight their goal on hover through `PlayController.focusGoal`.
+- `EditorController.handles()` gives the rotate knob and resize grips of the selected part; `Overlays` draws them and the controller's `reshape` drag edits them, committing once through `Session.reshapeObject`.
 - `GuideCoach` draws tutorial guidance: a DOM card and arrow, plus the ghost outline through `PlayController.guideOverlay`.
+- `ui/science.ts` builds the "How it works" section in the properties panel and the "Physics in your machine" chips on the results card; `ui/lab.ts` has the lab list and lesson intro (passed to `PlayScreen` as `briefIntro`). Their styles are in `ui/science.css`.
 - The level editor adds `EditorPanel` with three tabs: level settings, parts bin (inventory) and goals.
 
 ## Persistence
 
-`persistence/save.ts` keeps one JSON document, `follyworks.save`, with a `version` field. It holds settings, per-level progress, the autosaved build for each level, custom levels, sandbox slots and the level last open in the editor.
+`persistence/save.ts` keeps one JSON document, `follyworks.save`, with a `version` field. It holds settings, per-level progress, the autosaved build for each level, custom levels, sandbox slots, the level last open in the editor and the lab lesson last played (`lab`, absent in older saves and filled in on load). Lab lessons keep their progress and builds under their `lab-` level ids like any level.
 
-- Loading never throws. Unknown or broken fields fall back to defaults field by field.
+- Progress is kept per difficulty (`byDifficulty.easy/normal/hard`) beside the aggregate fields; saves from before difficulties load as Normal. Builds for Easy and Hard autosave under `<id>@easy` / `<id>@hard`.
+- Loading never throws. Unknown or broken fields fall back to defaults field by field (an unknown `settings.theme` becomes `'auto'`).
 - An unreadable document is copied aside to `follyworks.save.corrupt-<time>` before defaults are used.
 - Writes are debounced and flushed on page unload.
 
 ## Audio
 
-- `AudioEngine` builds a small Web Audio graph (effects, loops and music buses into a compressor) and synthesises everything: impacts chosen by material pair and speed, continuous loops for motors, fans, conveyors, rockets and flames, and a generative Markov-chord music bed.
-- Voices are limited and rate-limited per sound, so a domino avalanche stays pleasant.
+- `AudioEngine` builds a small Web Audio graph (effects, loops and music buses into a glue compressor and limiter, with a procedural small-room reverb send) and synthesises everything: impacts, continuous loops for motors, fans, conveyors, rockets, flames, magnets and the laser hum, one-shot effects and generative music.
+- **Impacts** are layered (transient + body + material tail) and chosen by material pair, speed and an optional body kind from the simulation (`kindA`/`kindB` on the impact event: `domino` clacks, `heavy` balls thud, rubber `ball`s boing, `floor` is the room). A token bucket, per-pair gaps, repetition ducking and voice caps keep a domino avalanche pleasant.
+- **Music** (`music.ts`) is a conductor: a 16th-note clock, a song form (intro, A, A, B, break, A, rest, regenerated each pass with key and tempo drift), chord progressions per section and 2-bar motifs that come back as statement, answer, sequence and cadence. `styles.ts` holds one style per visual theme (`stone`, `steam`, `retro`, `modern`, `comic`, `future`) that only decides what its instruments (`instruments.ts`) play on each step; layers are gated by intensity (menu 0.2, build 0.3, run 0.75) times section energy. `setMusicTheme(id)` crossfades to another style over 2.5 s; the theme also picks the stinger variant for goal-met (`ding`), level-solved (`goal`) and results (`success`).
+- Notes are scheduled 0.5 s ahead from a 100 ms timer; each music player caps itself at ~30 concurrent voices and drops ornaments first.
+- Unknown sound or loop names are ignored, so parts can ask for sounds (e.g. the optics set `laserOn`, `beamHit`, `sensorOn`, loop `laserHum`) before or after they exist.
 
 ## Tests
 
 - `tests/*.test.ts` — unit tests for level parsing, session and undo, placement, scoring, saves and history; component behaviour tests; and "feel" tests (dominoes topple at realistic gaps, balls keep rolling, the robot climbs kerbs and turns at walls).
+- `tests/levels/difficulty.test.ts` — for every campaign mission, Easy and Hard parse, the (adjusted) reference solution solves them within their time limits, Easy is never harder than Normal and Hard never easier. `tests/hints.test.ts` covers the hint ladder and the ELEGANT penalty.
 - `tests/levels/campaign.test.ts` — every campaign level is solvable with its reference solutions, unsolved with an empty build, and protected against known shortcuts. It also checks the campaign shape (tutorial size, ten-ish missions per group) and that difficulty ramps within and across groups.
+- `tests/levels/lab.test.ts` — the same per-level checks for every Physics Lab lesson (through `tests/levels/entryChecks.ts`), plus counterexamples showing the wrong idea fails. `tests/science.test.ts` keeps cards to 2–4 sentences, checks every bin part has a card, and covers the run-concept picker and the lab save field.
 - `e2e/*.mjs` — Playwright scripts against the production build: smoke, acceptance, and a full campaign play-through.

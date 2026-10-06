@@ -2,10 +2,16 @@
 // localStorage. Loading never throws: malformed data is quarantined and replaced by defaults.
 
 import { parseBuild, parseLevel } from '../core/level';
+import { THEMES, type ThemeSetting } from '../core/themes';
 import type { BuildDef, LevelDef } from '../core/types';
 
 export const SAVE_KEY = 'follyworks.save';
 export const SAVE_VERSION = 2;
+
+/** Per-mission difficulty (see game/difficulty.ts). Normal is the level as authored. */
+export const DIFFICULTIES = ['easy', 'normal', 'hard'] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+const isDifficulty = (v: unknown): v is Difficulty => typeof v === 'string' && (DIFFICULTIES as readonly string[]).includes(v);
 
 export interface Settings {
   master: number;
@@ -22,6 +28,10 @@ export interface Settings {
   tips: boolean;
   /** Step-by-step on-screen guidance in tutorial missions. */
   guidance: boolean;
+  /** Difficulty last picked in a mission briefing. */
+  difficulty: Difficulty;
+  /** Visual theme: 'auto' follows each mission's era, or one fixed theme everywhere. */
+  theme: ThemeSetting;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -37,6 +47,8 @@ export const DEFAULT_SETTINGS: Settings = {
   unlockAll: false,
   tips: true,
   guidance: true,
+  difficulty: 'normal',
+  theme: 'auto',
 };
 
 export interface LevelProgress {
@@ -48,7 +60,23 @@ export interface LevelProgress {
   bestTime: number | null;
   attempts: number;
   solvedAt: string | null;
+  /**
+   * Results per difficulty. The fields above aggregate every difficulty (any solve unlocks the
+   * next missions). Saves from before difficulties existed count as Normal.
+   */
+  byDifficulty: Record<Difficulty, DifficultyProgress>;
 }
+
+export interface DifficultyProgress {
+  solved: boolean;
+  elegant: boolean;
+  absurd: boolean;
+  bestTime: number | null;
+  /** Solved at least once without using any hint. */
+  noHints: boolean;
+}
+
+export const emptyDifficultyProgress = (): DifficultyProgress => ({ solved: false, elegant: false, absurd: false, bestTime: null, noHints: false });
 
 export const emptyProgress = (): LevelProgress => ({
   solved: false,
@@ -59,6 +87,7 @@ export const emptyProgress = (): LevelProgress => ({
   bestTime: null,
   attempts: 0,
   solvedAt: null,
+  byDifficulty: { easy: emptyDifficultyProgress(), normal: emptyDifficultyProgress(), hard: emptyDifficultyProgress() },
 });
 
 export interface SandboxSlot {
@@ -79,7 +108,19 @@ export interface SaveData {
   sandboxSlots: SandboxSlot[];
   /** Id of the custom level open in the editor, to resume. */
   editorLevelId: string | null;
+  /** Physics Lab bookkeeping. Lesson results live in `progress`, keyed by their lab- level id. */
+  lab: LabSave;
 }
+
+export interface LabSave {
+  /** The lesson opened most recently, so the lab list can offer to carry on. */
+  lastPlayed: string | null;
+}
+
+/** Older saves have no `lab` field; anything unreadable falls back to a fresh lab record. */
+export const parseLabSave = (raw: unknown): LabSave => ({
+  lastPlayed: isObj(raw) && typeof raw.lastPlayed === 'string' ? raw.lastPlayed.slice(0, 80) : null,
+});
 
 export const defaultSave = (): SaveData => ({
   version: SAVE_VERSION,
@@ -89,6 +130,7 @@ export const defaultSave = (): SaveData => ({
   customLevels: [],
   sandboxSlots: [],
   editorLevelId: null,
+  lab: { lastPlayed: null },
 });
 
 /** Minimal storage interface so tests can inject a fake. */
@@ -119,6 +161,8 @@ export const parseSettings = (raw: unknown): Settings => {
     unlockAll: bool(r.unlockAll, d.unlockAll),
     tips: bool(r.tips, d.tips),
     guidance: bool(r.guidance, d.guidance),
+    difficulty: isDifficulty(r.difficulty) ? r.difficulty : d.difficulty,
+    theme: r.theme === 'auto' || THEMES.some((t) => t.id === r.theme) ? (r.theme as ThemeSetting) : d.theme,
   };
 };
 
@@ -133,7 +177,24 @@ const parseProgress = (raw: unknown): LevelProgress => {
   p.bestTime = typeof r.bestTime === 'number' ? r.bestTime : null;
   p.attempts = typeof r.attempts === 'number' ? Math.max(0, Math.floor(r.attempts)) : 0;
   p.solvedAt = typeof r.solvedAt === 'string' ? r.solvedAt : null;
+  if (isObj(r.byDifficulty)) {
+    for (const d of DIFFICULTIES) p.byDifficulty[d] = parseDifficultyProgress(r.byDifficulty[d]);
+  } else if (p.solved) {
+    // Older saves: everything recorded so far was played on Normal.
+    p.byDifficulty.normal = { solved: p.solved, elegant: p.elegant, absurd: p.absurd, bestTime: p.bestTime, noHints: p.solved };
+  }
   return p;
+};
+
+const parseDifficultyProgress = (raw: unknown): DifficultyProgress => {
+  const r = isObj(raw) ? raw : {};
+  return {
+    solved: bool(r.solved, false),
+    elegant: bool(r.elegant, false),
+    absurd: bool(r.absurd, false),
+    bestTime: typeof r.bestTime === 'number' && Number.isFinite(r.bestTime) ? r.bestTime : null,
+    noHints: bool(r.noHints, false),
+  };
 };
 
 /** Upgrade older save versions. v1 stored custom levels as an id->level map. */
@@ -195,6 +256,7 @@ export const parseSave = (text: string | null): { data: SaveData; recovered: boo
     }
   }
   data.editorLevelId = typeof r.editorLevelId === 'string' ? r.editorLevelId : null;
+  data.lab = parseLabSave(r.lab);
   return { data, recovered };
 };
 

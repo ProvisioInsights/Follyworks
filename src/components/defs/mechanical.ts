@@ -176,6 +176,7 @@ registerComponent({
   rotatable: true,
   flippable: false,
   rotationStep: 5 * DEG,
+  resize: { w: 'length' },
   props: [
     { key: 'length', label: 'Length', type: 'number', min: 100, max: 600, step: 10, default: 220, unit: 'cm' },
     { key: 'speed', label: 'Speed', type: 'number', min: 20, max: 300, step: 10, default: 110, unit: 'cm/s' },

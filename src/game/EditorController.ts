@@ -3,7 +3,7 @@
 // editor, moving and resizing goal zones. All document changes go through the Session.
 
 import { getComponent } from '../components/registry';
-import type { ObjectDef, PortRef, Vec } from '../core/types';
+import type { ObjectDef, PortRef, Props, Vec } from '../core/types';
 import type { ClipboardItem, Session } from '../editor/Session';
 import type { Entity } from '../sim/Entity';
 import { M, type MBody } from '../sim/matter';
@@ -19,13 +19,38 @@ export interface EditorFeedback {
 
 const GRID = 10;
 const ROT_STEP = Math.PI / 12;
+/** Screen-pixel gap between a part's top edge and its rotate handle. */
+const ROT_HANDLE_GAP = 30;
+
+/** On-canvas transform handles for the single selected part, in world coordinates. */
+export interface TransformHandles {
+  center: Vec;
+  /** Where the rotate knob sits, and the point on the part its stem starts from. */
+  rotate: { pos: Vec; base: Vec } | null;
+  resize: { pos: Vec; axis: 'w' | 'h'; sign: 1 | -1 }[];
+  /** Local axes of the part (unit vectors along its width and height). */
+  u: Vec;
+  v: Vec;
+}
+
+type Shape = { x: number; y: number; angle: number; props: Props };
 
 type Drag =
   | { kind: 'move'; ids: string[]; start: Vec; moved: boolean; offset: Vec; valid: boolean; lastCheck: number }
   | { kind: 'place'; obj: ObjectDef; sticky: boolean; offset: Vec; valid: boolean; lastCheck: number; overCanvas: boolean }
   | { kind: 'box'; start: Vec; now: Vec; additive: boolean }
   | { kind: 'pan'; last: Vec }
-  | { kind: 'region'; goal: number; mode: 'move' | 'resize'; start: Vec; orig: { x: number; y: number; w: number; h: number } };
+  | { kind: 'region'; goal: number; mode: 'move' | 'resize'; start: Vec; orig: { x: number; y: number; w: number; h: number } }
+  | {
+      kind: 'reshape';
+      id: string;
+      mode: 'rotate' | { axis: 'w' | 'h'; sign: 1 | -1 };
+      orig: Shape;
+      grab: number;
+      valid: boolean;
+      changed: boolean;
+      lastCheck: number;
+    };
 
 export class EditorController {
   readonly session: Session;
@@ -202,6 +227,17 @@ export class EditorController {
       this.toolClick(p);
       return;
     }
+    // rotate / resize handles of the selected part
+    const hd = this.handleAt(p);
+    if (hd) {
+      const o = this.session.find(hd.id)!;
+      const orig: Shape = { x: o.x, y: o.y, angle: o.angle || 0, props: { ...(o.props ?? {}) } };
+      const grab = hd.mode === 'rotate' ? Math.atan2(p.y - o.y, p.x - o.x) - orig.angle : 0;
+      this.drag = { kind: 'reshape', id: hd.id, mode: hd.mode, orig, grab, valid: true, changed: false, lastCheck: 0 };
+      this.fb.sfx('pickup', { vol: 0.5 });
+      this.changed();
+      return;
+    }
     // level editor: goal zone handles
     if (this.session.editsLevel) {
       const g = this.regionAt(p);
@@ -298,6 +334,9 @@ export class EditorController {
         d.now = p;
         this.showMarquee(d);
         break;
+      case 'reshape':
+        this.reshapeTo(d, p, ev.altKey);
+        break;
       case 'region': {
         const goal = this.session.level.goals[d.goal] as any;
         const dx = this.snapV(p.x - d.start.x);
@@ -359,6 +398,30 @@ export class EditorController {
             const q = e.body.position;
             if (q.x >= x0 && q.x <= x1 && q.y >= y0 && q.y <= y1) this.selected.add(e.id);
           }
+        }
+        break;
+      }
+      case 'reshape': {
+        this.drag = null;
+        const o = this.session.find(d.id);
+        if (!o) break;
+        const final: Shape = { x: o.x, y: o.y, angle: o.angle || 0, props: { ...(o.props ?? {}) } };
+        // put the live preview back so the commit records a proper undo step
+        this.applyShape(o, d.orig);
+        if (!d.changed) {
+          this.rebuild();
+          break;
+        }
+        this.checkReshape(d, final);
+        this.scene.view(d.id)?.setGhost(false, true);
+        this.invalid.clear();
+        if (!d.valid) {
+          this.rebuild();
+          this.fb.sfx('error');
+          this.fb.toast(d.mode === 'rotate' ? 'No room to rotate there.' : 'No room to make it that size.', 'warn');
+        } else {
+          this.session.reshapeObject(d.id, final);
+          this.fb.sfx(d.mode === 'rotate' ? 'rotate' : 'place');
         }
         break;
       }
@@ -473,6 +536,13 @@ export class EditorController {
       if (this.pending) this.pending.cursor = this.toolHover ?? p;
       return;
     }
+    const hd = this.handleAt(p);
+    if (hd) {
+      this.hover = null;
+      this.hoverConn = null;
+      this.canvas.style.cursor = hd.mode === 'rotate' ? 'grab' : this.resizeCursor(hd.id, hd.mode.axis);
+      return;
+    }
     const e = this.pick(p);
     this.hover = e?.id ?? null;
     this.hoverConn = e ? null : this.pickConnection(p);
@@ -507,6 +577,109 @@ export class EditorController {
       if (nearEdge || (inside && i === this.selectedGoal && !this.pick(p))) return { goal: i, mode: 'move' };
     }
     return null;
+  }
+
+  // ------------------------------------------------------------------ rotate / resize handles
+
+  /** Handles for the selected part, or null when none apply (several selected, locked, a tool is active...). */
+  handles(): TransformHandles | null {
+    if (!this.enabled || this.tool || this.selected.size !== 1) return null;
+    const d = this.drag;
+    if (d && d.kind !== 'reshape') return null;
+    const id = [...this.selected][0];
+    if (!this.editable(id)) return null;
+    const o = this.session.find(id);
+    const def = o && getComponent(o.type);
+    if (!o || !def) return null;
+    const canResize = !!def.resize?.w || !!def.resize?.h;
+    if (!def.rotatable && !canResize) return null;
+    const { w, h } = def.size(o.props ?? {});
+    const a = o.angle || 0;
+    const u = { x: Math.cos(a), y: Math.sin(a) };
+    const v = { x: -Math.sin(a), y: Math.cos(a) };
+    const at = (lx: number, ly: number): Vec => ({ x: o.x + u.x * lx + v.x * ly, y: o.y + u.y * lx + v.y * ly });
+    const z = Math.max(0.3, this.scene.zoom);
+    const resize: TransformHandles['resize'] = [];
+    if (def.resize?.w) resize.push({ pos: at(w / 2, 0), axis: 'w', sign: 1 }, { pos: at(-w / 2, 0), axis: 'w', sign: -1 });
+    if (def.resize?.h) resize.push({ pos: at(0, h / 2), axis: 'h', sign: 1 }, { pos: at(0, -h / 2), axis: 'h', sign: -1 });
+    const rotate = def.rotatable ? { pos: at(0, -h / 2 - ROT_HANDLE_GAP / z), base: at(0, -h / 2) } : null;
+    return { center: { x: o.x, y: o.y }, rotate, resize, u, v };
+  }
+
+  private handleAt(p: Vec): { id: string; mode: 'rotate' | { axis: 'w' | 'h'; sign: 1 | -1 } } | null {
+    const hs = this.handles();
+    if (!hs || this.drag) return null;
+    const id = [...this.selected][0];
+    const r = this.pickRadius(11);
+    if (hs.rotate && Math.hypot(p.x - hs.rotate.pos.x, p.y - hs.rotate.pos.y) < r) return { id, mode: 'rotate' };
+    for (const q of hs.resize) if (Math.hypot(p.x - q.pos.x, p.y - q.pos.y) < r) return { id, mode: { axis: q.axis, sign: q.sign } };
+    return null;
+  }
+
+  private resizeCursor(id: string, axis: 'w' | 'h') {
+    const o = this.session.find(id);
+    let deg = (((o?.angle || 0) * 180) / Math.PI + (axis === 'h' ? 90 : 0)) % 180;
+    if (deg < 0) deg += 180;
+    return deg < 22.5 || deg >= 157.5 ? 'ew-resize' : deg < 67.5 ? 'nwse-resize' : deg < 112.5 ? 'ns-resize' : 'nesw-resize';
+  }
+
+  private applyShape(o: ObjectDef, s: Shape) {
+    o.x = s.x;
+    o.y = s.y;
+    o.angle = s.angle;
+    o.props = { ...s.props };
+  }
+
+  /** Live preview of a handle drag: edits the document object in place (restored on release). */
+  private reshapeTo(d: Extract<Drag, { kind: 'reshape' }>, p: Vec, noSnap: boolean) {
+    const o = this.session.find(d.id);
+    const def = o && getComponent(o.type);
+    if (!o || !def) return;
+    const snap = this.snap && !noSnap;
+    const next: Shape = { ...d.orig, props: { ...d.orig.props } };
+    if (d.mode === 'rotate') {
+      let a = Math.atan2(p.y - d.orig.y, p.x - d.orig.x) - d.grab;
+      const step = def.rotationStep ?? ROT_STEP;
+      if (snap) a = Math.round(a / step) * step;
+      else a = Math.round((a * 180) / Math.PI) * (Math.PI / 180);
+      next.angle = Math.atan2(Math.sin(a), Math.cos(a));
+    } else {
+      const key = def.resize?.[d.mode.axis];
+      const spec = def.props.find((q) => q.key === key);
+      if (!key || !spec || spec.type !== 'number') return;
+      const L0 = Number(d.orig.props[key] ?? spec.default);
+      const a = d.orig.angle;
+      const axis = d.mode.axis === 'w' ? { x: Math.cos(a), y: Math.sin(a) } : { x: -Math.sin(a), y: Math.cos(a) };
+      // distance from the fixed (opposite) edge to the pointer, along the part's own axis
+      const along = ((p.x - d.orig.x) * axis.x + (p.y - d.orig.y) * axis.y) * d.mode.sign + L0 / 2;
+      const step = snap ? spec.step : 1;
+      const L = Math.min(spec.max, Math.max(spec.min, Math.round(along / step) * step));
+      const shift = ((L - L0) / 2) * d.mode.sign;
+      next.x = d.orig.x + axis.x * shift;
+      next.y = d.orig.y + axis.y * shift;
+      next.props[key] = L;
+    }
+    const same = next.x === o.x && next.y === o.y && next.angle === (o.angle || 0) && JSON.stringify(next.props) === JSON.stringify(o.props ?? {});
+    if (same) return;
+    d.changed = next.x !== d.orig.x || next.y !== d.orig.y || next.angle !== d.orig.angle || JSON.stringify(next.props) !== JSON.stringify(d.orig.props);
+    if (d.mode === 'rotate' && next.angle !== (o.angle || 0)) this.fb.sfx('uiHover', { vol: 0.35, pitch: 1.4 });
+    this.applyShape(o, next);
+    this.rebuild();
+    const now = performance.now();
+    if (now - d.lastCheck >= 70) {
+      d.lastCheck = now;
+      this.checkReshape(d, next);
+    } else this.scene.view(d.id)?.setGhost(!d.valid, d.valid);
+  }
+
+  private checkReshape(d: Extract<Drag, { kind: 'reshape' }>, s: Shape) {
+    const o = this.session.find(d.id);
+    if (!o) return;
+    const cand: ObjectDef = { ...o, x: s.x, y: s.y, angle: s.angle, props: { ...s.props } };
+    const bad = invalidPlacements(this.buildSim, [cand], new Set([d.id]));
+    d.valid = bad.length === 0;
+    this.invalid = new Set(bad);
+    this.scene.view(d.id)?.setGhost(!d.valid, d.valid);
   }
 
   // ------------------------------------------------------------------ placing from the bin
@@ -667,6 +840,12 @@ export class EditorController {
   // ------------------------------------------------------------------ commands
 
   cancel() {
+    if (this.drag?.kind === 'reshape') {
+      const o = this.session.find(this.drag.id);
+      if (o) this.applyShape(o, this.drag.orig);
+      this.drag = null;
+      this.rebuild();
+    }
     if (this.drag?.kind === 'place') {
       this.drag = null;
       this.rebuild();

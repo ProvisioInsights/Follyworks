@@ -21,6 +21,14 @@ Every level is verified solvable both by headless tests and by playing it in a r
 - Each level has a briefing, goals shown in the top bar, progressive hints, a time limit, ELEGANT targets (parts and/or time) and an ABSURD chain target.
 - Unlocking is soft: a level opens when it is within 3 of your solved count, or with "unlock all" in settings.
 
+**Difficulty and hints**
+- Every mission offers Easy / Normal / Hard in its briefing (Normal by default, last choice remembered). Easy and Hard are derived automatically from the level and its simplest reference solution (`game/difficulty.ts`; rules in DECISIONS.md), so new mission groups get them for free. The HUD shows the current difficulty and the campaign map shows which difficulties each mission has been beaten on.
+- The hint button climbs a ladder: authored nudges, then the parts you'll need (with icons), then ghost outlines of reference parts one at a time. Using a ghost withholds ELEGANT for that solve, and the results card says "Solved with hints".
+- Tested headlessly for all 56 missions × Easy/Hard (`tests/levels/difficulty.test.ts`) and by real clicks in `e2e/difficulty.mjs`.
+**Physics Lab and science cards**
+- 9 lesson missions (L1–L9): Sideways and Down (gravity), Height into Speed (energy), Lift-Off (buoyancy), Heavyweight (momentum), Light Beats Heavy (levers), Balancing Act (pulleys), Opposite Day (gears), Two-Key Lock (logic), Sort the Metal (electromagnets). Each has an intro card, saved progress and a "carry on" marker on the lesson list.
+- 25 "How it works" cards (six of them for the planned optics parts), shown for the selected part and as "Physics in your machine" chips on the results card.
+
 **Parts (31)**
 - Physics: rubber ball, bowling ball, crate (wood/steel), domino, plank, seesaw, trampoline, bucket, pulley, hook.
 - Mechanical: gear, motor, conveyor.

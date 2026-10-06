@@ -60,6 +60,7 @@ import {
   valveWheel,
   ventGrille,
 } from './envHelpers';
+import { THEMED_ENVS } from './envThemes';
 
 // ---------------------------------------------------------------------------
 // Public contract
@@ -109,7 +110,7 @@ export interface EnvironmentLayers {
 // ---------------------------------------------------------------------------
 
 /** Room geometry in world units. */
-interface Geo {
+export interface Geo {
   w: number;
   h: number;
   /** front cut of the ceiling slab (underside) */
@@ -125,7 +126,7 @@ interface Geo {
   by1: number;
 }
 
-interface Theme {
+export interface Theme {
   soil: SoilPalette;
   grass: number;
   sky: [number, number];
@@ -141,7 +142,7 @@ interface Theme {
   floor: { top: number; face: number };
 }
 
-interface Painter {
+export interface Painter {
   far: Ctx;
   light: Ctx;
   near: Ctx;
@@ -151,8 +152,12 @@ interface Painter {
   amb: AmbientEmitter[];
 }
 
-interface EnvDef {
+export interface EnvDef {
   theme: Theme;
+  /** Replaces the default exterior (sky, soil cutaway and concrete shell). */
+  exterior?(P: Painter): void;
+  /** Flat art (retro): skip the painterly grain and soften the cinematic grade. */
+  flat?: boolean;
   /** Clipped to the back wall rectangle. */
   backWall(P: Painter): void;
   /** Clipped to the two side-wall trapezoids (after the common shading). */
@@ -189,14 +194,14 @@ function geometry(w: number, h: number): Geo {
   };
 }
 
-const backPath = (G: Geo): Path2D => poly([[G.bx0, G.by0], [G.bx1, G.by0], [G.bx1, G.by1], [G.bx0, G.by1]]);
-const leftPath = (G: Geo): Path2D => poly([[0, G.ceilY], [G.bx0, G.by0], [G.bx0, G.by1], [0, G.h]]);
-const rightPath = (G: Geo): Path2D => poly([[G.w, G.ceilY], [G.bx1, G.by0], [G.bx1, G.by1], [G.w, G.h]]);
-const ceilPath = (G: Geo): Path2D => poly([[0, G.ceilY], [G.w, G.ceilY], [G.bx1, G.by0], [G.bx0, G.by0]]);
-const floorPath = (G: Geo): Path2D => poly([[G.bx0, G.by1], [G.bx1, G.by1], [G.w, G.h], [0, G.h]]);
-const roomPath = (G: Geo): Path2D => poly([[0, G.ceilY], [G.w, G.ceilY], [G.w, G.h], [0, G.h]]);
+export const backPath = (G: Geo): Path2D => poly([[G.bx0, G.by0], [G.bx1, G.by0], [G.bx1, G.by1], [G.bx0, G.by1]]);
+export const leftPath = (G: Geo): Path2D => poly([[0, G.ceilY], [G.bx0, G.by0], [G.bx0, G.by1], [0, G.h]]);
+export const rightPath = (G: Geo): Path2D => poly([[G.w, G.ceilY], [G.bx1, G.by0], [G.bx1, G.by1], [G.w, G.h]]);
+export const ceilPath = (G: Geo): Path2D => poly([[0, G.ceilY], [G.w, G.ceilY], [G.bx1, G.by0], [G.bx0, G.by0]]);
+export const floorPath = (G: Geo): Path2D => poly([[G.bx0, G.by1], [G.bx1, G.by1], [G.w, G.h], [0, G.h]]);
+export const roomPath = (G: Geo): Path2D => poly([[0, G.ceilY], [G.w, G.ceilY], [G.w, G.h], [0, G.h]]);
 
-function clipped(g: Ctx, path: Path2D, fn: () => void): void {
+export function clipped(g: Ctx, path: Path2D, fn: () => void): void {
   g.save();
   g.clip(path);
   fn();
@@ -208,7 +213,7 @@ function clipped(g: Ctx, path: Path2D, fn: () => void): void {
 // ---------------------------------------------------------------------------
 
 /** Painted block / panel courses: subtle joints & per-block tint. */
-function blockCourses(g: Ctx, rng: Rand, x: number, y: number, w: number, h: number, color: number, bw: number, bh: number, contrast = 0.12): void {
+export function blockCourses(g: Ctx, rng: Rand, x: number, y: number, w: number, h: number, color: number, bw: number, bh: number, contrast = 0.12): void {
   g.save();
   g.beginPath();
   g.rect(x, y, w, h);
@@ -234,7 +239,7 @@ function blockCourses(g: Ctx, rng: Rand, x: number, y: number, w: number, h: num
 }
 
 /** Floor plane with perspective lines converging toward the back. */
-function floorPerspective(P: Painter, base: number, opts: { cols: number; rows: number; line: number; lineAlpha: number; checker?: number }): void {
+export function floorPerspective(P: Painter, base: number, opts: { cols: number; rows: number; line: number; lineAlpha: number; checker?: number }): void {
   const { far: g, G } = P;
   g.fillStyle = vGrad(g, G.by1, G.h, [[0, shade(base, -0.35)], [0.5, shade(base, -0.08)], [1, base]]);
   g.fillRect(0, G.by1, G.w, G.h - G.by1);
@@ -313,7 +318,7 @@ function fungus(g: Ctx, light: Ctx, rng: Rand, x: number, y: number, n: number, 
 }
 
 /** Bulkhead caged lamp on a wall. */
-function cagedLamp(g: Ctx, light: Ctx, x: number, y: number, color: number, glow = 1): void {
+export function cagedLamp(g: Ctx, light: Ctx, x: number, y: number, color: number, glow = 1): void {
   g.save();
   g.fillStyle = css(0x1e1d1b);
   g.beginPath();
@@ -438,7 +443,7 @@ function tool(g: Ctx, rng: Rand, kind: number, x: number, y: number, s: number):
 }
 
 /** Wooden workbench standing on the back floor line. */
-function workbench(g: Ctx, rng: Rand, x: number, floorY: number, w: number, topH: number): void {
+export function workbench(g: Ctx, rng: Rand, x: number, floorY: number, w: number, topH: number): void {
   const wood = 0x6e4f33;
   const top = floorY - topH;
   contactShadow(g, x + w / 2, floorY, w, 0.5);
@@ -470,7 +475,7 @@ function workbench(g: Ctx, rng: Rand, x: number, floorY: number, w: number, topH
 }
 
 /** Vertical/horizontal timber with grain. */
-function timber(g: Ctx, rng: Rand, x: number, y: number, w: number, h: number, color: number): void {
+export function timber(g: Ctx, rng: Rand, x: number, y: number, w: number, h: number, color: number): void {
   g.fillStyle = css(shade(color, -0.65));
   g.fillRect(x - 1.5, y - 1.5, w + 3, h + 3);
   const vertical = h > w;
@@ -506,7 +511,7 @@ function timber(g: Ctx, rng: Rand, x: number, y: number, w: number, h: number, c
 }
 
 /** Gas cylinder / tall tank standing at floorY. */
-function cylinder(g: Ctx, x: number, floorY: number, w: number, h: number, color: number, band = 0xc9c0a8): void {
+export function cylinder(g: Ctx, x: number, floorY: number, w: number, h: number, color: number, band = 0xc9c0a8): void {
   const top = floorY - h;
   contactShadow(g, x + w / 2, floorY, w * 1.4);
   g.fillStyle = css(shade(color, -0.7));
@@ -528,6 +533,7 @@ function cylinder(g: Ctx, x: number, floorY: number, w: number, h: number, color
 // ---------------------------------------------------------------------------
 
 function paintExterior(P: Painter, def: EnvDef): void {
+  if (def.exterior) return def.exterior(P);
   const { far: g, G, T } = P;
   const rng = P.rng.fork(11);
   const X0 = -ENV_MARGIN.left, Y0 = -ENV_MARGIN.top;
@@ -649,9 +655,15 @@ function paintShell(P: Painter, def: EnvDef): void {
   g.restore();
 }
 
-function paintVeil(P: Painter): void {
+function paintVeil(P: Painter, flat = false): void {
   const { far: g, G, T } = P;
   clipped(g, roomPath(G), () => {
+    if (flat) {
+      // flat art: one even wash keeps the backdrop calm without painterly lighting
+      g.fillStyle = css(T.veil, T.veilAlpha);
+      g.fillRect(0, G.ceilY, G.w, G.h - G.ceilY);
+      return;
+    }
     // cinematic grade: warm key from above, cool shadow pooling low in the corners
     g.save();
     g.globalCompositeOperation = 'soft-light';
@@ -675,14 +687,16 @@ function paintVeil(P: Painter): void {
   });
 }
 
-function paintFinish(P: Painter): void {
+function paintFinish(P: Painter, flat = false): void {
   const { far: g, G } = P;
   const X0 = -ENV_MARGIN.left, Y0 = -ENV_MARGIN.top;
   const W = G.w + ENV_MARGIN.left + ENV_MARGIN.right;
   const H = G.h + ENV_MARGIN.top + ENV_MARGIN.bottom;
   // painterly unevenness & grain over everything
-  texture(g, 'mottle', X0, Y0, W, H, { alpha: 0.14, op: 'soft-light', scale: 2.2, offsetX: 37, offsetY: 91 });
-  texture(g, 'grain', X0, Y0, W, H, { alpha: 0.1, op: 'overlay' });
+  if (!flat) {
+    texture(g, 'mottle', X0, Y0, W, H, { alpha: 0.14, op: 'soft-light', scale: 2.2, offsetX: 37, offsetY: 91 });
+    texture(g, 'grain', X0, Y0, W, H, { alpha: 0.1, op: 'overlay' });
+  }
   // vignette focused on the world rect
   const cx = G.w / 2, cy = G.h / 2;
   const r0 = Math.min(G.w, G.h) * 0.45;
@@ -2337,8 +2351,8 @@ const DEFS: Record<string, EnvDef> = { garage, underground, greenhouse, maintena
  * read it back as `far.width / (w + ENV_MARGIN.left + ENV_MARGIN.right)`.
  */
 export function paintEnvironment(id: string, w: number, h: number, scale: number): EnvironmentLayers {
-  const envId = DEFS[id] ? id : 'garage';
-  const def = DEFS[envId];
+  const envId = DEFS[id] || THEMED_ENVS[id] ? id : 'garage';
+  const def = DEFS[envId] ?? THEMED_ENVS[envId];
   const M = ENV_MARGIN;
   const Wt = w + M.left + M.right;
   const Ht = h + M.top + M.bottom;
@@ -2375,14 +2389,14 @@ export function paintEnvironment(id: string, w: number, h: number, scale: number
   far.setTransform(1, 0, 0, 1, 0, 0);
   // Canvas filters are missing in some older browsers: fall back to simply fading the props.
   const filterable = typeof (far as { filter?: unknown }).filter === 'string';
-  if (filterable) far.filter = `saturate(0.45) brightness(0.68) contrast(0.78) blur(${(1.1 * s).toFixed(2)}px)`;
+  if (filterable) far.filter = `saturate(0.45) brightness(0.68) contrast(0.78) blur(${((def.flat ? 0.5 : 1.1) * s).toFixed(2)}px)`;
   far.globalAlpha = filterable ? 0.9 : 0.55;
   far.drawImage(propsC, 0, 0);
   far.restore();
-  paintVeil(P);
+  paintVeil(P, def.flat);
   P.rng = root.fork(4);
   clipped(far, roomPath(G), () => def.lights(P));
-  paintFinish(P);
+  paintFinish(P, def.flat);
   P.rng = root.fork(5);
   def.near(P);
 

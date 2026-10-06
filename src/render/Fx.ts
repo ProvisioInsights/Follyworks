@@ -42,6 +42,7 @@ const DOMAIN_COLORS: Record<string, string> = {
   logic: '#a6f08a',
   chaos: '#ff7062',
   creature: '#ffd36b',
+  light: '#ff7ad9',
 };
 
 export const domainColor = (d: string) => DOMAIN_COLORS[d] ?? '#f3e6cc';
@@ -126,6 +127,10 @@ export class Fx {
   }
 
   label(text: string, x: number, y: number, domain: string) {
+    // several identical parts firing together (a row of mirrors) read as one caption, not a pile
+    if (this.labels.some((l) => l.text.text === text && l.age < 0.8 && Math.abs(l.x - x) < 320 && Math.abs(l.y - (y - 34)) < 160)) return;
+    // "A hit B" and "B hit A" from the same bump are one event on screen
+    if (text.includes(' hit the ') && this.labels.some((l) => l.age === 0 && l.text.text.includes(' hit the ') && Math.hypot(l.x - x, l.y - (y - 34)) < 140)) return;
     if (this.labels.length >= 6) {
       const old = this.labels.shift()!;
       old.text.destroy();
@@ -141,8 +146,9 @@ export class Fx {
     t.setOrigin(0.5, 1);
     t.setResolution(3);
     this.layer.add(t);
-    // avoid stacking directly on top of a recent label
-    for (const l of this.labels) if (Math.abs(l.x - x) < 90 && Math.abs(l.y - (y - 34)) < 22) y -= 22;
+    // avoid stacking directly on top of a recent label (compare real text widths, not a guess)
+    const w = t.width;
+    for (const l of this.labels) if (Math.abs(l.x - x) < (w + l.text.width) / 2 + 8 && Math.abs(l.y - (y - 34)) < 22) y -= 22;
     this.labels.push({ text: t, x, y: y - 34, age: 0 });
   }
 

@@ -2,7 +2,7 @@
 // independent bonuses, and a solution can earn both on different attempts.
 
 import type { LevelDef } from '../core/types';
-import type { LevelProgress } from '../persistence/save';
+import type { Difficulty, LevelProgress } from '../persistence/save';
 import type { ChainEntry } from '../sim/Simulation';
 
 export const DEFAULT_ABSURD_STAGES = 7;
@@ -16,6 +16,8 @@ export interface AttemptResult {
   chain: ChainEntry[];
   elegant: { earned: boolean; available: boolean; reason: string };
   absurd: { earned: boolean; available: boolean; reason: string; target: number };
+  /** Highest hint tier used before this solve (0 = none; see game/hints.ts). Set by the HUD. */
+  hintTier?: number;
 }
 
 /** Unique stages in order of first occurrence. */
@@ -75,9 +77,16 @@ export const scoreAttempt = (level: LevelDef, solvedAt: number | null, parts: nu
   return { solved, time: solvedAt, parts, stages, domains, chain: stagesList, elegant, absurd };
 };
 
-export const mergeProgress = (prev: LevelProgress, r: AttemptResult): LevelProgress => {
-  const p = { ...prev, attempts: prev.attempts + 1 };
+export const mergeProgress = (prev: LevelProgress, r: AttemptResult, difficulty: Difficulty = 'normal'): LevelProgress => {
+  const p = { ...prev, attempts: prev.attempts + 1, byDifficulty: { ...prev.byDifficulty } };
   if (!r.solved) return p;
+  const d = { ...p.byDifficulty[difficulty] };
+  d.solved = true;
+  d.elegant = d.elegant || r.elegant.earned;
+  d.absurd = d.absurd || r.absurd.earned;
+  d.bestTime = d.bestTime === null || (r.time !== null && r.time < d.bestTime) ? r.time : d.bestTime;
+  d.noHints = d.noHints || !r.hintTier;
+  p.byDifficulty[difficulty] = d;
   p.solved = true;
   p.elegant = p.elegant || r.elegant.earned;
   p.absurd = p.absurd || r.absurd.earned;

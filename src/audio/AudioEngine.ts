@@ -12,15 +12,19 @@
 
 import { LoopKind, LoopVoice, buildLoop } from './loops';
 import { Music } from './music';
-import { Material, RECIPES, Voice, impactLayer, normMaterial } from './sfx';
+import { ImpactKind, Material, RECIPES, Voice, impactLayer, normKind, normMaterial } from './sfx';
 import { NoiseBank, clamp, gainNode, makeNoiseBank, makeRoomIR } from './synth';
+import { MusicTheme, normTheme } from './themes';
+
+export type { MusicTheme } from './themes';
 
 export type SfxName =
   | 'click' | 'clunk' | 'place' | 'pickup' | 'delete' | 'rotate' | 'error' | 'ui' | 'uiHover'
   | 'spring' | 'boing' | 'whoosh' | 'pop' | 'gear' | 'zap' | 'boom' | 'snap' | 'fuse'
   | 'punch' | 'cannon' | 'ding' | 'switch' | 'plate' | 'robotStep' | 'robotBeep'
-  | 'success' | 'goal' | 'rewind' | 'tick' | 'connect' | 'disconnect' | 'ignite' | 'splash';
-export type LoopName = 'motor' | 'fan' | 'conveyor' | 'rocket' | 'flame' | 'magnet';
+  | 'success' | 'goal' | 'rewind' | 'tick' | 'connect' | 'disconnect' | 'ignite' | 'splash'
+  | 'laserOn' | 'beamHit' | 'sensorOn';
+export type LoopName = 'motor' | 'fan' | 'conveyor' | 'rocket' | 'flame' | 'magnet' | 'laserHum';
 
 export interface Volumes { master: number; sfx: number; music: number } // 0..1 each
 
@@ -29,8 +33,9 @@ export const SFX_NAMES: readonly SfxName[] = [
   'spring', 'boing', 'whoosh', 'pop', 'gear', 'zap', 'boom', 'snap', 'fuse',
   'punch', 'cannon', 'ding', 'switch', 'plate', 'robotStep', 'robotBeep',
   'success', 'goal', 'rewind', 'tick', 'connect', 'disconnect', 'ignite', 'splash',
+  'laserOn', 'beamHit', 'sensorOn',
 ];
-export const LOOP_NAMES: readonly LoopName[] = ['motor', 'fan', 'conveyor', 'rocket', 'flame', 'magnet'];
+export const LOOP_NAMES: readonly LoopName[] = ['motor', 'fan', 'conveyor', 'rocket', 'flame', 'magnet', 'laserHum'];
 
 interface SfxSpec {
   /** output gain */
@@ -79,10 +84,13 @@ const SPEC: Record<SfxName, SfxSpec> = {
   disconnect: { g: 0.6, wet: 0.12, gap: 0.05, prio: 2, jit: 0.0 },
   ignite: { g: 0.6, wet: 0.15, gap: 0.1, prio: 1, jit: 0.06 },
   splash: { g: 0.6, wet: 0.15, gap: 0.08, prio: 1, jit: 0.08 },
+  laserOn: { g: 0.6, wet: 0.15, gap: 0.08, prio: 1, jit: 0.03 },
+  beamHit: { g: 0.7, wet: 0.08, gap: 0.07, prio: 0, jit: 0.08 },
+  sensorOn: { g: 0.6, wet: 0.15, gap: 0.08, prio: 1, jit: 0.0 },
 };
 
 /** Per-loop-kind level trims so that vol=1 loops sit well under the sfx. */
-const LOOP_TRIM: Record<LoopName, number> = { motor: 0.8, fan: 1.2, conveyor: 1, rocket: 0.8, flame: 2.0, magnet: 0.65 };
+const LOOP_TRIM: Record<LoopName, number> = { motor: 0.8, fan: 1.2, conveyor: 1, rocket: 0.8, flame: 2.0, magnet: 0.65, laserHum: 0.8 };
 
 const MAX_VOICES = 24;
 const MAX_IMPACT_VOICES = 8;
@@ -147,6 +155,7 @@ export class AudioEngine {
   private music: Music | null = null;
   private musicWanted = false;
   private musicIntensity = 0;
+  private theme: MusicTheme = 'modern';
   private musicTimer: ReturnType<typeof setInterval> | null = null;
 
   private scrub: ScrubVoice | null = null;
@@ -244,6 +253,7 @@ export class AudioEngine {
     this.musicWetIn.connect(this.musicWetGain).connect(conv);
 
     this.music = new Music(ctx, this.musicIn, this.musicWetIn, this.nb);
+    this.music.setTheme(this.theme);
     this.music.setIntensity(this.musicIntensity);
     this.ready = true;
     this.tokenT = this.now();
@@ -358,7 +368,9 @@ export class AudioEngine {
 
   play(name: SfxName, opts?: { vol?: number; pan?: number; pitch?: number }): void {
     try {
-      if (!this.ready || !this.ctx || !this.nb) return;
+      if (!this.ready || !this.ctx || !this.nb || typeof name !== 'string') return;
+      // unknown names (e.g. sounds a newer part asks for) are ignored
+      if (!Object.prototype.hasOwnProperty.call(SPEC, name)) return;
       const spec = SPEC[name];
       const recipe = RECIPES[name];
       if (!spec || !recipe) return;
@@ -382,7 +394,7 @@ export class AudioEngine {
       const voice = this.makeVoice(spec.g * vol * duck * density, pan * 0.8, spec.wet);
       if (!voice) return;
       const t = this.startTime();
-      const v: Voice = { ctx: voice.ctx, out: voice.node, t, p: pitch, nb: this.nb };
+      const v: Voice = { ctx: voice.ctx, out: voice.node, t, p: pitch, nb: this.nb, theme: this.theme };
       const dur = recipe(v);
       this.voices.push({ end: t + dur, gain: voice.node, prio: spec.prio, impact: false });
       this.later(() => voice.node.disconnect(), dur + 0.3);
@@ -399,7 +411,11 @@ export class AudioEngine {
     d.gain.setTargetAtTime(1, t + len, 0.5);
   }
 
-  impact(matA: string, matB: string, intensity: number, pan: number): void {
+  /**
+   * A collision. `kindA`/`kindB` optionally say what each body is ('domino', 'heavy', 'ball',
+   * 'floor'), which picks a domino clack or a bowling-ball thud over the plain material sound.
+   */
+  impact(matA: string, matB: string, intensity: number, pan: number, kindA?: string, kindB?: string): void {
     try {
       if (!this.ready || !this.ctx || !this.nb) return;
       const I = finite(intensity, 0);
@@ -415,7 +431,11 @@ export class AudioEngine {
       }
       const a = normMaterial(String(matA));
       const b = normMaterial(String(matB));
-      const key = a < b ? a + '|' + b : b + '|' + a;
+      const ka = normKind(kindA);
+      const kb = normKind(kindB);
+      const ia = a + ka;
+      const ib = b + kb;
+      const key = ia < ib ? ia + '|' + ib : ib + '|' + ia;
       const lastPair = this.pairLast.get(key);
       if (lastPair !== undefined && now - lastPair < 0.05) return;
       if (!this.admit(0, true, now)) return;
@@ -433,12 +453,24 @@ export class AudioEngine {
       if (!voice) return;
       const t = this.startTime();
       const v: Voice = { ctx: voice.ctx, out: voice.node, t, p: 1, nb: this.nb };
-      let dur: number;
-      if (a === b) dur = impactLayer(v, a as Material, e, 1);
-      else dur = Math.max(impactLayer(v, a, e, 0.7), impactLayer(v, b, e, 0.7));
+      const dur = this.impactLayers(v, a, ka, b, kb, e);
       this.voices.push({ end: t + dur, gain: voice.node, prio: 0, impact: true });
       this.later(() => voice.node.disconnect(), dur + 0.3);
     } catch { /* never throw */ }
+  }
+
+  private impactLayers(v: Voice, a: Material, ka: ImpactKind, b: Material, kb: ImpactKind, e: number): number {
+    // a special body (domino, heavy ball) leads; the other side adds a quieter material layer
+    const special = (k: ImpactKind): boolean => k === 'domino' || k === 'heavy';
+    if (special(ka) || special(kb)) {
+      const [ma, mka, mb, mkb] = special(ka) && (!special(kb) || ka === 'heavy') ? [a, ka, b, kb] : [b, kb, a, ka];
+      let d = impactLayer(v, ma, e, 1, mka);
+      if (mkb === 'domino' && mka === 'domino') return d; // domino on domino: just the clack
+      d = Math.max(d, impactLayer(v, mb, e, mkb === 'floor' ? 0.35 : 0.5, mkb));
+      return d;
+    }
+    if (a === b) return impactLayer(v, a, e, 1, ka || kb);
+    return Math.max(impactLayer(v, a, e, 0.7, ka), impactLayer(v, b, e, 0.7, kb));
   }
 
   // ---------------------------------------------------------------------------
@@ -596,6 +628,27 @@ export class AudioEngine {
         this.musicTimer = null;
       }
     } catch { /* ignore */ }
+  }
+
+  /**
+   * Crossfade the generative music to the style for a theme ('retro', 'stone', 'steam', 'modern',
+   * 'comic', 'future'; unknown ids fall back to 'modern'). Also picks the themed stingers.
+   * Safe to call before unlock(): the choice is remembered.
+   */
+  setMusicTheme(id: string): void {
+    try {
+      this.theme = normTheme(id);
+      this.music?.setTheme(this.theme);
+    } catch { /* ignore */ }
+  }
+
+  get musicTheme(): MusicTheme {
+    return this.theme;
+  }
+
+  /** Diagnostics: current music voices, tempo, live players and limiter drops. */
+  get musicStats(): { voices: number; bpm: number; players: number; dropped: number } {
+    return this.music ? this.music.stats : { voices: 0, bpm: 0, players: 0, dropped: 0 };
   }
 
   setMusicIntensity(x: number): void {

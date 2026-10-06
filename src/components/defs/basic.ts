@@ -135,6 +135,7 @@ registerComponent({
   rotatable: true,
   flippable: false,
   rotationStep: 5 * DEG,
+  resize: { w: 'length' },
   props: [{ key: 'length', label: 'Length', type: 'number', min: 40, max: 600, step: 10, default: 160, unit: 'cm' }],
   size: (p) => ({ w: Number(p.length ?? 160), h: 14 }),
   art: 'plank',
@@ -154,6 +155,7 @@ registerComponent({
   dynamic: true,
   rotatable: false,
   flippable: false,
+  resize: { w: 'length' },
   props: [
     { key: 'length', label: 'Length', type: 'number', min: 120, max: 400, step: 10, default: 220, unit: 'cm' },
     { key: 'tilt', label: 'Starting tilt', type: 'number', min: -25, max: 25, step: 1, default: 0, unit: '°' },

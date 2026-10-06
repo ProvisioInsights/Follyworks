@@ -7,6 +7,8 @@ import type { Entity } from '../sim/Entity';
 import { matches } from '../sim/goals';
 import type { Simulation } from '../sim/Simulation';
 import type { Rope } from '../sim/ropes';
+import type { TransformHandles } from '../game/EditorController';
+import type { BeamSeg } from '../sim/optics';
 
 export type ToolKind = 'rope' | 'belt' | 'wire';
 
@@ -43,6 +45,12 @@ export interface OverlayState {
   selectedGoal: number | null;
   /** Tutorial guidance: outlines of where a part could go, and a spot to point at. */
   guide?: { ghosts: Entity[]; point: Vec | null } | null;
+  /** Rotate / resize handles of the selected part (build mode). */
+  handles?: TransformHandles | null;
+  /** Camera zoom, so handles keep a constant on-screen size. */
+  zoom?: number;
+  /** Goal highlighted from the HUD. */
+  focusGoal?: number | null;
 }
 
 const ROPE = 0xc9a46a;
@@ -53,6 +61,8 @@ const WIRE_LIVE = 0xffb54a;
 const PORT_OUT = 0xff9a3c;
 const PORT_IN = 0x4fdcf5;
 const GOAL = 0x7cf0a0;
+/** Beam colours by RGB bitmask (see sim/optics.ts). */
+const BEAM_RGB: Record<number, number> = { 1: 0xff3d35, 2: 0x3dff6e, 3: 0xffe23d, 4: 0x3d8cff, 5: 0xff4fe0, 6: 0x3df4ff, 7: 0xfff4e2 };
 
 /** Interpolated world point of a local point on body `idx`. */
 export const lerpPoint = (e: Entity, local: Vec, idx: number, alpha: number): Vec => {
@@ -87,6 +97,9 @@ export class Overlays {
   readonly top: Phaser.GameObjects.Graphics;
   private st!: OverlayState;
   private beltTravel = new Map<string, number>();
+  /** Light beams: a dark contrast underlay, then an additive glow, core and hit sparkles. */
+  private beamUnder: Phaser.GameObjects.Graphics;
+  private beamGlow: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene, underLayer: Phaser.GameObjects.Container, overLayer: Phaser.GameObjects.Container, topLayer: Phaser.GameObjects.Container) {
     this.under = scene.add.graphics();
@@ -95,6 +108,11 @@ export class Overlays {
     underLayer.add(this.under);
     overLayer.add(this.over);
     topLayer.add(this.top);
+    this.beamUnder = scene.add.graphics();
+    this.beamGlow = scene.add.graphics();
+    this.beamGlow.setBlendMode(Phaser.BlendModes.ADD);
+    overLayer.add(this.beamUnder);
+    overLayer.add(this.beamGlow);
   }
 
   private pt(e: Entity, local: Vec, idx: number): Vec {
@@ -136,6 +154,7 @@ export class Overlays {
     for (const b of sim.belts) this.drawBelt(u, b.a, b.b, b.id);
     for (const r of sim.ropes) this.drawRope(o, r);
     for (const w of sim.wires) this.drawWire(o, w.from, w.fromPort, w.to, w.toPort, w.live, w.id);
+    this.drawBeams(sim.beams ?? [], st);
 
     // sockets: in build mode always; in run mode only for powered sockets (subtle)
     for (const e of sim.list) {
@@ -197,6 +216,113 @@ export class Overlays {
     }
     if (st.showForces) this.drawForces(tp, sim);
     if (st.guide && st.mode === 'build') this.drawGuide(tp, st.guide, st.t);
+    if (st.handles && st.mode === 'build') this.drawHandles(tp, st.handles, 1 / Math.max(0.3, st.zoom ?? 1));
+  }
+
+  /** Rotate knob on a stem above the part, and square grips on the edges that can be dragged to resize. */
+  private drawHandles(g: Phaser.GameObjects.Graphics, hs: TransformHandles, k: number) {
+    const SEL = 0x6fe3ff;
+    const INK = 0x0b0806;
+    if (hs.rotate) {
+      const { pos, base } = hs.rotate;
+      g.lineStyle(4 * k, INK, 0.5);
+      g.lineBetween(base.x, base.y, pos.x, pos.y);
+      g.lineStyle(2 * k, SEL, 0.9);
+      g.lineBetween(base.x, base.y, pos.x, pos.y);
+      g.fillStyle(INK, 0.9);
+      g.fillCircle(pos.x, pos.y, 11 * k);
+      g.fillStyle(SEL, 1);
+      g.fillCircle(pos.x, pos.y, 9 * k);
+      // a small curved arrow inside the knob
+      g.lineStyle(1.8 * k, INK, 0.95);
+      g.beginPath();
+      g.arc(pos.x, pos.y, 4.5 * k, -2.4, 1.4, false);
+      g.strokePath();
+      const ax = pos.x + Math.cos(1.4) * 4.5 * k;
+      const ay = pos.y + Math.sin(1.4) * 4.5 * k;
+      g.fillStyle(INK, 0.95);
+      g.fillTriangle(ax - 2.4 * k, ay - 0.6 * k, ax + 1.6 * k, ay - 2.2 * k, ax + 0.8 * k, ay + 2 * k);
+    }
+    for (const q of hs.resize) {
+      const ax = q.axis === 'w' ? hs.u : hs.v;
+      const bx = q.axis === 'w' ? hs.v : hs.u;
+      const corner = (s: number, t: number) => ({ x: q.pos.x + ax.x * s + bx.x * t, y: q.pos.y + ax.y * s + bx.y * t });
+      const quad = (r: number) => {
+        const pts = [corner(-r, -r), corner(r, -r), corner(r, r), corner(-r, r)];
+        g.beginPath();
+        g.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < 4; i++) g.lineTo(pts[i].x, pts[i].y);
+        g.closePath();
+        g.fillPath();
+      };
+      g.fillStyle(INK, 0.9);
+      quad(8 * k);
+      g.fillStyle(0xfff2d8, 1);
+      quad(6.5 * k);
+      // two ticks pointing the way it stretches
+      g.lineStyle(1.6 * k, INK, 0.9);
+      const a = corner(-2.6 * k, 0);
+      const b = corner(2.6 * k, 0);
+      g.lineBetween(a.x, a.y, b.x, b.y);
+    }
+  }
+
+  private drawBeams(beams: BeamSeg[], st: OverlayState) {
+    const u = this.beamUnder;
+    const g = this.beamGlow;
+    u.clear();
+    g.clear();
+    if (!beams.length) return;
+    // Build-mode previews (always-on lasers) are drawn fainter than live beams.
+    const k = st.mode === 'build' ? 0.6 : 1;
+    const t = st.t;
+    for (let i = 0; i < beams.length; i++) {
+      const b = beams[i];
+      const col = BEAM_RGB[b.color] ?? 0xffffff;
+      const s = Math.max(0.3, Math.min(1, b.intensity)) * k;
+      const shimmer = 0.88 + 0.12 * Math.sin(t * 41 + i * 1.7);
+      if (b.inside) {
+        g.lineStyle(3, col, 0.35 * s);
+        g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+        continue;
+      }
+      u.lineStyle(7, 0x0b0806, 0.4 * s);
+      u.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      g.lineStyle(24, col, 0.1 * s * shimmer);
+      g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      g.lineStyle(11, col, 0.3 * s * shimmer);
+      g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      g.lineStyle(4.5, col, 1 * s);
+      g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      g.lineStyle(1.4, 0xffffff, 0.7 * s);
+      g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      // Travelling sparkles along the beam so the light reads as moving.
+      const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+      if (st.mode === 'run' && len > 30) {
+        const step = 90;
+        const off = (t * 420) % step;
+        for (let d = off; d < len; d += step) {
+          const f = d / len;
+          g.fillStyle(0xffffff, 0.55 * s);
+          g.fillCircle(b.x1 + (b.x2 - b.x1) * f, b.y1 + (b.y2 - b.y1) * f, 1.8);
+        }
+      }
+      if (b.stopped) {
+        const r = 6 + 2.5 * Math.sin(t * 30 + i);
+        g.fillStyle(col, 0.3 * s);
+        g.fillCircle(b.x2, b.y2, r + 10);
+        g.fillStyle(col, 0.5 * s);
+        g.fillCircle(b.x2, b.y2, r + 4);
+        g.fillStyle(0xffffff, 0.9 * s);
+        g.fillCircle(b.x2, b.y2, r * 0.55);
+        g.lineStyle(1.4, col, 0.8 * s);
+        for (let j = 0; j < 4; j++) {
+          const a = t * 7 + j * (Math.PI / 2) + i;
+          const l = 7 + 4 * Math.sin(t * 23 + j * 2 + i);
+          g.lineBetween(b.x2, b.y2, b.x2 + Math.cos(a) * l, b.y2 + Math.sin(a) * l);
+        }
+      }
+    }
   }
 
   /** A pulsing translucent silhouette of each ghost part, plus a beacon on the pointed spot. */
@@ -524,7 +650,7 @@ export class Overlays {
       const status = sim.goals.status[i];
       const col = met ? 0xffe08a : GOAL;
       const pulse = 0.5 + 0.5 * Math.sin(t * 3 + i);
-      const selected = st.selectedGoal === i;
+      const selected = st.selectedGoal === i || st.focusGoal === i;
       const targets = (sel: any) => (sel ? sim.list.filter((e) => e.alive && matches(e, sel)) : []);
       const ring = (e: Entity, color: number) => {
         const b = e.body;
@@ -557,7 +683,10 @@ export class Overlays {
             g.fillStyle(col, 0.8);
             g.fillRect(r.x, r.y + r.h + 4, r.w * status.progress, 4);
           }
-          for (const e of targets(goal.target)) ring(e, col);
+          for (const e of targets(goal.target)) {
+            ring(e, col);
+            if (st.mode === 'build' && 'id' in goal.target) this.goalArrow(g, lerpPoint(e, { x: 0, y: 0 }, 0, st.alpha), r, col, t, selected);
+          }
           break;
         }
         case 'contact':
@@ -580,6 +709,42 @@ export class Overlays {
         }
       }
     });
+  }
+
+  /** A dashed curve from a goal's target to the near edge of its zone, ending in an arrow head. */
+  private goalArrow(g: Phaser.GameObjects.Graphics, from: Vec, r: { x: number; y: number; w: number; h: number }, col: number, t: number, strong: boolean) {
+    const to = { x: Math.min(r.x + r.w, Math.max(r.x, from.x)), y: Math.min(r.y + r.h, Math.max(r.y, from.y)) };
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 90) return;
+    // bow the curve upwards like a thrown arc, and trim both ends clear of the part and the zone
+    const bow = Math.min(120, len * 0.25);
+    const c = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 - bow };
+    const at = (k: number) => ({
+      x: (1 - k) * (1 - k) * from.x + 2 * (1 - k) * k * c.x + k * k * to.x,
+      y: (1 - k) * (1 - k) * from.y + 2 * (1 - k) * k * c.y + k * k * to.y,
+    });
+    const a0 = 34 / len;
+    const a1 = 1 - 10 / len;
+    const steps = Math.max(12, Math.round(len / 9));
+    const phase = (t * 0.8) % 1;
+    g.lineStyle(strong ? 3 : 2, col, strong ? 0.9 : 0.5);
+    for (let i = 0; i < steps; i++) {
+      if ((i + Math.floor(phase * 2)) % 2) continue;
+      const p = at(a0 + ((a1 - a0) * i) / steps);
+      const q = at(a0 + ((a1 - a0) * (i + 1)) / steps);
+      g.lineBetween(p.x, p.y, q.x, q.y);
+    }
+    const tip = at(a1);
+    const back = at(a1 - 14 / len);
+    const ux = tip.x - back.x;
+    const uy = tip.y - back.y;
+    const ul = Math.hypot(ux, uy) || 1;
+    const nx = -uy / ul;
+    const ny = ux / ul;
+    g.fillStyle(col, strong ? 0.95 : 0.6);
+    g.fillTriangle(tip.x + (ux / ul) * 4, tip.y + (uy / ul) * 4, back.x + nx * 6, back.y + ny * 6, back.x - nx * 6, back.y - ny * 6);
   }
 
   private dashedRect(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, phase: number) {

@@ -18,6 +18,8 @@ export interface AppContext {
   showCampaign(): void;
   showLevels(): void;
   playCampaign(index: number): void;
+  showLab(): void;
+  playLab(index: number): void;
   playCustom(levelId: string): void;
   editLevel(levelId: string): void;
   openSandbox(slotId?: string): void;

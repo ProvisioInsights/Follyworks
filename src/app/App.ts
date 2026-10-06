@@ -3,14 +3,18 @@
 import Phaser from 'phaser';
 import { AudioEngine, type SfxName } from '../audio/AudioEngine';
 import { blankLevel, parseBuild } from '../core/level';
+import { themeFor, type ThemeId, type ThemeSetting } from '../core/themes';
 import { deepClone } from '../core/util';
 import { emptyBuild, type BuildDef, type LevelDef } from '../core/types';
 import { CAMPAIGN, CHAPTERS, levelCode } from '../game/campaign';
+import { applyDifficulty, buildKey, type Difficulty } from '../game/difficulty';
+import { LAB, labCode } from '../game/levels/lab';
 import { RunController } from '../game/RunController';
 import { mergeProgress, type AttemptResult } from '../game/scoring';
 import { SaveStore, type Settings } from '../persistence/save';
 import { WorkshopScene } from '../render/WorkshopScene';
 import { h, installTooltips, modal, toast } from '../ui/dom';
+import { labIntro, labScreen } from '../ui/lab';
 import { PlayScreen } from '../ui/PlayScreen';
 import { campaignScreen, levelsScreen, mainMenu, settingsDialog, type Screen } from '../ui/screens';
 import type { AppContext } from './context';
@@ -25,6 +29,13 @@ export class App implements AppContext {
   private screen: Screen | null = null;
   private play: PlayScreen | null = null;
   private demo: { run: RunController; unhook: () => void; doneAt: number } | null = null;
+  /** The open campaign level as derived for its difficulty (null outside the campaign). */
+  private derived: ReturnType<typeof applyDifficulty> | null = null;
+  /** Chapter whose era picks the theme on 'auto' (undefined: sandbox, editor, custom levels). */
+  private themeChapter: number | undefined = undefined;
+  /** Theme picked in the sandbox or editor for this visit only (overrides the setting there). */
+  private sessionTheme: ThemeSetting = 'auto';
+  private musicTheme: ThemeId | null = null;
 
   constructor() {
     this.ui = document.getElementById('ui')!;
@@ -74,8 +85,10 @@ export class App implements AppContext {
   debugLoadSolution(k = 0) {
     const play = this.play;
     if (!play) return false;
-    const entry = CAMPAIGN.find((c) => c.level.id === play.ctl.session.level.id);
-    const sol = entry?.solutions[k < 0 ? entry.solutions.length + k : k];
+    const id = play.ctl.session.level.id;
+    const entry = CAMPAIGN.find((c) => c.level.id === id) ?? LAB.find((c) => c.level.id === id);
+    // On Easy, solutions[0] minus the part that is already pre-placed.
+    const sol = k === 0 && this.derived?.solution && this.derived.level.id === entry?.level.id ? this.derived.solution : entry?.solutions[k < 0 ? entry.solutions.length + k : k];
     if (!sol) return false;
     play.ctl.session.replace(play.ctl.session.level, deepClone(sol));
     return true;
@@ -100,6 +113,40 @@ export class App implements AppContext {
       this.scene.env.reducedMotion = s.reducedMotion;
     }
     if (this.play) this.play.ctl.editor.snap = s.snap;
+    this.refreshTheme();
+  }
+
+  // ------------------------------------------------------------------ themes
+
+  /** The theme in force right now: session pick, else the setting, else the era of the chapter. */
+  get theme(): ThemeId {
+    return themeFor(this.themeChapter, this.sessionTheme !== 'auto' ? this.sessionTheme : this.settings.theme);
+  }
+
+  /** Called on a screen change, before the new screen sets its sim and room. */
+  private setThemeContext(chapter: number | undefined, session: ThemeSetting = 'auto') {
+    this.themeChapter = chapter;
+    this.sessionTheme = session;
+    this.refreshTheme(true);
+  }
+
+  /** Sandbox / editor theme picker: applies to this visit only. */
+  setSessionTheme(t: ThemeSetting) {
+    this.sessionTheme = t;
+    this.refreshTheme();
+  }
+
+  private refreshTheme(deferred = false) {
+    const id = this.theme;
+    document.documentElement.dataset.theme = id;
+    if (this.scene && this.scene.currentTheme !== id) {
+      this.scene.setTheme(id, deferred);
+      this.play?.refreshTheme();
+    }
+    if (this.musicTheme !== id) {
+      this.musicTheme = id;
+      this.audio.setMusicTheme(id);
+    }
   }
 
   openSettings() {
@@ -113,6 +160,7 @@ export class App implements AppContext {
   // ------------------------------------------------------------------ routing
 
   private teardown() {
+    this.derived = null;
     this.screen?.destroy();
     this.screen = null;
     this.play?.destroy();
@@ -123,6 +171,7 @@ export class App implements AppContext {
 
   showMenu() {
     this.teardown();
+    this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = mainMenu(this);
     this.audio.setMusicIntensity(0.2);
@@ -130,12 +179,14 @@ export class App implements AppContext {
 
   showCampaign() {
     this.teardown();
+    this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = campaignScreen(this);
   }
 
   showLevels() {
     this.teardown();
+    this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = levelsScreen(this, () => this.showLevels());
   }
@@ -145,24 +196,73 @@ export class App implements AppContext {
     return CAMPAIGN.length;
   }
 
-  playCampaign(index: number) {
+  playCampaign(index: number, difficulty?: Difficulty) {
     const entry = CAMPAIGN[index];
     if (!entry) return this.showCampaign();
     this.teardown();
-    const level = entry.level;
-    const build = this.store.getBuild(level) ?? emptyBuild();
+    this.setThemeContext(entry.chapter);
+    const derived = applyDifficulty(entry, difficulty ?? this.settings.difficulty);
+    const d = derived.difficulty;
+    const level = derived.level;
+    const key = buildKey(level.id, d);
+    const saved = this.store.data.builds[key];
+    const build = saved ? parseBuildSafe(saved, level) : emptyBuild();
     const chapter = CHAPTERS.find((c) => c.index === entry.chapter);
     const progress = this.store.progress(level.id);
+    this.derived = derived;
     this.play = new PlayScreen(this, {
       kind: 'campaign',
       level,
       build,
       title: level.name,
-      subtitle: `${levelCode(index)} · ${chapter?.title ?? ''}${progress.solved ? ' · solved' : ''}`,
+      subtitle: `${levelCode(index)} · ${chapter?.title ?? ''}${progress.byDifficulty[d].solved ? ' · solved' : ''}`,
       brief: true,
+      difficulty: d,
+      solution: derived.solution,
+      onDifficulty: (nd) => {
+        this.updateSettings({ difficulty: nd });
+        this.playCampaign(index, nd);
+      },
       onExit: () => this.showCampaign(),
       exitLabel: 'Puzzles',
       onNext: index + 1 < CAMPAIGN.length ? () => this.playCampaign(index + 1) : undefined,
+      onSolved: (r) => this.record(level.id, r, d),
+      onBuildChanged: (b) => this.store.setBuild(key, b),
+    });
+  }
+
+  showLab() {
+    this.teardown();
+    this.startDemo();
+    this.screen = labScreen(this);
+  }
+
+  /** For automated tests. */
+  get labLength() {
+    return LAB.length;
+  }
+
+  playLab(index: number) {
+    const entry = LAB[index];
+    if (!entry) return this.showLab();
+    this.teardown();
+    this.setThemeContext(undefined);
+    const level = entry.level;
+    this.store.data.lab.lastPlayed = level.id;
+    this.store.save();
+    const progress = this.store.progress(level.id);
+    this.play = new PlayScreen(this, {
+      kind: 'campaign',
+      level,
+      build: this.store.getBuild(level) ?? emptyBuild(),
+      title: level.name,
+      subtitle: `${labCode(index)} · Physics Lab${progress.solved ? ' · solved' : ''}`,
+      brief: true,
+      briefIntro: () => labIntro(entry),
+      concepts: [entry.concept],
+      onExit: () => this.showLab(),
+      exitLabel: 'Lab',
+      onNext: index + 1 < LAB.length ? () => this.playLab(index + 1) : undefined,
       onSolved: (r) => this.record(level.id, r),
       onBuildChanged: (b) => this.store.setBuild(level.id, b),
     });
@@ -172,6 +272,7 @@ export class App implements AppContext {
     const level = this.store.data.customLevels.find((l) => l.id === levelId);
     if (!level) return this.showLevels();
     this.teardown();
+    this.setThemeContext(undefined);
     this.play = new PlayScreen(this, {
       kind: 'custom',
       level,
@@ -189,7 +290,9 @@ export class App implements AppContext {
   editLevel(levelId: string, restore?: { level: LevelDef }) {
     const stored = this.store.data.customLevels.find((l) => l.id === levelId);
     if (!stored) return this.showLevels();
+    const keep = this.sessionTheme;
     this.teardown();
+    this.setThemeContext(undefined, restore ? keep : 'auto');
     const level = restore?.level ?? stored;
     this.store.data.editorLevelId = levelId;
     this.play = new PlayScreen(this, {
@@ -205,6 +308,7 @@ export class App implements AppContext {
         this.store.upsertCustomLevel(deepClone(l));
       },
       onTest: (l) => this.testLevel(levelId, deepClone(l)),
+      theme: { value: () => this.sessionTheme, set: (t) => this.setSessionTheme(t) },
     });
   }
 
@@ -226,7 +330,9 @@ export class App implements AppContext {
   }
 
   openSandbox(slotId?: string) {
+    const keep = this.play?.cfgKind === 'sandbox' ? this.sessionTheme : 'auto';
     this.teardown();
+    this.setThemeContext(undefined, keep);
     const slot = slotId ? this.store.data.sandboxSlots.find((s) => s.id === slotId) : null;
     const auto = this.store.data.sandboxSlots.find((s) => s.id === 'autosave');
     const src = slot ?? auto;
@@ -255,6 +361,7 @@ export class App implements AppContext {
           this.openSandbox();
         },
       },
+      theme: { value: () => this.sessionTheme, set: (t) => this.setSessionTheme(t) },
     });
   }
 
@@ -307,21 +414,30 @@ export class App implements AppContext {
     });
   }
 
-  private record(levelId: string, r: AttemptResult) {
+  private record(levelId: string, r: AttemptResult, difficulty: Difficulty = 'normal') {
     const prev = this.store.progress(levelId);
-    const next = mergeProgress(prev, r);
+    const next = mergeProgress(prev, r, difficulty);
     this.store.setProgress(levelId, next);
     this.store.flush();
   }
 
   // ------------------------------------------------------------------ attract mode
 
-  private startDemo() {
-    if (this.demo) return;
-    const pick =
+  private demoPick() {
+    return (
       [...CAMPAIGN].reverse().find((c) => c.chapter === CHAPTERS[CHAPTERS.length - 1].index && c.solutions.length) ??
       [...CAMPAIGN].reverse().find((c) => c.solutions.length) ??
-      null;
+      null
+    );
+  }
+
+  private demoChapter() {
+    return this.demoPick()?.chapter;
+  }
+
+  private startDemo() {
+    if (this.demo) return;
+    const pick = this.demoPick();
     if (!pick) return;
     const level = deepClone(pick.level);
     const build = deepClone(pick.solutions[0]);

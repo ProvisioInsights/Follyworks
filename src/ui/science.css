@@ -1,0 +1,215 @@
+/* "How it works" science cards, the results-card concept chips and Physics Lab intros/list.
+   Kept apart from styles.css; uses its colour tokens and --ts text scale. */
+
+.science {
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.science > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  padding: 6px 9px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: calc(15px * var(--ts));
+  color: var(--brass-hi);
+}
+.science > summary::-webkit-details-marker {
+  display: none;
+}
+.science > summary::after {
+  content: '▸';
+  margin-left: auto;
+  padding-left: 6px;
+  color: var(--muted);
+  transition: transform 0.12s;
+}
+.science[open] > summary::after {
+  transform: rotate(90deg);
+}
+.science > summary svg,
+.science > summary .sci-label {
+  flex: none;
+  white-space: nowrap;
+}
+.science > summary::after {
+  order: 2;
+}
+.science .sci-topic {
+  color: var(--cream-dim);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.science .sci-topic {
+  order: 3;
+  flex-basis: 100%;
+  font-size: calc(13px * var(--ts));
+}
+.science .sci-body {
+  padding: 0 10px 9px;
+}
+/* In the narrow properties panel the open card scrolls with the panel instead of being squashed. */
+.props > .science {
+  flex: none;
+}
+.props:has(> .science[open]) {
+  overflow-y: auto;
+}
+.sci-also {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: calc(12px * var(--ts));
+  color: var(--muted);
+}
+.concept-card {
+  font-size: calc(13px * var(--ts));
+  line-height: 1.45;
+  color: var(--cream);
+}
+.concept-card p {
+  margin: 0 0 6px;
+}
+.concept-card .cc-title {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: calc(17px * var(--ts));
+  color: var(--brass-hi);
+  margin-bottom: 4px;
+}
+.cc-formula {
+  font-family: 'Courier New', monospace;
+  font-size: calc(12.5px * var(--ts));
+  color: var(--cyan);
+  background: rgba(79, 220, 245, 0.07);
+  border-left: 2px solid var(--cyan);
+  padding: 4px 8px;
+  border-radius: 0 4px 4px 0;
+  margin: 2px 0 7px;
+}
+.concept-card .cc-real,
+.concept-card .cc-game {
+  color: var(--cream-dim);
+}
+.concept-card .cc-game b {
+  color: var(--orange);
+}
+.concept-card .cc-try {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--green);
+  margin-bottom: 0;
+}
+.concept-card .cc-try svg {
+  flex: none;
+  margin-top: 3px;
+}
+.chip {
+  font-family: var(--font-head);
+  font-size: calc(13.5px * var(--ts));
+  letter-spacing: 0.03em;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--edge-hi);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--cream-dim);
+  cursor: pointer;
+}
+.chip:hover,
+.chip[aria-expanded='true'] {
+  border-color: var(--brass);
+  color: var(--brass-hi);
+  background: rgba(226, 165, 74, 0.1);
+}
+.physics-in-machine {
+  margin-top: 12px;
+}
+.physics-in-machine .pim-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-head);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+  margin-bottom: 6px;
+}
+.concept-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pim-card:not(:empty) {
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  max-height: 210px;
+  overflow-y: auto;
+}
+.lab-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--edge-hi);
+}
+.lab-intro .li-concept {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-head);
+  letter-spacing: 0.05em;
+  color: var(--cream-dim);
+}
+.lab-intro .li-concept b {
+  color: var(--brass-hi);
+}
+.lab-intro .li-row {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 10px;
+  font-size: calc(14px * var(--ts));
+  line-height: 1.45;
+}
+.lab-intro .li-label {
+  font-family: var(--font-head);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: calc(13px * var(--ts));
+  color: var(--muted);
+  padding-top: 1px;
+}
+.lab-intro .li-row.challenge .li-text {
+  color: var(--brass-hi);
+}
+.lab-intro .cc-formula {
+  margin: 0;
+}
+.level-tile.lab-tile.last {
+  border-color: var(--edge-hi);
+  box-shadow: 0 0 0 1px rgba(226, 165, 74, 0.35) inset;
+}
+.lab-concept {
+  color: var(--cream-dim);
+}
+@media (max-width: 560px) {
+  .lab-intro .li-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

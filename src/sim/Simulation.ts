@@ -9,6 +9,7 @@ import { Entity, type EntityOrigin } from './Entity';
 import { GoalTracker, matches } from './goals';
 import { CAT, M, STEP_MS, type MBody, type MConstraint } from './matter';
 import { propagatePower, type Wire } from './power';
+import { traceBeams, type BeamSeg } from './optics';
 import { Rope, ropeHit, solveRopes } from './ropes';
 import { solveRotation, type Belt } from './rotation';
 
@@ -27,7 +28,7 @@ export type FxKind =
   | 'bounce';
 
 export type SimEvent =
-  | { t: 'impact'; x: number; y: number; speed: number; matA: string; matB: string }
+  | { t: 'impact'; x: number; y: number; speed: number; matA: string; matB: string; kindA?: string; kindB?: string }
   | { t: 'activate'; key: string; label: string; domain: string; x: number; y: number }
   | { t: 'sfx'; name: string; x: number; y: number; vol?: number }
   | { t: 'fx'; kind: FxKind; x: number; y: number; dx?: number; dy?: number; scale?: number }
@@ -69,6 +70,8 @@ export interface SimOptions {
 
 const MATERIALS = ['metal', 'wood', 'rubber', 'glass', 'paper', 'robot', 'stone'];
 const materialOf = (e: Entity | null) => (e ? e.def.tags.find((t) => MATERIALS.includes(t)) ?? 'wood' : 'stone');
+/** Audio flavour for impacts: dominoes clack, heavy balls thud; null = the room itself. */
+const impactKindOf = (e: Entity | null) => (!e ? 'floor' : e.def.tags.includes('domino') ? 'domino' : e.def.tags.includes('heavy') ? 'heavy' : e.def.tags.includes('ball') ? 'ball' : '');
 
 const SUBSTEPS = 2;
 
@@ -96,6 +99,8 @@ export class Simulation {
   private contactsByEntity = new Map<Entity, Contact[]>();
   private prevContactIds = new Set<string>();
   heat: HeatSource[] = [];
+  /** Light beams as of the end of the last tick (recomputed from poses; see sim/optics.ts). */
+  beams: BeamSeg[] = [];
   /** Body id -> owning entity (parents and parts). */
   private owners = new Map<number, Entity>();
   /** Bodies whose kinematics are captured by snapshots (non-static + moving statics). */
@@ -128,6 +133,9 @@ export class Simulation {
     this.placedParts =
       (build.objects?.length ?? 0) + (build.connections ?? []).filter((c) => c.kind !== 'wire').length;
     this.updateContacts();
+    // Build-mode preview: always-on lasers show where they point before RUN. Light sensors already
+    // in such a beam start lit; nothing else changes.
+    this.beams = traceBeams(this, false, true);
   }
 
   // ------------------------------------------------------------------ construction
@@ -433,6 +441,7 @@ export class Simulation {
 
     this.updateContacts();
     for (const e of this.list) if (e.alive && e.def.afterStep) e.def.afterStep(e, this);
+    this.beams = traceBeams(this, true);
     this.applyHeat();
     this.cullOutOfBounds();
 
@@ -557,7 +566,7 @@ export class Simulation {
     // approaching speed of b towards a along normal (a->b): negative dot means approaching
     const approach = -(rvx * c.normal.x + rvy * c.normal.y);
     if (!c.isSensor && approach > 1.2) {
-      this.emit({ t: 'impact', x: c.point.x, y: c.point.y, speed: approach, matA: materialOf(c.a), matB: materialOf(c.b) });
+      this.emit({ t: 'impact', x: c.point.x, y: c.point.y, speed: approach, matA: materialOf(c.a), matB: materialOf(c.b), kindA: impactKindOf(c.a), kindB: impactKindOf(c.b) });
     }
     // Two loose things knocking into each other is a stage of the chain reaction ("Ball hit the crate").
     if (!c.isSensor && approach > 1.5 && c.a && c.b && !ba.isStatic && !bb.isStatic) {
@@ -690,6 +699,8 @@ export class Simulation {
     this.prevContactIds.clear();
     this.contacts = [];
     this.contactsByEntity.clear();
+    // Beams are a pure function of poses, inputs and state, so they are recomputed, not stored.
+    this.beams = traceBeams(this, false);
   }
 }
 

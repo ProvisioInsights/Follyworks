@@ -6,7 +6,7 @@ import type { ObjectDef, Props, PropValue, Vec } from '../core/types';
 import type { Entity } from '../sim/Entity';
 import type { Simulation } from '../sim/Simulation';
 
-export type Category = 'basic' | 'mechanical' | 'force' | 'chaos' | 'control' | 'creature' | 'scenery';
+export type Category = 'basic' | 'mechanical' | 'force' | 'chaos' | 'control' | 'creature' | 'optics' | 'scenery';
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   basic: 'Basics',
@@ -15,11 +15,12 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   chaos: 'Chaos',
   control: 'Electric & Logic',
   creature: 'Creatures',
+  optics: 'Light & Lasers',
   scenery: 'Scenery',
 };
 
 /** Domains are used for chain-reaction legibility and the ABSURD score. */
-export type Domain = 'gravity' | 'mechanical' | 'air' | 'heat' | 'electric' | 'logic' | 'chaos' | 'creature';
+export type Domain = 'gravity' | 'mechanical' | 'air' | 'heat' | 'electric' | 'logic' | 'chaos' | 'creature' | 'light';
 
 export type PropSpec =
   | { key: string; label: string; type: 'number'; min: number; max: number; step: number; default: number; unit?: string }
@@ -73,6 +74,12 @@ export interface ComponentDef {
   flippable: boolean;
   /** Snap rotation increments in radians when snapping is on. */
   rotationStep?: number;
+  /**
+   * Which number props are the part's width and height, so the editor can show drag handles to
+   * resize it. Only parts whose physics is built from these props get handles: the body is
+   * rebuilt at the new size, so nothing is scaled after the fact.
+   */
+  resize?: { w?: string; h?: string };
   props: PropSpec[];
   ports?: PortSpec[] | ((props: Props) => PortSpec[]);
   anchors?: AnchorSpec[] | ((props: Props) => AnchorSpec[]);
