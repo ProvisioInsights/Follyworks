@@ -106,9 +106,6 @@ export class App implements AppContext {
     const s = this.settings;
     this.audio.setVolumes({ master: s.master, sfx: s.sfx, music: s.music });
     this.audio.setMuted(s.muted);
-    // themed music: follows a `theme` setting when one exists (crossfades; no-op if unchanged)
-    const theme = (s as { theme?: unknown }).theme;
-    if (typeof theme === 'string') this.audio.setMusicTheme(theme);
     document.documentElement.style.setProperty('--ts', String(s.textScale));
     document.body.classList.toggle('reduced', s.reducedMotion);
     if (this.scene) {
@@ -148,8 +145,7 @@ export class App implements AppContext {
     }
     if (this.musicTheme !== id) {
       this.musicTheme = id;
-      // Provided by the audio engine when themed music is available.
-      (this.audio as any).setMusicTheme?.(id);
+      this.audio.setMusicTheme(id);
     }
   }
 
