@@ -233,6 +233,14 @@ describe('corruption recovery', () => {
     expect(parseSettings([1, 2])).toEqual(DEFAULT_SETTINGS);
   });
 
+  it('settings: theme defaults to auto, keeps known themes and drops unknown ones', () => {
+    expect(DEFAULT_SETTINGS.theme).toBe('auto');
+    expect(parseSettings({ theme: 'retro' }).theme).toBe('retro');
+    expect(parseSettings({ theme: 'auto' }).theme).toBe('auto');
+    expect(parseSettings({ theme: 'vaporwave' }).theme).toBe('auto');
+    expect(parseSettings({ theme: 3 }).theme).toBe('auto');
+  });
+
   it('progress entries with junk fields are repaired field by field', () => {
     const { data } = parseSave(
       JSON.stringify({ progress: { a: { solved: 1, elegant: true, bestParts: '3', bestStages: 4, bestTime: 2.5, attempts: -3.7, solvedAt: 5 }, b: 'x' } }),
