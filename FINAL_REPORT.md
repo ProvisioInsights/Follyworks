@@ -21,6 +21,10 @@ Every level is verified solvable both by headless tests and by playing it in a r
 - Each level has a briefing, goals shown in the top bar, progressive hints, a time limit, ELEGANT targets (parts and/or time) and an ABSURD chain target.
 - Unlocking is soft: a level opens when it is within 3 of your solved count, or with "unlock all" in settings.
 
+**Physics Lab and science cards**
+- 9 lesson missions (L1–L9): Sideways and Down (gravity), Height into Speed (energy), Lift-Off (buoyancy), Heavyweight (momentum), Light Beats Heavy (levers), Balancing Act (pulleys), Opposite Day (gears), Two-Key Lock (logic), Sort the Metal (electromagnets). Each has an intro card, saved progress and a "carry on" marker on the lesson list.
+- 25 "How it works" cards (six of them for the planned optics parts), shown for the selected part and as "Physics in your machine" chips on the results card.
+
 **Parts (31)**
 - Physics: rubber ball, bowling ball, crate (wood/steel), domino, plank, seesaw, trampoline, bucket, pulley, hook.
 - Mechanical: gear, motor, conveyor.

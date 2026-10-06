@@ -34,7 +34,8 @@ The central rule is that **the simulation is pure data in, data out**. A level a
 | `src/components` | The component registry and every part definition (`defs/basic, mechanical, force, chaos, control, creature`). `kit.ts` holds shared body builders. |
 | `src/sim` | `Simulation`, `Entity`, and the subsystems: electricity (`power.ts`), the gear/belt rotation network (`rotation.ts`), ropes and pulleys (`ropes.ts`), goal evaluation (`goals.ts`), rewind snapshots (`history.ts`) and the Matter import and patch (`matter.ts`). |
 | `src/editor` | `Session` (the editable document plus undo/redo) and inventory rules. |
-| `src/game` | Controllers (`PlayController`, `EditorController`, `RunController`), placement validation, scoring, tutorial guidance logic (`guide.ts`), and the campaign (`levels/tutorial.ts`, `levels/group1.ts`–`group5.ts`). |
+| `src/game` | Controllers (`PlayController`, `EditorController`, `RunController`), placement validation, scoring, tutorial guidance logic (`guide.ts`), and the campaign (`levels/tutorial.ts`, `levels/group1.ts`–`group5.ts`). The Physics Lab (`levels/lab.ts`) is a separate list in the same entry shape, outside `CAMPAIGN`. |
+| `src/content` | Pure teaching content: the science cards and part-to-concept map (`science.ts`) and the run-concept picker that reads chain stages (`runConcepts.ts`). |
 | `src/render` | The Phaser scene, entity views, overlays (ropes, wires, sockets, goal zones, selection, ghost trails), particles and labels, environments, and the procedural art painters. |
 | `src/ui` | DOM screens and the in-game HUD. |
 | `src/audio` | The audio engine: one-shot effects, continuous machine loops and generative music, all synthesised. |
@@ -105,11 +106,12 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - The HUD is DOM layered over the canvas, so text is crisp and accessible, and the canvas never has to lay out UI.
 - `PlayScreen` is shared by campaign, sandbox, level editor and test play; `cfg.kind` switches features on and off.
 - `GuideCoach` draws tutorial guidance: a DOM card and arrow, plus the ghost outline through `PlayController.guideOverlay`.
+- `ui/science.ts` builds the "How it works" section in the properties panel and the "Physics in your machine" chips on the results card; `ui/lab.ts` has the lab list and lesson intro (passed to `PlayScreen` as `briefIntro`). Their styles are in `ui/science.css`.
 - The level editor adds `EditorPanel` with three tabs: level settings, parts bin (inventory) and goals.
 
 ## Persistence
 
-`persistence/save.ts` keeps one JSON document, `follyworks.save`, with a `version` field. It holds settings, per-level progress, the autosaved build for each level, custom levels, sandbox slots and the level last open in the editor.
+`persistence/save.ts` keeps one JSON document, `follyworks.save`, with a `version` field. It holds settings, per-level progress, the autosaved build for each level, custom levels, sandbox slots, the level last open in the editor and the lab lesson last played (`lab`, absent in older saves and filled in on load). Lab lessons keep their progress and builds under their `lab-` level ids like any level.
 
 - Loading never throws. Unknown or broken fields fall back to defaults field by field.
 - An unreadable document is copied aside to `follyworks.save.corrupt-<time>` before defaults are used.
@@ -124,4 +126,5 @@ The simulation is deterministic for a given (level, build): the same inputs give
 
 - `tests/*.test.ts` — unit tests for level parsing, session and undo, placement, scoring, saves and history; component behaviour tests; and "feel" tests (dominoes topple at realistic gaps, balls keep rolling, the robot climbs kerbs and turns at walls).
 - `tests/levels/campaign.test.ts` — every campaign level is solvable with its reference solutions, unsolved with an empty build, and protected against known shortcuts. It also checks the campaign shape (tutorial size, ten-ish missions per group) and that difficulty ramps within and across groups.
+- `tests/levels/lab.test.ts` — the same per-level checks for every Physics Lab lesson (through `tests/levels/entryChecks.ts`), plus counterexamples showing the wrong idea fails. `tests/science.test.ts` keeps cards to 2–4 sentences, checks every bin part has a card, and covers the run-concept picker and the lab save field.
 - `e2e/*.mjs` — Playwright scripts against the production build: smoke, acceptance, and a full campaign play-through.

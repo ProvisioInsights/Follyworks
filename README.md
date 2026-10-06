@@ -7,6 +7,8 @@ Follyworks is a 2D physics contraption puzzle game for the browser. Each puzzle 
 - **56 missions**: a 6-mission guided tutorial, then five groups of 10 (Workshop Basics, Levers & Lines, Moving Parts, Hot Air & Sparks, Ridiculous Machines). Each group mixes gravity, springs, ropes, gears, air, heat, magnets and electricity, and missions get busier and need more parts as you go.
 - **Optional on-screen guidance** in the tutorial: a step card, an arrow at the right part or button, and a glowing outline of one good spot. Hide it from the card, the compass button, or Settings.
 - **31 parts** plus three connectors (rope, drive belt, wire): balls, dominoes, planks, seesaws, trampolines, buckets, pulleys, gears, motors, conveyors, fans, balloons, candles, rockets, cannons, dynamite, magnets, batteries, switches, pressure plates, timers, logic gates, light bulbs, a boxing glove, a cactus and a small walking robot called Bolt.
+- **Physics Lab**: 9 short lesson missions, one real idea each (gravity, energy, buoyancy, momentum, levers, pulleys, gears, logic, electromagnets), each opening with an intro card: the idea, a picture in words, and the challenge.
+- **"How it works" cards**: select a part to read the real physics behind it, and the results card lists the physics your machine actually used. Where the game simplifies, the card says so.
 - **Three results per puzzle**: SOLVED, ELEGANT (few parts or a quick finish) and ABSURD (a long chain reaction). The results card explains each one.
 - **Rewind and timeline scrub**, pause, frame step, half-speed and quarter-speed slow motion, and exact reset.
 - **Undo/redo**, copy/paste, duplicate, rotate, flip, grid snap, pan and zoom.
