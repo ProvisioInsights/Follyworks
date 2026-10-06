@@ -8,6 +8,7 @@ import { matches } from '../sim/goals';
 import type { Simulation } from '../sim/Simulation';
 import type { Rope } from '../sim/ropes';
 import type { TransformHandles } from '../game/EditorController';
+import type { BeamSeg } from '../sim/optics';
 
 export type ToolKind = 'rope' | 'belt' | 'wire';
 
@@ -60,6 +61,8 @@ const WIRE_LIVE = 0xffb54a;
 const PORT_OUT = 0xff9a3c;
 const PORT_IN = 0x4fdcf5;
 const GOAL = 0x7cf0a0;
+/** Beam colours by RGB bitmask (see sim/optics.ts). */
+const BEAM_RGB: Record<number, number> = { 1: 0xff3d35, 2: 0x3dff6e, 3: 0xffe23d, 4: 0x3d8cff, 5: 0xff4fe0, 6: 0x3df4ff, 7: 0xfff4e2 };
 
 /** Interpolated world point of a local point on body `idx`. */
 export const lerpPoint = (e: Entity, local: Vec, idx: number, alpha: number): Vec => {
@@ -94,6 +97,9 @@ export class Overlays {
   readonly top: Phaser.GameObjects.Graphics;
   private st!: OverlayState;
   private beltTravel = new Map<string, number>();
+  /** Light beams: a dark contrast underlay, then an additive glow, core and hit sparkles. */
+  private beamUnder: Phaser.GameObjects.Graphics;
+  private beamGlow: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene, underLayer: Phaser.GameObjects.Container, overLayer: Phaser.GameObjects.Container, topLayer: Phaser.GameObjects.Container) {
     this.under = scene.add.graphics();
@@ -102,6 +108,11 @@ export class Overlays {
     underLayer.add(this.under);
     overLayer.add(this.over);
     topLayer.add(this.top);
+    this.beamUnder = scene.add.graphics();
+    this.beamGlow = scene.add.graphics();
+    this.beamGlow.setBlendMode(Phaser.BlendModes.ADD);
+    overLayer.add(this.beamUnder);
+    overLayer.add(this.beamGlow);
   }
 
   private pt(e: Entity, local: Vec, idx: number): Vec {
@@ -143,6 +154,7 @@ export class Overlays {
     for (const b of sim.belts) this.drawBelt(u, b.a, b.b, b.id);
     for (const r of sim.ropes) this.drawRope(o, r);
     for (const w of sim.wires) this.drawWire(o, w.from, w.fromPort, w.to, w.toPort, w.live, w.id);
+    this.drawBeams(sim.beams ?? [], st);
 
     // sockets: in build mode always; in run mode only for powered sockets (subtle)
     for (const e of sim.list) {
@@ -252,6 +264,64 @@ export class Overlays {
       const a = corner(-2.6 * k, 0);
       const b = corner(2.6 * k, 0);
       g.lineBetween(a.x, a.y, b.x, b.y);
+    }
+  }
+
+  private drawBeams(beams: BeamSeg[], st: OverlayState) {
+    const u = this.beamUnder;
+    const g = this.beamGlow;
+    u.clear();
+    g.clear();
+    if (!beams.length) return;
+    // Build-mode previews (always-on lasers) are drawn fainter than live beams.
+    const k = st.mode === 'build' ? 0.6 : 1;
+    const t = st.t;
+    for (let i = 0; i < beams.length; i++) {
+      const b = beams[i];
+      const col = BEAM_RGB[b.color] ?? 0xffffff;
+      const s = Math.max(0.3, Math.min(1, b.intensity)) * k;
+      const shimmer = 0.88 + 0.12 * Math.sin(t * 41 + i * 1.7);
+      if (b.inside) {
+        g.lineStyle(3, col, 0.35 * s);
+        g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+        continue;
+      }
+      u.lineStyle(7, 0x0b0806, 0.4 * s);
+      u.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      g.lineStyle(24, col, 0.1 * s * shimmer);
+      g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      g.lineStyle(11, col, 0.3 * s * shimmer);
+      g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      g.lineStyle(4.5, col, 1 * s);
+      g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      g.lineStyle(1.4, 0xffffff, 0.7 * s);
+      g.lineBetween(b.x1, b.y1, b.x2, b.y2);
+      // Travelling sparkles along the beam so the light reads as moving.
+      const len = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+      if (st.mode === 'run' && len > 30) {
+        const step = 90;
+        const off = (t * 420) % step;
+        for (let d = off; d < len; d += step) {
+          const f = d / len;
+          g.fillStyle(0xffffff, 0.55 * s);
+          g.fillCircle(b.x1 + (b.x2 - b.x1) * f, b.y1 + (b.y2 - b.y1) * f, 1.8);
+        }
+      }
+      if (b.stopped) {
+        const r = 6 + 2.5 * Math.sin(t * 30 + i);
+        g.fillStyle(col, 0.3 * s);
+        g.fillCircle(b.x2, b.y2, r + 10);
+        g.fillStyle(col, 0.5 * s);
+        g.fillCircle(b.x2, b.y2, r + 4);
+        g.fillStyle(0xffffff, 0.9 * s);
+        g.fillCircle(b.x2, b.y2, r * 0.55);
+        g.lineStyle(1.4, col, 0.8 * s);
+        for (let j = 0; j < 4; j++) {
+          const a = t * 7 + j * (Math.PI / 2) + i;
+          const l = 7 + 4 * Math.sin(t * 23 + j * 2 + i);
+          g.lineBetween(b.x2, b.y2, b.x2 + Math.cos(a) * l, b.y2 + Math.sin(a) * l);
+        }
+      }
     }
   }
 

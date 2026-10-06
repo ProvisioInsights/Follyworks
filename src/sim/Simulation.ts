@@ -9,6 +9,7 @@ import { Entity, type EntityOrigin } from './Entity';
 import { GoalTracker, matches } from './goals';
 import { CAT, M, STEP_MS, type MBody, type MConstraint } from './matter';
 import { propagatePower, type Wire } from './power';
+import { traceBeams, type BeamSeg } from './optics';
 import { Rope, ropeHit, solveRopes } from './ropes';
 import { solveRotation, type Belt } from './rotation';
 
@@ -98,6 +99,8 @@ export class Simulation {
   private contactsByEntity = new Map<Entity, Contact[]>();
   private prevContactIds = new Set<string>();
   heat: HeatSource[] = [];
+  /** Light beams as of the end of the last tick (recomputed from poses; see sim/optics.ts). */
+  beams: BeamSeg[] = [];
   /** Body id -> owning entity (parents and parts). */
   private owners = new Map<number, Entity>();
   /** Bodies whose kinematics are captured by snapshots (non-static + moving statics). */
@@ -130,6 +133,9 @@ export class Simulation {
     this.placedParts =
       (build.objects?.length ?? 0) + (build.connections ?? []).filter((c) => c.kind !== 'wire').length;
     this.updateContacts();
+    // Build-mode preview: always-on lasers show where they point before RUN. Light sensors already
+    // in such a beam start lit; nothing else changes.
+    this.beams = traceBeams(this, false, true);
   }
 
   // ------------------------------------------------------------------ construction
@@ -435,6 +441,7 @@ export class Simulation {
 
     this.updateContacts();
     for (const e of this.list) if (e.alive && e.def.afterStep) e.def.afterStep(e, this);
+    this.beams = traceBeams(this, true);
     this.applyHeat();
     this.cullOutOfBounds();
 
@@ -692,6 +699,8 @@ export class Simulation {
     this.prevContactIds.clear();
     this.contacts = [];
     this.contactsByEntity.clear();
+    // Beams are a pure function of poses, inputs and state, so they are recomputed, not stored.
+    this.beams = traceBeams(this, false);
   }
 }
 

@@ -20,6 +20,7 @@ const LOOP_FOR: Record<string, LoopName> = {
   rocket: 'rocket',
   candle: 'flame',
   magnet: 'magnet',
+  laser: 'laserHum',
 };
 
 export interface RunCallbacks {

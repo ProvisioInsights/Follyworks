@@ -5,6 +5,7 @@ import './defs/force';
 import './defs/chaos';
 import './defs/control';
 import './defs/creature';
+import './defs/optics';
 
 export * from './registry';
 

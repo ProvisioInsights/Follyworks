@@ -42,6 +42,7 @@ const DOMAIN_COLORS: Record<string, string> = {
   logic: '#a6f08a',
   chaos: '#ff7062',
   creature: '#ffd36b',
+  light: '#ff7ad9',
 };
 
 export const domainColor = (d: string) => DOMAIN_COLORS[d] ?? '#f3e6cc';
