@@ -3,6 +3,7 @@
 import type { AppContext } from '../app/context';
 import { exportLevel, parseLevel, STANDARD_WORLD } from '../core/level';
 import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/campaign';
+import { buildKey, DIFFICULTIES, DIFFICULTY_LABELS } from '../game/difficulty';
 import { ENVIRONMENTS } from '../render/art/environment';
 import { h, icon, modal, toast } from './dom';
 
@@ -76,7 +77,21 @@ export const campaignScreen = (app: AppContext): Screen => {
           },
           h('span', { class: 'idx' }, levelCode(i)),
           h('span', { class: 'grow' }, h('div', { class: 'name' }, c.level.name), h('div', { class: 'blurb' }, open ? c.level.metadata?.blurb ?? c.level.description.split('. ')[0] : 'Solve more puzzles to unlock')),
-          open ? h('span', { class: 'medals' }, medal('s', 'S', !!pr?.solved, 'Solved'), medal('e', 'E', !!pr?.elegant, 'Elegant'), c.level.bonus?.absurdStages === 0 ? null : medal('a', 'A', !!pr?.absurd, 'Absurd')) : icon('lock', 18),
+          open
+            ? h(
+                'span',
+                { class: 'tile-right' },
+                h('span', { class: 'medals' }, medal('s', 'S', !!pr?.solved, 'Solved'), medal('e', 'E', !!pr?.elegant, 'Elegant'), c.level.bonus?.absurdStages === 0 ? null : medal('a', 'A', !!pr?.absurd, 'Absurd')),
+                h(
+                  'span',
+                  { class: 'diff-beaten', 'aria-label': 'Difficulties beaten' },
+                  DIFFICULTIES.map((d) => {
+                    const on = !!pr?.byDifficulty[d].solved;
+                    return h('span', { class: `diff-dot ${d} ${on ? 'on' : ''}`, 'data-diff': d, tip: `${DIFFICULTY_LABELS[d]}: ${on ? 'beaten' : 'not beaten yet'}` }, DIFFICULTY_LABELS[d][0]);
+                  }),
+                ),
+              )
+            : icon('lock', 18),
         ),
       );
     }
@@ -391,7 +406,7 @@ export const settingsDialog = (app: AppContext) => {
                     onClick: () => {
                       for (const c of CAMPAIGN) {
                         delete app.store.data.progress[c.level.id];
-                        delete app.store.data.builds[c.level.id];
+                        for (const d of DIFFICULTIES) delete app.store.data.builds[buildKey(c.level.id, d)];
                       }
                       app.store.flush();
                       toast('Progress reset.');

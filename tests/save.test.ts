@@ -378,3 +378,63 @@ describe('custom levels, builds and sandbox slots', () => {
     });
   });
 });
+
+describe('difficulty progress and setting', () => {
+  const lvl = (() => {
+    const l = blankLevel('p');
+    l.bonus = { elegantParts: 2, absurdStages: 2 };
+    return l;
+  })();
+  const chain = (n: number) => Array.from({ length: n }, (_, i) => ({ key: `k${i}`, label: '', domain: 'gravity', time: 0 }));
+
+  it('the difficulty setting defaults to normal and rejects junk', () => {
+    expect(DEFAULT_SETTINGS.difficulty).toBe('normal');
+    expect(parseSettings({}).difficulty).toBe('normal');
+    expect(parseSettings({ difficulty: 'hard' }).difficulty).toBe('hard');
+    expect(parseSettings({ difficulty: 'nightmare' }).difficulty).toBe('normal');
+    expect(parseSettings({ difficulty: 3 }).difficulty).toBe('normal');
+  });
+
+  it('existing saves without per-difficulty records count as Normal', () => {
+    const { data, recovered } = parseSave(
+      JSON.stringify({ version: 2, progress: { a: { solved: true, elegant: true, absurd: false, bestTime: 4.5, attempts: 2 }, b: { solved: false, attempts: 1 } } }),
+    );
+    expect(recovered).toBe(false);
+    expect(data.progress.a.byDifficulty.normal).toEqual({ solved: true, elegant: true, absurd: false, bestTime: 4.5, noHints: true });
+    expect(data.progress.a.byDifficulty.easy.solved).toBe(false);
+    expect(data.progress.a.byDifficulty.hard.solved).toBe(false);
+    expect(data.progress.b.byDifficulty).toEqual(emptyProgress().byDifficulty);
+  });
+
+  it('per-difficulty records are repaired field by field', () => {
+    const { data } = parseSave(JSON.stringify({ progress: { a: { solved: true, byDifficulty: { hard: { solved: 'yes', elegant: true, bestTime: 'x', noHints: true }, easy: 7 } } } }));
+    expect(data.progress.a.byDifficulty.hard).toEqual({ solved: false, elegant: true, absurd: false, bestTime: null, noHints: true });
+    expect(data.progress.a.byDifficulty.easy).toEqual(emptyProgress().byDifficulty.easy);
+    // an explicit byDifficulty block wins over the Normal migration
+    expect(data.progress.a.byDifficulty.normal.solved).toBe(false);
+  });
+
+  it('solves are recorded per difficulty and survive reload; aggregates cover all of them', () => {
+    const kv = new MemKV();
+    let s = new SaveStore(kv);
+    s.setProgress('p', mergeProgress(s.progress('p'), scoreAttempt(lvl, 5, 1, chain(0)), 'easy'));
+    s.flush();
+    s = new SaveStore(kv);
+    const hinted = { ...scoreAttempt(lvl, 3, 4, chain(3)), hintTier: 3 };
+    s.setProgress('p', mergeProgress(s.progress('p'), hinted, 'hard'));
+    s.setProgress('p', mergeProgress(s.progress('p'), scoreAttempt(lvl, null, 0, chain(0)), 'normal'));
+    s.flush();
+    const p = new SaveStore(kv).progress('p');
+    expect(p.solved).toBe(true);
+    expect(p.byDifficulty.easy).toEqual({ solved: true, elegant: true, absurd: false, bestTime: 5, noHints: true });
+    expect(p.byDifficulty.hard).toEqual({ solved: true, elegant: false, absurd: true, bestTime: 3, noHints: false });
+    expect(p.byDifficulty.normal.solved).toBe(false);
+    expect(p.attempts).toBe(3);
+  });
+
+  it('mergeProgress defaults to Normal', () => {
+    const p = mergeProgress(emptyProgress(), scoreAttempt(lvl, 5, 1, chain(0)));
+    expect(p.byDifficulty.normal.solved).toBe(true);
+    expect(p.byDifficulty.easy.solved).toBe(false);
+  });
+});

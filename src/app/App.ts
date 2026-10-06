@@ -6,6 +6,7 @@ import { blankLevel, parseBuild } from '../core/level';
 import { deepClone } from '../core/util';
 import { emptyBuild, type BuildDef, type LevelDef } from '../core/types';
 import { CAMPAIGN, CHAPTERS, levelCode } from '../game/campaign';
+import { applyDifficulty, buildKey, type Difficulty } from '../game/difficulty';
 import { RunController } from '../game/RunController';
 import { mergeProgress, type AttemptResult } from '../game/scoring';
 import { SaveStore, type Settings } from '../persistence/save';
@@ -25,6 +26,8 @@ export class App implements AppContext {
   private screen: Screen | null = null;
   private play: PlayScreen | null = null;
   private demo: { run: RunController; unhook: () => void; doneAt: number } | null = null;
+  /** The open campaign level as derived for its difficulty (null outside the campaign). */
+  private derived: ReturnType<typeof applyDifficulty> | null = null;
 
   constructor() {
     this.ui = document.getElementById('ui')!;
@@ -75,7 +78,8 @@ export class App implements AppContext {
     const play = this.play;
     if (!play) return false;
     const entry = CAMPAIGN.find((c) => c.level.id === play.ctl.session.level.id);
-    const sol = entry?.solutions[k < 0 ? entry.solutions.length + k : k];
+    // On Easy, solutions[0] minus the part that is already pre-placed.
+    const sol = k === 0 && this.derived?.solution && this.derived.level.id === entry?.level.id ? this.derived.solution : entry?.solutions[k < 0 ? entry.solutions.length + k : k];
     if (!sol) return false;
     play.ctl.session.replace(play.ctl.session.level, deepClone(sol));
     return true;
@@ -113,6 +117,7 @@ export class App implements AppContext {
   // ------------------------------------------------------------------ routing
 
   private teardown() {
+    this.derived = null;
     this.screen?.destroy();
     this.screen = null;
     this.play?.destroy();
@@ -145,26 +150,37 @@ export class App implements AppContext {
     return CAMPAIGN.length;
   }
 
-  playCampaign(index: number) {
+  playCampaign(index: number, difficulty?: Difficulty) {
     const entry = CAMPAIGN[index];
     if (!entry) return this.showCampaign();
     this.teardown();
-    const level = entry.level;
-    const build = this.store.getBuild(level) ?? emptyBuild();
+    const derived = applyDifficulty(entry, difficulty ?? this.settings.difficulty);
+    const d = derived.difficulty;
+    const level = derived.level;
+    const key = buildKey(level.id, d);
+    const saved = this.store.data.builds[key];
+    const build = saved ? parseBuildSafe(saved, level) : emptyBuild();
     const chapter = CHAPTERS.find((c) => c.index === entry.chapter);
     const progress = this.store.progress(level.id);
+    this.derived = derived;
     this.play = new PlayScreen(this, {
       kind: 'campaign',
       level,
       build,
       title: level.name,
-      subtitle: `${levelCode(index)} · ${chapter?.title ?? ''}${progress.solved ? ' · solved' : ''}`,
+      subtitle: `${levelCode(index)} · ${chapter?.title ?? ''}${progress.byDifficulty[d].solved ? ' · solved' : ''}`,
       brief: true,
+      difficulty: d,
+      solution: derived.solution,
+      onDifficulty: (nd) => {
+        this.updateSettings({ difficulty: nd });
+        this.playCampaign(index, nd);
+      },
       onExit: () => this.showCampaign(),
       exitLabel: 'Puzzles',
       onNext: index + 1 < CAMPAIGN.length ? () => this.playCampaign(index + 1) : undefined,
-      onSolved: (r) => this.record(level.id, r),
-      onBuildChanged: (b) => this.store.setBuild(level.id, b),
+      onSolved: (r) => this.record(level.id, r, d),
+      onBuildChanged: (b) => this.store.setBuild(key, b),
     });
   }
 
@@ -307,9 +323,9 @@ export class App implements AppContext {
     });
   }
 
-  private record(levelId: string, r: AttemptResult) {
+  private record(levelId: string, r: AttemptResult, difficulty: Difficulty = 'normal') {
     const prev = this.store.progress(levelId);
-    const next = mergeProgress(prev, r);
+    const next = mergeProgress(prev, r, difficulty);
     this.store.setProgress(levelId, next);
     this.store.flush();
   }

@@ -7,6 +7,11 @@ import type { BuildDef, LevelDef } from '../core/types';
 export const SAVE_KEY = 'follyworks.save';
 export const SAVE_VERSION = 2;
 
+/** Per-mission difficulty (see game/difficulty.ts). Normal is the level as authored. */
+export const DIFFICULTIES = ['easy', 'normal', 'hard'] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+const isDifficulty = (v: unknown): v is Difficulty => typeof v === 'string' && (DIFFICULTIES as readonly string[]).includes(v);
+
 export interface Settings {
   master: number;
   sfx: number;
@@ -22,6 +27,8 @@ export interface Settings {
   tips: boolean;
   /** Step-by-step on-screen guidance in tutorial missions. */
   guidance: boolean;
+  /** Difficulty last picked in a mission briefing. */
+  difficulty: Difficulty;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -37,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   unlockAll: false,
   tips: true,
   guidance: true,
+  difficulty: 'normal',
 };
 
 export interface LevelProgress {
@@ -48,7 +56,23 @@ export interface LevelProgress {
   bestTime: number | null;
   attempts: number;
   solvedAt: string | null;
+  /**
+   * Results per difficulty. The fields above aggregate every difficulty (any solve unlocks the
+   * next missions). Saves from before difficulties existed count as Normal.
+   */
+  byDifficulty: Record<Difficulty, DifficultyProgress>;
 }
+
+export interface DifficultyProgress {
+  solved: boolean;
+  elegant: boolean;
+  absurd: boolean;
+  bestTime: number | null;
+  /** Solved at least once without using any hint. */
+  noHints: boolean;
+}
+
+export const emptyDifficultyProgress = (): DifficultyProgress => ({ solved: false, elegant: false, absurd: false, bestTime: null, noHints: false });
 
 export const emptyProgress = (): LevelProgress => ({
   solved: false,
@@ -59,6 +83,7 @@ export const emptyProgress = (): LevelProgress => ({
   bestTime: null,
   attempts: 0,
   solvedAt: null,
+  byDifficulty: { easy: emptyDifficultyProgress(), normal: emptyDifficultyProgress(), hard: emptyDifficultyProgress() },
 });
 
 export interface SandboxSlot {
@@ -119,6 +144,7 @@ export const parseSettings = (raw: unknown): Settings => {
     unlockAll: bool(r.unlockAll, d.unlockAll),
     tips: bool(r.tips, d.tips),
     guidance: bool(r.guidance, d.guidance),
+    difficulty: isDifficulty(r.difficulty) ? r.difficulty : d.difficulty,
   };
 };
 
@@ -133,7 +159,24 @@ const parseProgress = (raw: unknown): LevelProgress => {
   p.bestTime = typeof r.bestTime === 'number' ? r.bestTime : null;
   p.attempts = typeof r.attempts === 'number' ? Math.max(0, Math.floor(r.attempts)) : 0;
   p.solvedAt = typeof r.solvedAt === 'string' ? r.solvedAt : null;
+  if (isObj(r.byDifficulty)) {
+    for (const d of DIFFICULTIES) p.byDifficulty[d] = parseDifficultyProgress(r.byDifficulty[d]);
+  } else if (p.solved) {
+    // Older saves: everything recorded so far was played on Normal.
+    p.byDifficulty.normal = { solved: p.solved, elegant: p.elegant, absurd: p.absurd, bestTime: p.bestTime, noHints: p.solved };
+  }
   return p;
+};
+
+const parseDifficultyProgress = (raw: unknown): DifficultyProgress => {
+  const r = isObj(raw) ? raw : {};
+  return {
+    solved: bool(r.solved, false),
+    elegant: bool(r.elegant, false),
+    absurd: bool(r.absurd, false),
+    bestTime: typeof r.bestTime === 'number' && Number.isFinite(r.bestTime) ? r.bestTime : null,
+    noHints: bool(r.noHints, false),
+  };
 };
 
 /** Upgrade older save versions. v1 stored custom levels as an id->level map. */

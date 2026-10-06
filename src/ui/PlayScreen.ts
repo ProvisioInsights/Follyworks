@@ -11,6 +11,9 @@ import type { SessionKind } from '../editor/Session';
 import { PlayController } from '../game/PlayController';
 import { invalidPlacements } from '../game/placement';
 import type { AttemptResult } from '../game/scoring';
+import { DIFFICULTIES, DIFFICULTY_BLURBS, DIFFICULTY_LABELS, type Difficulty } from '../game/difficulty';
+import { applyHintPenalty, ghostEntities, GHOST_TIER, HintLadder, hintTierLabel, type HintView } from '../game/hints';
+import type { Entity } from '../sim/Entity';
 import { paintIcon } from '../render/art/parts';
 import { goalLabel, goalMarker } from '../sim/goals';
 import type { Simulation } from '../sim/Simulation';
@@ -38,6 +41,12 @@ export interface PlayConfig {
   onReturn?: () => void;
   exitLabel?: string;
   sandbox?: { onSave: (name: string, build: BuildDef, env: string) => void; onLoad: () => void; onEnv: (env: string) => void };
+  /** Campaign: the difficulty this level was derived for (shown in the HUD and briefing). */
+  difficulty?: Difficulty;
+  /** Campaign: the player picked another difficulty in the briefing. */
+  onDifficulty?: (d: Difficulty) => void;
+  /** Reference solution for the hint ladder's parts list and ghosts (campaign only). */
+  solution?: BuildDef | null;
 }
 
 const iconCache = new Map<string, string>();
@@ -89,7 +98,9 @@ export class PlayScreen {
   private lastSelKey = '';
   private binFilter = '';
   private binCat: Category | 'all' = 'all';
-  private hintIndex = -1;
+  private hints: HintLadder;
+  private hintGhostSet: { n: number; ents: Entity[] } = { n: 0, ents: [] };
+  private switchingDifficulty = false;
   private resultModal: { close: () => void } | null = null;
   private timeUpEl: HTMLElement | null = null;
   private editorPanel: EditorPanel | null = null;
@@ -103,6 +114,7 @@ export class PlayScreen {
   constructor(app: AppContext, cfg: PlayConfig) {
     this.app = app;
     this.cfg = cfg;
+    this.hints = new HintLadder(cfg.level.hints, cfg.solution);
     this.root = h('div', { class: 'layer play' });
     app.ui.appendChild(this.root);
     this.ctl = new PlayController(app.scene, app.canvas, {
@@ -142,7 +154,7 @@ export class PlayScreen {
     this.render(true);
     this.applyInsets();
     if (cfg.brief) this.showBrief();
-    else if (cfg.kind === 'campaign' && cfg.level.metadata?.tutorial && !this.guideShowing) this.nextHint();
+    else if (cfg.kind === 'campaign' && cfg.level.metadata?.tutorial && !this.guideShowing) this.nextHint(true);
     app.audio.setMusicIntensity(0.3);
   }
 
@@ -182,13 +194,18 @@ export class PlayScreen {
     const isEditor = cfg.kind === 'editor';
     // top bar
     const back = h('button', { class: 'btn ghost small', onClick: () => this.exit(), tip: cfg.kind === 'test' ? 'Back to the editor' : 'Leave (your machine is saved)' }, icon('back'), cfg.exitLabel ?? 'Menu');
-    const title = h('div', { class: 'title' }, h('span', { class: 't' }, cfg.title), h('span', { class: 'c' }, cfg.subtitle));
+    const title = h(
+      'div',
+      { class: 'title' },
+      h('span', { class: 't' }, cfg.title, cfg.difficulty ? h('span', { class: `diff-badge ${cfg.difficulty}`, 'data-diff': cfg.difficulty, tip: DIFFICULTY_BLURBS[cfg.difficulty] }, DIFFICULTY_LABELS[cfg.difficulty]) : null),
+      h('span', { class: 'c' }, cfg.subtitle),
+    );
     this.els.goals = h('div', { class: 'goals' });
     this.els.goals.addEventListener('pointerleave', () => (this.ctl.focusGoal = null));
     const right = h('div', { style: { display: 'flex', gap: '4px', alignItems: 'center' } });
     if (cfg.level.guide?.length && (cfg.kind === 'campaign' || cfg.kind === 'test'))
       right.append((this.els.guideBtn = iconBtn('map', 'Step-by-step guide on/off', () => this.setGuide(!this.guide?.visible))));
-    if (cfg.level.hints?.length && cfg.kind !== 'editor') right.append((this.els.hintBtn = iconBtn('bulb', 'Hint <kbd>H</kbd>', () => this.nextHint())));
+    if (this.hints.available && cfg.kind !== 'editor') right.append((this.els.hintBtn = iconBtn('bulb', 'Hint <kbd>H</kbd>', () => this.nextHint())));
     if (cfg.sandbox) {
       const sel = h(
         'select',
@@ -384,6 +401,15 @@ export class PlayScreen {
     this.editorPanel?.render();
     this.els.guideBtn?.classList.toggle('on', !!this.guide?.visible);
     this.guide?.update();
+    this.syncHintGhosts();
+  }
+
+  /** Ghost outlines revealed by hints, minus any the player has since matched with a real part. */
+  private syncHintGhosts() {
+    const revealed = this.hints.revealed;
+    if (revealed.length !== this.hintGhostSet.n) this.hintGhostSet = { n: revealed.length, ents: ghostEntities(this.session.level, revealed) };
+    const keep = new Set(this.hints.visibleGhosts(this.session.build).map((o) => o.id));
+    this.ctl.hintGhosts = this.hintGhostSet.ents.filter((e) => keep.has(e.id));
   }
 
   private get guideShowing() {
@@ -655,21 +681,46 @@ export class PlayScreen {
     else this.cfg.onExit();
   }
 
-  private nextHint() {
-    const hints = this.cfg.level.hints ?? [];
-    if (!hints.length) return;
-    this.hintIndex = Math.min(hints.length - 1, this.hintIndex + 1);
+  /** Climb the hint ladder one step (game/hints.ts). `auto` hints (tutorial entry) are not counted as used. */
+  private nextHint(auto = false) {
+    const v = this.hints.next(this.session.build, auto);
+    if (!v) return;
+    this.syncHintGhosts();
+    this.renderHint(v);
+    this.app.sfx('ui');
+  }
+
+  private renderHint(v: HintView) {
     const tip = this.els.tip;
     clear(tip);
     tip.style.display = 'flex';
+    tip.dataset.tier = String(v.tier);
+    tip.dataset.kind = v.kind;
+    // In guided tutorials the guide card sits where the hint bar goes: stack the hint under it.
+    const card = this.guideShowing ? this.root.querySelector<HTMLElement>('.guide-card') : null;
+    tip.style.top = card ? `${card.getBoundingClientRect().bottom - this.root.getBoundingClientRect().top + 8}px` : '';
+    const nameOf = (type: string) => getComponent(type)?.name ?? (isToolType(type) ? CONNECTION_TOOLS[type].name : type);
+    let body: Node;
+    if (v.kind === 'nudge') body = h('span', { class: 'hint-text' }, v.text);
+    else if (v.kind === 'parts')
+      body = h(
+        'span',
+        { class: 'hint-parts' },
+        h('span', { class: 'hint-text' }, 'Parts you’ll need:'),
+        v.parts.map((p) => h('span', { class: 'hint-part', 'data-type': p.type, tip: nameOf(p.type) }, iconFor(p.type, 64), h('b', null, `×${p.count}`), h('small', null, nameOf(p.type)))),
+        v.wires ? h('span', { class: 'muted', style: { fontSize: '12px' } }, `+ ${plural(v.wires, 'wire')} (free)`) : null,
+      );
+    else if (v.kind === 'ghost') body = h('span', { class: 'hint-text' }, `A ${nameOf(v.ghost.type).toLowerCase()} goes on the glowing outline (${v.shown} of ${v.of} parts shown).`);
+    else body = h('span', { class: 'hint-text' }, v.text);
+    const next = this.hints.nextKind(this.session.build);
+    const nextLabel = next === 'nudge' ? 'More' : next === 'parts' ? 'Parts you’ll need' : next === 'ghost' ? (this.hints.tierUsed < GHOST_TIER ? 'Show a spot (no ELEGANT)' : 'Show another spot') : null;
     append(tip, [
       icon('bulb') as unknown as Node,
-      h('span', { style: { flex: '1' } }, hints[this.hintIndex]),
-      hints.length > 1 ? h('span', { class: 'muted', style: { fontSize: '12px' } }, `${this.hintIndex + 1}/${hints.length}`) : null,
-      this.hintIndex < hints.length - 1 ? h('button', { class: 'btn small ghost', onClick: () => this.nextHint() }, 'More') : null,
+      h('span', { class: 'hint-tier muted', style: { fontSize: '12px' } }, v.kind === 'nudge' ? (v.of > 1 ? `Hint ${v.index + 1}/${v.of}` : 'Hint') : v.kind === 'parts' ? 'Hint · parts' : 'Hint · ghost'),
+      h('span', { style: { flex: '1', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } }, body),
+      nextLabel ? h('button', { class: 'btn small ghost hint-more', onClick: () => this.nextHint() }, nextLabel) : null,
       iconBtn('close', 'Hide', () => (tip.style.display = 'none')),
     ]);
-    this.app.sfx('ui');
   }
 
   private sandboxSave() {
@@ -780,18 +831,47 @@ export class PlayScreen {
         { class: 'brief-meta' },
         inv.length ? h('span', { class: 'pill' }, (() => { const n = inv.reduce((n, r) => n + (r.total < 0 ? 0 : r.total), 0); return n ? `${plural(n, 'part')} in the bin` : '∞ parts in the bin'; })()) : h('span', { class: 'pill' }, 'No parts: just watch'),
         l.restrictions?.timeLimit ? h('span', { class: 'pill' }, `${l.restrictions.timeLimit}s time limit`) : null,
+        l.restrictions?.maxParts !== undefined && inv.length ? h('span', { class: 'pill' }, `at most ${plural(l.restrictions.maxParts, 'part')}`) : null,
         l.bonus?.elegantParts !== undefined ? h('span', { class: 'pill', style: { color: '#a6ecff' } }, `ELEGANT: ≤ ${plural(l.bonus.elegantParts, 'part')}`) : null,
         l.bonus?.elegantTime !== undefined ? h('span', { class: 'pill', style: { color: '#a6ecff' } }, `${l.bonus.elegantParts !== undefined ? 'or ' : 'ELEGANT: '}under ${l.bonus.elegantTime}s`) : null,
         l.bonus?.absurdStages === 0 ? null : h('span', { class: 'pill', style: { color: '#ffc0a6' } }, `ABSURD: ${l.bonus?.absurdStages ?? 7}+ stage chain`),
       ),
     ];
-    modal(this.app.ui, {
+    const cur = this.cfg.difficulty;
+    if (cur && this.cfg.onDifficulty)
+      body.push(
+        h(
+          'div',
+          { class: 'diff-pick', role: 'group', 'aria-label': 'Difficulty' },
+          DIFFICULTIES.map((d) =>
+            h(
+              'button',
+              {
+                class: `diff-btn ${d} ${d === cur ? 'on' : ''}`,
+                'data-diff': d,
+                'aria-pressed': d === cur ? 'true' : 'false',
+                onClick: () => {
+                  if (d === cur) return;
+                  this.app.sfx('click');
+                  this.switchingDifficulty = true;
+                  m.close();
+                  this.cfg.onDifficulty!(d);
+                },
+              },
+              h('b', null, DIFFICULTY_LABELS[d]),
+              h('small', null, DIFFICULTY_BLURBS[d]),
+            ),
+          ),
+        ),
+      );
+    const m = modal(this.app.ui, {
       title: this.cfg.title,
       body,
       strip: 'hazard',
       actions: [{ label: 'Let’s build', kind: 'primary', icon: 'wrench', onClick: () => {} }],
       onClose: () => {
-        if (l.metadata?.tutorial && !this.guideShowing) this.nextHint();
+        if (this.switchingDifficulty || this.dead) return;
+        if (l.metadata?.tutorial && !this.guideShowing) this.nextHint(true);
         this.guide?.update();
       },
     });
@@ -858,7 +938,8 @@ export class PlayScreen {
     this.root.append(el);
   }
 
-  private showResults(r: AttemptResult) {
+  private showResults(raw: AttemptResult) {
+    const r = applyHintPenalty(raw, this.hints.tierUsed);
     this.cfg.onSolved?.(r);
     this.ctl.run?.setPaused(true);
     const stamp = (cls: string, title: string, on: boolean, why: string) => h('div', { class: `stamp ${cls} ${on ? 'on' : ''}` }, h('b', null, title), h('small', null, why));
@@ -890,6 +971,14 @@ export class PlayScreen {
       strip: 'hazard',
       body: [
         h('div', { class: 'stamps' }, stamp('s', 'SOLVED', true, `in ${r.time?.toFixed(1)}s`), stamp('e', 'ELEGANT', r.elegant.earned, r.elegant.reason), r.absurd.available ? stamp('a', 'ABSURD', r.absurd.earned, r.absurd.reason) : null),
+        r.hintTier || this.cfg.difficulty
+          ? h(
+              'div',
+              { class: 'result-notes' },
+              this.cfg.difficulty ? h('span', { class: `diff-badge ${this.cfg.difficulty}` }, DIFFICULTY_LABELS[this.cfg.difficulty]) : null,
+              r.hintTier ? h('span', { class: 'hint-note' }, `Solved with hints (up to ${hintTierLabel(r.hintTier)})`) : null,
+            )
+          : null,
         receipt,
       ],
       actions,

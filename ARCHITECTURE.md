@@ -48,7 +48,7 @@ The central rule is that **the simulation is pure data in, data out**. A level a
 - **GuideStep** (optional `guide` on a level) — text, an optional pointer (a world point, a parts-bin entry or a HUD control), an optional ghost part, and an `until` trigger (`place`, `connect`, `run` or `ack`). The current step is the first whose trigger is not met, so guidance follows the build rather than a script, and it never restricts what the player can do.
 - **GoalDef** — generic primitives: `enterRegion` (with optional hold time), `contact`, `activate`, `containerCount`, `height` and `destroyed`. Selectors pick targets by id, type or tag. The engine checks whether things happened and has no idea of an "intended solution".
 
-Campaign levels are TypeScript files that export plain data plus `solutions`: reference builds used only by tests. Every campaign level uses the standard room (`STANDARD_WORLD`, 1120×630).
+Campaign levels are TypeScript files that export plain data plus `solutions`: reference builds used by tests, and in the game only to derive Easy and Hard (`game/difficulty.ts`, a pure `applyDifficulty(entry, d)`) and to feed the hint ladder (`game/hints.ts`: nudge, parts list, then ghost outlines drawn through `PlayController.hintGhosts` alongside the tutorial guide overlay). Every campaign level uses the standard room (`STANDARD_WORLD`, 1120×630).
 
 ## Components
 
@@ -113,6 +113,7 @@ The simulation is deterministic for a given (level, build): the same inputs give
 
 `persistence/save.ts` keeps one JSON document, `follyworks.save`, with a `version` field. It holds settings, per-level progress, the autosaved build for each level, custom levels, sandbox slots and the level last open in the editor.
 
+- Progress is kept per difficulty (`byDifficulty.easy/normal/hard`) beside the aggregate fields; saves from before difficulties load as Normal. Builds for Easy and Hard autosave under `<id>@easy` / `<id>@hard`.
 - Loading never throws. Unknown or broken fields fall back to defaults field by field.
 - An unreadable document is copied aside to `follyworks.save.corrupt-<time>` before defaults are used.
 - Writes are debounced and flushed on page unload.
@@ -125,5 +126,6 @@ The simulation is deterministic for a given (level, build): the same inputs give
 ## Tests
 
 - `tests/*.test.ts` — unit tests for level parsing, session and undo, placement, scoring, saves and history; component behaviour tests; and "feel" tests (dominoes topple at realistic gaps, balls keep rolling, the robot climbs kerbs and turns at walls).
+- `tests/levels/difficulty.test.ts` — for every campaign mission, Easy and Hard parse, the (adjusted) reference solution solves them within their time limits, Easy is never harder than Normal and Hard never easier. `tests/hints.test.ts` covers the hint ladder and the ELEGANT penalty.
 - `tests/levels/campaign.test.ts` — every campaign level is solvable with its reference solutions, unsolved with an empty build, and protected against known shortcuts. It also checks the campaign shape (tutorial size, ten-ish missions per group) and that difficulty ramps within and across groups.
 - `e2e/*.mjs` — Playwright scripts against the production build: smoke, acceptance, and a full campaign play-through.
