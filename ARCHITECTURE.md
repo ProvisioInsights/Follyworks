@@ -125,8 +125,11 @@ The simulation is deterministic for a given (level, build): the same inputs give
 
 ## Audio
 
-- `AudioEngine` builds a small Web Audio graph (effects, loops and music buses into a compressor) and synthesises everything: impacts chosen by material pair and speed, continuous loops for motors, fans, conveyors, rockets and flames, and a generative Markov-chord music bed.
-- Voices are limited and rate-limited per sound, so a domino avalanche stays pleasant.
+- `AudioEngine` builds a small Web Audio graph (effects, loops and music buses into a glue compressor and limiter, with a procedural small-room reverb send) and synthesises everything: impacts, continuous loops for motors, fans, conveyors, rockets, flames, magnets and the laser hum, one-shot effects and generative music.
+- **Impacts** are layered (transient + body + material tail) and chosen by material pair, speed and an optional body kind from the simulation (`kindA`/`kindB` on the impact event: `domino` clacks, `heavy` balls thud, rubber `ball`s boing, `floor` is the room). A token bucket, per-pair gaps, repetition ducking and voice caps keep a domino avalanche pleasant.
+- **Music** (`music.ts`) is a conductor: a 16th-note clock, a song form (intro, A, A, B, break, A, rest, regenerated each pass with key and tempo drift), chord progressions per section and 2-bar motifs that come back as statement, answer, sequence and cadence. `styles.ts` holds one style per visual theme (`stone`, `steam`, `retro`, `modern`, `comic`, `future`) that only decides what its instruments (`instruments.ts`) play on each step; layers are gated by intensity (menu 0.2, build 0.3, run 0.75) times section energy. `setMusicTheme(id)` crossfades to another style over 2.5 s; the theme also picks the stinger variant for goal-met (`ding`), level-solved (`goal`) and results (`success`).
+- Notes are scheduled 0.5 s ahead from a 100 ms timer; each music player caps itself at ~30 concurrent voices and drops ornaments first.
+- Unknown sound or loop names are ignored, so parts can ask for sounds (e.g. the optics set `laserOn`, `beamHit`, `sensorOn`, loop `laserHum`) before or after they exist.
 
 ## Tests
 

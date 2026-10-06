@@ -3,7 +3,7 @@
 
 import { NoiseBank, clamp, filterNode, gainNode } from './synth';
 
-export type LoopKind = 'motor' | 'fan' | 'conveyor' | 'rocket' | 'flame' | 'magnet';
+export type LoopKind = 'motor' | 'fan' | 'conveyor' | 'rocket' | 'flame' | 'magnet' | 'laserHum';
 
 export interface LoopVoice {
   /** Fade/level gain; the engine drives this. */
@@ -171,6 +171,27 @@ export function buildLoop(ctx: BaseAudioContext, kind: LoopKind, nb: NoiseBank, 
       am.node.connect(level).connect(out);
       b.rateHooks.push((r, t) => {
         for (const [o, m] of oscs) o.frequency.setTargetAtTime(100 * m * r, t, smooth);
+      });
+      break;
+    }
+    case 'laserHum': {
+      // mains-hum core with a slow beating pair and a faint high sizzle
+      const level = gainNode(ctx, 0.07);
+      const am = amNode(ctx, b, 0.6, 0.85, 0.15);
+      const parts: [OscillatorNode, number][] = [];
+      for (const [m, a, det] of [[1, 1, 0], [2, 0.5, 0.7], [2, 0.35, -0.6], [3, 0.12, 0]] as [number, number, number][]) {
+        const o = osc(ctx, b, 'sine', 120 * m * r0 + det);
+        const g = gainNode(ctx, a);
+        o.connect(g).connect(am.node);
+        parts.push([o, m]);
+      }
+      const hiss = buf(ctx, b, nb.white);
+      const bp = filterNode(ctx, 'bandpass', 6200, 3);
+      const hg = gainNode(ctx, 0.05);
+      hiss.connect(bp).connect(hg).connect(am.node);
+      am.node.connect(level).connect(out);
+      b.rateHooks.push((r, t) => {
+        for (const [o, m] of parts) o.frequency.setTargetAtTime(120 * m * r, t, smooth);
       });
       break;
     }
