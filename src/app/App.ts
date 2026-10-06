@@ -140,6 +140,11 @@ export class App implements AppContext {
     this.screen = levelsScreen(this, () => this.showLevels());
   }
 
+  /** For automated tests (e2e/campaign.mjs). */
+  get campaignLength() {
+    return CAMPAIGN.length;
+  }
+
   playCampaign(index: number) {
     const entry = CAMPAIGN[index];
     if (!entry) return this.showCampaign();
