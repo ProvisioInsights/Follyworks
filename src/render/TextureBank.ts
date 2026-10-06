@@ -6,6 +6,8 @@ import type Phaser from 'phaser';
 import { paintPart } from './art/parts';
 
 export const ART_SCALE = 2;
+/** Width of the contrast halo around part art, in world px. */
+export const RIM = 1.6;
 
 export interface TexInfo {
   key: string;
@@ -46,6 +48,41 @@ export class TextureBank {
       info = { key: cacheKey, w, h, ox: painted.ox / painted.canvas.width, oy: painted.oy / painted.canvas.height };
     }
     this.cache.set(cacheKey, info);
+    return info;
+  }
+
+  /**
+   * A dark halo the shape of a part texture, drawn behind it so parts stay readable against any
+   * backdrop (busy pegboards, dark corners). Same frame as the texture plus `RIM` px of padding.
+   */
+  getRim(key: string, params: Record<string, string | number | boolean> = {}): TexInfo {
+    const base = this.get(key, params);
+    const rimKey = `${base.key}#rim`;
+    const hit = this.cache.get(rimKey);
+    if (hit) return hit;
+    const src = this.scene.textures.get(base.key).getSourceImage() as HTMLCanvasElement;
+    const pad = Math.ceil(RIM * ART_SCALE) + 1;
+    const c = document.createElement('canvas');
+    c.width = src.width + pad * 2;
+    c.height = src.height + pad * 2;
+    const g = c.getContext('2d')!;
+    const r = RIM * ART_SCALE;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      g.drawImage(src, pad + Math.cos(a) * r, pad + Math.sin(a) * r);
+    }
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = 'rgba(12, 8, 6, 0.88)';
+    g.fillRect(0, 0, c.width, c.height);
+    this.scene.textures.addCanvas(rimKey, c);
+    const info: TexInfo = {
+      key: rimKey,
+      w: c.width / ART_SCALE,
+      h: c.height / ART_SCALE,
+      ox: (base.ox * src.width + pad) / c.width,
+      oy: (base.oy * src.height + pad) / c.height,
+    };
+    this.cache.set(rimKey, info);
     return info;
   }
 

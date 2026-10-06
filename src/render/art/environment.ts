@@ -2366,7 +2366,19 @@ export function paintEnvironment(id: string, w: number, h: number, scale: number
   P.rng = root.fork(2);
   paintShell(P, def);
   P.rng = root.fork(3);
-  clipped(far, roomPath(G), () => def.props(P));
+  // Furniture and machinery are painted on their own layer and knocked back (less colour, less
+  // contrast, a touch of blur) before joining the wall, so nothing in the room's dressing reads as
+  // a part, a socket or a hook the player could use.
+  const [propsC, propsG] = make();
+  clipped(propsG, roomPath(G), () => def.props({ ...P, far: propsG }));
+  far.save();
+  far.setTransform(1, 0, 0, 1, 0, 0);
+  // Canvas filters are missing in some older browsers: fall back to simply fading the props.
+  const filterable = typeof (far as { filter?: unknown }).filter === 'string';
+  if (filterable) far.filter = `saturate(0.45) brightness(0.68) contrast(0.78) blur(${(1.1 * s).toFixed(2)}px)`;
+  far.globalAlpha = filterable ? 0.9 : 0.55;
+  far.drawImage(propsC, 0, 0);
+  far.restore();
   paintVeil(P);
   P.rng = root.fork(4);
   clipped(far, roomPath(G), () => def.lights(P));

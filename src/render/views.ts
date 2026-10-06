@@ -280,6 +280,7 @@ export class EntityView {
   private holders = new Map<string, Phaser.GameObjects.Container>();
   private upright: Phaser.GameObjects.Container;
   private parts: Built[] = [];
+  private rims = new Map<PartSpec, Phaser.GameObjects.Image>();
   private gfx: Phaser.GameObjects.Graphics | null = null;
   private spec: ViewSpec;
   private bank: TextureBank;
@@ -296,6 +297,17 @@ export class EntityView {
     this.root = scene.add.container(0, 0);
     parent.add(this.root);
     this.upright = scene.add.container(0, 0);
+    // Contrast rims go in first so they sit under every layer of the part. Only plain painted
+    // layers get one (not glows, shines or other overlays).
+    for (const ps of this.spec.parts) {
+      if (ps.additive || ps.upright || ps.size || ps.scale || typeof ps.tex !== 'string' || ps.tex.startsWith('fx_')) continue;
+      const rim = this.bank.getRim(ps.tex, ps.params?.(e) ?? {});
+      const img = scene.add.image(ps.x ?? 0, ps.y ?? 0, rim.key);
+      img.setOrigin(rim.ox, rim.oy);
+      img.setDisplaySize(rim.w, rim.h);
+      this.holderFor(ps.frame ?? 0).add(img);
+      this.rims.set(ps, img);
+    }
     for (const ps of this.spec.parts) {
       const holder = ps.upright ? this.upright : this.holderFor(ps.frame ?? 0);
       const key = this.texKey(ps, 0);
@@ -390,10 +402,17 @@ export class EntityView {
       }
       const vis = ps.visible ? ps.visible(e, t) : true;
       p.img.setVisible(vis);
+      const rim = this.rims.get(ps);
+      rim?.setVisible(vis);
       if (!vis) continue;
       const off = ps.offset ? ps.offset(e, t) : null;
       p.img.setPosition((ps.x ?? 0) + (off?.x ?? 0), (ps.y ?? 0) + (off?.y ?? 0));
       if (ps.rotate) p.img.setRotation(ps.rotate(e, t));
+      if (rim) {
+        rim.setPosition(p.img.x, p.img.y);
+        rim.setRotation(p.img.rotation);
+        rim.setAlpha(this.baseAlpha);
+      }
       if (ps.scale) {
         const sc = ps.scale(e, t);
         const base = (p.img as any).__base;

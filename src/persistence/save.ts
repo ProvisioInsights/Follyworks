@@ -20,6 +20,8 @@ export interface Settings {
   ghostTrails: boolean;
   unlockAll: boolean;
   tips: boolean;
+  /** Step-by-step on-screen guidance in tutorial missions. */
+  guidance: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ghostTrails: true,
   unlockAll: false,
   tips: true,
+  guidance: true,
 };
 
 export interface LevelProgress {
@@ -115,6 +118,7 @@ export const parseSettings = (raw: unknown): Settings => {
     ghostTrails: bool(r.ghostTrails, d.ghostTrails),
     unlockAll: bool(r.unlockAll, d.unlockAll),
     tips: bool(r.tips, d.tips),
+    guidance: bool(r.guidance, d.guidance),
   };
 };
 

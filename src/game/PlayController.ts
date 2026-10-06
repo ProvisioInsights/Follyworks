@@ -6,6 +6,7 @@ import type { AudioEngine } from '../audio/AudioEngine';
 import type { BuildDef, LevelDef, Vec } from '../core/types';
 import { Session, type SessionKind } from '../editor/Session';
 import type { WorkshopScene } from '../render/WorkshopScene';
+import type { OverlayState } from '../render/Overlays';
 import { EditorController, type EditorFeedback } from './EditorController';
 import { RunController } from './RunController';
 import type { AttemptResult } from './scoring';
@@ -131,8 +132,12 @@ export class PlayController {
       goalMet: this.run ? this.run.sim.goals.status.map((s) => s.met) : [],
       editor: this.session.editsLevel,
       selectedGoal: this.session.editsLevel ? ed.selectedGoal : null,
+      guide: this.guideOverlay,
     };
   }
+
+  /** Set by the HUD while tutorial guidance shows a ghost part or points into the room. */
+  guideOverlay: OverlayState['guide'] = null;
 
   clearTrails() {
     this.trails = [];

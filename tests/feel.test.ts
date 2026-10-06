@@ -2,10 +2,9 @@
 // for contraptions to read the way players expect.
 import { describe, expect, it } from 'vitest';
 import { M } from '../src/sim/matter';
-import { obj, sim, wire } from './helpers';
+import { level, obj, sim, wire } from './helpers';
 import '../src/components';
 import { parseLevel } from '../src/core/level';
-import { CAMPAIGN } from '../src/game/campaign';
 import { Simulation } from '../src/sim/Simulation';
 
 describe('physics feel', () => {
@@ -105,11 +104,15 @@ describe('physics feel', () => {
   });
 
   it('a trampoline always notices a fast ball, even one that touches and leaves within a tick', () => {
-    // Bounce House with the trampoline at spots where the contact used to start and end between
-    // two substeps: the trampoline must still launch the ball every time.
-    const entry = CAMPAIGN.find((c) => c.level.id === 'c3-bounce-house')!;
+    // A ball dropped down a pipe (the old "Bounce House" level) onto a trampoline at spots where
+    // the contact used to start and end between two substeps: it must still launch every time.
+    const pipe = level([
+      obj('wall', 164, 90, { w: 14, h: 180, material: 'steel' }, { id: 'pipe-l' }),
+      obj('wall', 236, 90, { w: 14, h: 180, material: 'steel' }, { id: 'pipe-r' }),
+      obj('ball', 200, 130, {}, { id: 'ball' }),
+    ]);
     for (const [y, angle] of [[830, 0.3], [835, 0.3], [840, 0.3], [840, 0.4], [826, 0.35]]) {
-      const lv = parseLevel(JSON.parse(JSON.stringify(entry.level))).level;
+      const lv = parseLevel(JSON.parse(JSON.stringify(pipe))).level;
       const s = new Simulation(lv, { objects: [{ id: 't', type: 'trampoline', x: 200, y, angle, props: { power: 2 } }], connections: [] }, { lenient: true });
       let fired = false;
       for (let i = 0; i < 400 && !fired; i++) {
