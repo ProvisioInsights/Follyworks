@@ -3,7 +3,9 @@
 // without touching gameplay or views.
 
 import type Phaser from 'phaser';
+import type { ThemeId } from '../core/themes';
 import { paintPart } from './art/parts';
+import { RIM_STYLE, skinCanvas } from './skin';
 
 export const ART_SCALE = 2;
 /** Width of the contrast halo around part art, in world px. */
@@ -19,21 +21,51 @@ export interface TexInfo {
   oy: number;
 }
 
+export interface TexOpts {
+  /** Leave the art exactly as painted (glows and other additive overlays). */
+  raw?: boolean;
+}
+
 export class TextureBank {
   private scene: Phaser.Scene;
   private cache = new Map<string, TexInfo>();
+  /** Keys of textures this bank painted (not the shared fx sprites), for disposal on theme change. */
+  private painted = new Set<string>();
+  private _theme: ThemeId = 'modern';
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.makeFxTextures();
   }
 
-  get(key: string, params: Record<string, string | number | boolean> = {}): TexInfo {
+  get theme(): ThemeId {
+    return this._theme;
+  }
+
+  /**
+   * Switch the part skin. Every texture painted for the old theme is removed from the GPU, so
+   * memory stays bounded to one theme's worth of art; callers must rebuild their views.
+   * Returns false when nothing changed.
+   */
+  setTheme(theme: ThemeId): boolean {
+    if (theme === this._theme) return false;
+    this._theme = theme;
+    for (const k of this.painted) {
+      this.cache.delete(k);
+      if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
+    }
+    this.painted.clear();
+    return true;
+  }
+
+  get(key: string, params: Record<string, string | number | boolean> = {}, opts: TexOpts = {}): TexInfo {
+    if (key.startsWith('fx_')) opts = { raw: true };
     const pk = Object.keys(params)
       .sort()
       .map((k) => `${k}=${params[k]}`)
       .join('&');
-    const cacheKey = pk ? `${key}?${pk}` : key;
+    const skinned = !opts.raw && this._theme !== 'modern';
+    const cacheKey = (pk ? `${key}?${pk}` : key) + (skinned ? `@${this._theme}` : '');
     const hit = this.cache.get(cacheKey);
     if (hit) return hit;
     let info: TexInfo;
@@ -42,7 +74,9 @@ export class TextureBank {
       info = { key: cacheKey, w: src.width / ART_SCALE, h: src.height / ART_SCALE, ox: 0.5, oy: 0.5 };
     } else {
       const painted = paintPart(key, params, ART_SCALE);
+      if (skinned) skinCanvas(painted.canvas, this._theme, key, ART_SCALE);
       this.scene.textures.addCanvas(cacheKey, painted.canvas);
+      if (!key.startsWith('fx_')) this.painted.add(cacheKey);
       const w = painted.canvas.width / ART_SCALE;
       const h = painted.canvas.height / ART_SCALE;
       info = { key: cacheKey, w, h, ox: painted.ox / painted.canvas.width, oy: painted.oy / painted.canvas.height };
@@ -61,20 +95,37 @@ export class TextureBank {
     const hit = this.cache.get(rimKey);
     if (hit) return hit;
     const src = this.scene.textures.get(base.key).getSourceImage() as HTMLCanvasElement;
-    const pad = Math.ceil(RIM * ART_SCALE) + 1;
+    const style = RIM_STYLE[this._theme];
+    const pad = Math.ceil(Math.max(style.width, style.glow?.width ?? 0) * ART_SCALE) + 1;
     const c = document.createElement('canvas');
     c.width = src.width + pad * 2;
     c.height = src.height + pad * 2;
     const g = c.getContext('2d')!;
-    const r = RIM * ART_SCALE;
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2;
-      g.drawImage(src, pad + Math.cos(a) * r, pad + Math.sin(a) * r);
+    // A halo of `width` px: the texture stamped round a circle, then flooded with one colour.
+    const halo = (width: number, color: string) => {
+      const t = document.createElement('canvas');
+      t.width = c.width;
+      t.height = c.height;
+      const tg = t.getContext('2d')!;
+      const r = width * ART_SCALE;
+      const n = width > 2 ? 16 : 12;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        tg.drawImage(src, pad + Math.cos(a) * r, pad + Math.sin(a) * r);
+      }
+      tg.globalCompositeOperation = 'source-in';
+      tg.fillStyle = color;
+      tg.fillRect(0, 0, t.width, t.height);
+      return t;
+    };
+    if (style.glow) {
+      g.filter = `blur(${(style.glow.width * ART_SCALE * 0.35).toFixed(1)}px)`;
+      g.drawImage(halo(style.glow.width, style.glow.color), 0, 0);
+      g.filter = 'none';
     }
-    g.globalCompositeOperation = 'source-in';
-    g.fillStyle = 'rgba(12, 8, 6, 0.88)';
-    g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(halo(style.width, style.color), 0, 0);
     this.scene.textures.addCanvas(rimKey, c);
+    this.painted.add(rimKey);
     const info: TexInfo = {
       key: rimKey,
       w: c.width / ART_SCALE,
