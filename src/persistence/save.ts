@@ -79,7 +79,19 @@ export interface SaveData {
   sandboxSlots: SandboxSlot[];
   /** Id of the custom level open in the editor, to resume. */
   editorLevelId: string | null;
+  /** Physics Lab bookkeeping. Lesson results live in `progress`, keyed by their lab- level id. */
+  lab: LabSave;
 }
+
+export interface LabSave {
+  /** The lesson opened most recently, so the lab list can offer to carry on. */
+  lastPlayed: string | null;
+}
+
+/** Older saves have no `lab` field; anything unreadable falls back to a fresh lab record. */
+export const parseLabSave = (raw: unknown): LabSave => ({
+  lastPlayed: isObj(raw) && typeof raw.lastPlayed === 'string' ? raw.lastPlayed.slice(0, 80) : null,
+});
 
 export const defaultSave = (): SaveData => ({
   version: SAVE_VERSION,
@@ -89,6 +101,7 @@ export const defaultSave = (): SaveData => ({
   customLevels: [],
   sandboxSlots: [],
   editorLevelId: null,
+  lab: { lastPlayed: null },
 });
 
 /** Minimal storage interface so tests can inject a fake. */
@@ -195,6 +208,7 @@ export const parseSave = (text: string | null): { data: SaveData; recovered: boo
     }
   }
   data.editorLevelId = typeof r.editorLevelId === 'string' ? r.editorLevelId : null;
+  data.lab = parseLabSave(r.lab);
   return { data, recovered };
 };
 
