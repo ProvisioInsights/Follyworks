@@ -17,6 +17,7 @@ Follyworks is a 2D physics contraption puzzle game for the browser. Each puzzle 
 - **Numbered goals** in the top bar, each with a matching tag in the room on the thing it is about, a live count or hold timer, and a highlight when you point at it.
 - **Sandbox** with every part and no rules, plus named save slots.
 - **Level editor** with fixed and starting objects, inventory, goals, instant test-and-return, local saves, and JSON import and export.
+- **Six visual themes**: Retro Toolbox, Stone Age, Steam & Brass, Modern Workshop, Comic Heroics and Far Future. By default each mission group uses the theme of its era (shown on its card in Puzzles). Settings can fix one theme everywhere, and the sandbox and editor have their own theme picker. A theme changes the room, the look of the parts and the HUD, and never the physics.
 - All art, music and sound are generated procedurally at runtime. There are no asset files.
 
 ## Requirements

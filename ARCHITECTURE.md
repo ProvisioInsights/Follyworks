@@ -98,6 +98,9 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - `WorkshopScene` draws whatever simulation it is handed. It interpolates poses between ticks and manages the camera (fit to the world inside the HUD insets, plus user pan and zoom).
 - Entity sprites are layered textures from `TextureBank`, which paints each texture once with Canvas 2D (`render/art/*`) and caches it by key and parameters.
 - Environments are three layers: a painted far wall, an additive light pass, and a near-layer silhouette frame kept outside the play area.
+- Themes (`core/themes.ts`): `App.theme` resolves the session pick (sandbox/editor), then `settings.theme`, then the era of the chapter (`CHAPTER_THEME`). `App.refreshTheme` sets `<html data-theme>` for the HUD CSS, calls `WorkshopScene.setTheme` and the audio engine's optional `setMusicTheme`.
+- Part skins (`render/skin.ts`) are applied by `TextureBank` at paint time: the painted canvas is graded per theme (posterize and ink lines, halftone, earthy grain, brass and rivets, neon rim) with alpha left untouched, and cached under `key@theme`. The rim halo style is per theme too. On a theme change the bank removes every texture it painted, so only one theme's art is in GPU memory. Glow overlays and `fx_` sprites are left raw. Bin icons use the same `skinCanvas`.
+- Theme rooms (`render/art/envThemes.ts`: cave, foundry, toolbox, rooftop, neonlab) are ordinary `EnvDef`s. `roomFor(theme, levelEnv)` picks the room; Modern keeps the level's own environment. On a screen change the repaint is deferred to the next `setSim` / `setEnvironment`.
 - Particles and labels (`Fx.ts`) are pooled and hard-capped.
 - Phaser runs with `maxTextures: 1` (see DECISIONS.md).
 
@@ -116,7 +119,7 @@ The simulation is deterministic for a given (level, build): the same inputs give
 `persistence/save.ts` keeps one JSON document, `follyworks.save`, with a `version` field. It holds settings, per-level progress, the autosaved build for each level, custom levels, sandbox slots, the level last open in the editor and the lab lesson last played (`lab`, absent in older saves and filled in on load). Lab lessons keep their progress and builds under their `lab-` level ids like any level.
 
 - Progress is kept per difficulty (`byDifficulty.easy/normal/hard`) beside the aggregate fields; saves from before difficulties load as Normal. Builds for Easy and Hard autosave under `<id>@easy` / `<id>@hard`.
-- Loading never throws. Unknown or broken fields fall back to defaults field by field.
+- Loading never throws. Unknown or broken fields fall back to defaults field by field (an unknown `settings.theme` becomes `'auto'`).
 - An unreadable document is copied aside to `follyworks.save.corrupt-<time>` before defaults are used.
 - Writes are debounced and flushed on page unload.
 

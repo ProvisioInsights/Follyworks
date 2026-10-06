@@ -2,6 +2,7 @@
 
 import type { AppContext } from '../app/context';
 import { exportLevel, parseLevel, STANDARD_WORLD } from '../core/level';
+import { THEMES, themeFor, type ThemeSetting } from '../core/themes';
 import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/campaign';
 import { buildKey, DIFFICULTIES, DIFFICULTY_LABELS } from '../game/difficulty';
 import { LAB } from '../game/levels/lab';
@@ -101,7 +102,7 @@ export const campaignScreen = (app: AppContext): Screen => {
       h(
         'div',
         { class: 'panel chapter' },
-        h('div', { class: 'chapter-head' }, h('span', { class: 'chapter-num' }, ch.index === 0 ? '0' : String(ch.index)), h('h2', null, ch.title)),
+        h('div', { class: 'chapter-head' }, h('span', { class: 'chapter-num' }, ch.index === 0 ? '0' : String(ch.index)), h('h2', null, ch.title), eraChip(app, ch.index)),
         h('div', { class: 'sub' }, ch.subtitle),
         tiles,
       ),
@@ -122,6 +123,19 @@ export const campaignScreen = (app: AppContext): Screen => {
   );
   app.ui.append(root);
   return { root, destroy: () => root.remove() };
+};
+
+/** The era (theme) a mission group is dressed in. */
+const eraChip = (app: AppContext, chapter: number) => {
+  const era = themeFor(chapter, 'auto');
+  const shown = themeFor(chapter, app.settings.theme);
+  const info = THEMES.find((t) => t.id === era)!;
+  const fixed = shown !== era ? THEMES.find((t) => t.id === shown) : null;
+  return h(
+    'span',
+    { class: `era-chip era-${era}${fixed ? ' overridden' : ''}`, tip: fixed ? `${info.blurb}<br><i>Settings shows every mission as ${fixed.name}.</i>` : info.blurb },
+    info.name,
+  );
 };
 
 // ------------------------------------------------------------------ custom levels
@@ -370,6 +384,20 @@ export const settingsDialog = (app: AppContext) => {
     ].map(([v, l]) => h('option', { value: String(v), selected: s.textScale === v }, String(l))),
   ) as HTMLSelectElement;
   text.addEventListener('change', () => app.updateSettings({ textScale: Number(text.value) }));
+  const themeSel = h(
+    'select',
+    { 'aria-label': 'Theme' },
+    h('option', { value: 'auto', selected: s.theme === 'auto' }, 'Auto (follows the era)'),
+    ...THEMES.map((t) => h('option', { value: t.id, selected: s.theme === t.id }, t.name)),
+  ) as HTMLSelectElement;
+  const themeNote = h('div', { class: 'muted', style: { fontSize: '12px' } });
+  const noteFor = (v: string) =>
+    (themeNote.textContent = v === 'auto' ? 'Each mission group has its own era, from stone age to far future' : THEMES.find((t) => t.id === v)?.blurb ?? '');
+  noteFor(s.theme);
+  themeSel.addEventListener('change', () => {
+    noteFor(themeSel.value);
+    app.updateSettings({ theme: themeSel.value as ThemeSetting });
+  });
   modal(app.ui, {
     title: 'Settings',
     body: [
@@ -382,6 +410,8 @@ export const settingsDialog = (app: AppContext) => {
         ...check('Mute everything', 'muted'),
         h('span', null, 'Text size'),
         text,
+        h('span', null, 'Theme', themeNote),
+        themeSel,
         ...check('Reduce motion', 'reducedMotion', 'No camera shake or ambient animation'),
         ...check('Tutorial guidance', 'guidance', 'Step-by-step pointers in the first missions'),
         ...check('Snap to grid', 'snap'),

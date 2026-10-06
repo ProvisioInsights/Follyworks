@@ -2,6 +2,7 @@
 // localStorage. Loading never throws: malformed data is quarantined and replaced by defaults.
 
 import { parseBuild, parseLevel } from '../core/level';
+import { THEMES, type ThemeSetting } from '../core/themes';
 import type { BuildDef, LevelDef } from '../core/types';
 
 export const SAVE_KEY = 'follyworks.save';
@@ -29,6 +30,8 @@ export interface Settings {
   guidance: boolean;
   /** Difficulty last picked in a mission briefing. */
   difficulty: Difficulty;
+  /** Visual theme: 'auto' follows each mission's era, or one fixed theme everywhere. */
+  theme: ThemeSetting;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -45,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tips: true,
   guidance: true,
   difficulty: 'normal',
+  theme: 'auto',
 };
 
 export interface LevelProgress {
@@ -158,6 +162,7 @@ export const parseSettings = (raw: unknown): Settings => {
     tips: bool(r.tips, d.tips),
     guidance: bool(r.guidance, d.guidance),
     difficulty: isDifficulty(r.difficulty) ? r.difficulty : d.difficulty,
+    theme: r.theme === 'auto' || THEMES.some((t) => t.id === r.theme) ? (r.theme as ThemeSetting) : d.theme,
   };
 };
 

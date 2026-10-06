@@ -311,7 +311,7 @@ export class EntityView {
     for (const ps of this.spec.parts) {
       const holder = ps.upright ? this.upright : this.holderFor(ps.frame ?? 0);
       const key = this.texKey(ps, 0);
-      const info = this.bank.get(key, ps.params?.(e) ?? {});
+      const info = this.bank.get(key, ps.params?.(e) ?? {}, { raw: ps.additive });
       const img = scene.add.image(ps.x ?? 0, ps.y ?? 0, info.key);
       img.setOrigin(info.ox, info.oy);
       this.applySize(img, ps, info.w, info.h);
@@ -392,7 +392,7 @@ export class EntityView {
     for (const p of this.parts) {
       const ps = p.spec;
       if (typeof ps.tex === 'function') {
-        const info = this.bank.get(this.texKey(ps, t), ps.params?.(e) ?? {});
+        const info = this.bank.get(this.texKey(ps, t), ps.params?.(e) ?? {}, { raw: ps.additive });
         if (info.key !== p.lastTex) {
           p.img.setTexture(info.key);
           p.img.setOrigin(info.ox, info.oy);
