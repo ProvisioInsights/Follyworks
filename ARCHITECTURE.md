@@ -76,8 +76,10 @@ Adding a part means adding one definition plus its art in `render/art/parts.ts` 
 5. Run two Matter substeps of 1/120 s each, re-applying component forces for the second.
 6. Solve ropes (four velocity iterations), then report rope tension to the parts at each end.
 7. Collect contacts and fire `onCollide` (with the pre-step approach speed). The first meaningful activation of each part becomes a chain-reaction stage.
-8. Run each `afterStep` (sensors), spread heat, and cull anything that fell out of the world.
+8. Run each `afterStep` (sensors), trace laser beams (`sim/optics.ts`), spread heat, and cull anything that fell out of the world.
 9. Advance the clock and evaluate goals.
+
+Beams are a per-tick raycast, not bodies: `traceBeams` follows each firing laser through the polygon vertices of every body tagged `plugin.optic` (mirrors reflect, splitters fork, prisms bend and fan by colour, filters mask the colour bitmask, lenses steer toward the focal point, light sensors light up) and stops on any other solid, non-sensor body, with a 160-segment and depth-32 cap. Lit targets build up a heat dwell and get `onHeat` after 0.25 s, and ropes a beam crosses burn through. The result is kept in `sim.beams` for `render/Overlays.ts` to draw. Beams are never snapshotted: the history restores entity state (including the dwell) and `restore()` re-traces them from the restored world.
 
 The simulation is deterministic for a given (level, build): the same inputs give the same run, tick for tick. Tests rely on this, and so does rewind.
 
