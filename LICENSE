@@ -1,0 +1,15 @@
+Copyright (c) 2026 Provisio Insights. All rights reserved.
+
+This repository is published so that its source code can be read. No license
+is granted to copy, modify, distribute, sublicense, or sell this software, its
+levels, art, audio, or the Follyworks name, in whole or in part, without prior
+written permission from Provisio Insights.
+
+Third-party dependencies (such as Phaser and the Fontsource font packages) are
+covered by their own licenses and are not part of this grant.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY ARISING FROM THE USE OF THE SOFTWARE.

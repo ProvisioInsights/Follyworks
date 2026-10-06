@@ -89,3 +89,7 @@ Ropes, belts and wires are tools in the parts bin: pick one, then click the two 
 - [DECISIONS.md](DECISIONS.md): material design and engineering decisions, with reasons.
 - [FINAL_REPORT.md](FINAL_REPORT.md): scope, testing, known defects, compromises, risks and next steps.
 - [docs/ART_SPEC.md](docs/ART_SPEC.md): the art direction the procedural painters follow.
+
+## License
+
+Copyright (c) 2026 Provisio Insights. All rights reserved. The source is public to read, but no license is granted to reuse it. See [LICENSE](LICENSE).
