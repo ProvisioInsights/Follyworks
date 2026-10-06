@@ -7,11 +7,13 @@ import { deepClone } from '../core/util';
 import { emptyBuild, type BuildDef, type LevelDef } from '../core/types';
 import { CAMPAIGN, CHAPTERS, levelCode } from '../game/campaign';
 import { applyDifficulty, buildKey, type Difficulty } from '../game/difficulty';
+import { LAB, labCode } from '../game/levels/lab';
 import { RunController } from '../game/RunController';
 import { mergeProgress, type AttemptResult } from '../game/scoring';
 import { SaveStore, type Settings } from '../persistence/save';
 import { WorkshopScene } from '../render/WorkshopScene';
 import { h, installTooltips, modal, toast } from '../ui/dom';
+import { labIntro, labScreen } from '../ui/lab';
 import { PlayScreen } from '../ui/PlayScreen';
 import { campaignScreen, levelsScreen, mainMenu, settingsDialog, type Screen } from '../ui/screens';
 import type { AppContext } from './context';
@@ -77,7 +79,8 @@ export class App implements AppContext {
   debugLoadSolution(k = 0) {
     const play = this.play;
     if (!play) return false;
-    const entry = CAMPAIGN.find((c) => c.level.id === play.ctl.session.level.id);
+    const id = play.ctl.session.level.id;
+    const entry = CAMPAIGN.find((c) => c.level.id === id) ?? LAB.find((c) => c.level.id === id);
     // On Easy, solutions[0] minus the part that is already pre-placed.
     const sol = k === 0 && this.derived?.solution && this.derived.level.id === entry?.level.id ? this.derived.solution : entry?.solutions[k < 0 ? entry.solutions.length + k : k];
     if (!sol) return false;
@@ -181,6 +184,42 @@ export class App implements AppContext {
       onNext: index + 1 < CAMPAIGN.length ? () => this.playCampaign(index + 1) : undefined,
       onSolved: (r) => this.record(level.id, r, d),
       onBuildChanged: (b) => this.store.setBuild(key, b),
+    });
+  }
+
+  showLab() {
+    this.teardown();
+    this.startDemo();
+    this.screen = labScreen(this);
+  }
+
+  /** For automated tests. */
+  get labLength() {
+    return LAB.length;
+  }
+
+  playLab(index: number) {
+    const entry = LAB[index];
+    if (!entry) return this.showLab();
+    this.teardown();
+    const level = entry.level;
+    this.store.data.lab.lastPlayed = level.id;
+    this.store.save();
+    const progress = this.store.progress(level.id);
+    this.play = new PlayScreen(this, {
+      kind: 'campaign',
+      level,
+      build: this.store.getBuild(level) ?? emptyBuild(),
+      title: level.name,
+      subtitle: `${labCode(index)} · Physics Lab${progress.solved ? ' · solved' : ''}`,
+      brief: true,
+      briefIntro: () => labIntro(entry),
+      concepts: [entry.concept],
+      onExit: () => this.showLab(),
+      exitLabel: 'Lab',
+      onNext: index + 1 < LAB.length ? () => this.playLab(index + 1) : undefined,
+      onSolved: (r) => this.record(level.id, r),
+      onBuildChanged: (b) => this.store.setBuild(level.id, b),
     });
   }
 

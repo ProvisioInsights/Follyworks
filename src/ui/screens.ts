@@ -4,6 +4,7 @@ import type { AppContext } from '../app/context';
 import { exportLevel, parseLevel, STANDARD_WORLD } from '../core/level';
 import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/campaign';
 import { buildKey, DIFFICULTIES, DIFFICULTY_LABELS } from '../game/difficulty';
+import { LAB } from '../game/levels/lab';
 import { ENVIRONMENTS } from '../render/art/environment';
 import { h, icon, modal, toast } from './dom';
 
@@ -35,6 +36,7 @@ export const mainMenu = (app: AppContext): Screen => {
           ? btn('Continue', `${levelCode(nextIdx)} ${CAMPAIGN[nextIdx].level.name}`, 'play', () => app.playCampaign(nextIdx), 'primary')
           : btn(solved ? 'Campaign' : 'Start', solved ? '' : 'the tutorial', 'play', () => (solved ? app.showCampaign() : app.playCampaign(0)), 'primary'),
         btn('Puzzles', `${solved}/${CAMPAIGN.length} solved`, 'map', () => app.showCampaign()),
+        btn('Physics Lab', `${LAB.filter((e) => p[e.level.id]?.solved).length}/${LAB.length} lessons`, 'flask', () => app.showLab()),
         btn('Sandbox', 'every part, no rules', 'box', () => app.openSandbox()),
         btn('Level editor', `${app.store.data.customLevels.length} of yours`, 'wrench', () => app.showLevels()),
         btn('Settings', '', 'gear', () => app.openSettings()),
@@ -404,10 +406,11 @@ export const settingsDialog = (app: AppContext) => {
                     label: 'Reset progress',
                     kind: 'stop',
                     onClick: () => {
-                      for (const c of CAMPAIGN) {
+                      for (const c of [...CAMPAIGN, ...LAB]) {
                         delete app.store.data.progress[c.level.id];
                         for (const d of DIFFICULTIES) delete app.store.data.builds[buildKey(c.level.id, d)];
                       }
+                      app.store.data.lab.lastPlayed = null;
                       app.store.flush();
                       toast('Progress reset.');
                     },

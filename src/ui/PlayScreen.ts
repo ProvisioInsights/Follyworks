@@ -21,6 +21,9 @@ import { append, clear, h, icon, iconBtn, modal, plural, toast } from './dom';
 import { EditorPanel } from './EditorPanel';
 import { GoalMarkers } from './GoalMarkers';
 import { GuideCoach } from './GuideCoach';
+import { conceptsInRun } from '../content/runConcepts';
+import type { ConceptId } from '../content/science';
+import { physicsInMachine, scienceSection } from './science';
 
 export interface PlayConfig {
   kind: SessionKind;
@@ -30,6 +33,10 @@ export interface PlayConfig {
   subtitle: string;
   /** Show the level briefing card on entry. */
   brief?: boolean;
+  /** Extra content shown at the top of the briefing card (Physics Lab lesson intros). */
+  briefIntro?: () => HTMLElement;
+  /** Concepts the level is about (a Physics Lab lesson's idea), listed first under "Physics in your machine". */
+  concepts?: ConceptId[];
   onExit: () => void;
   onNext?: () => void;
   /** Called with the attempt; return true if this was a first solve (for messaging). */
@@ -587,7 +594,7 @@ export class PlayScreen {
     const def = getComponent(p.obj.type);
     if (!def) return void (el.style.display = 'none');
     el.style.display = 'flex';
-    append(el, [h('h3', null, def.name), h('div', { class: 'desc' }, def.description), def.help ? h('div', { class: 'desc muted' }, def.help) : null]);
+    append(el, [h('h3', null, def.name), h('div', { class: 'desc' }, def.description), def.help ? h('div', { class: 'desc muted' }, def.help) : null, scienceSection(def.type)]);
     if (!p.editable) {
       el.append(h('div', { class: 'lock-note' }, icon('lock', 16), this.session.isFixed(p.obj.id) ? 'Bolted down: part of the room' : 'Part of the puzzle: it can’t be moved'));
       return;
@@ -824,6 +831,7 @@ export class PlayScreen {
     const l = this.cfg.level;
     const inv = this.session.inventory().filter((r) => r.type !== 'wire');
     const body = [
+      this.cfg.briefIntro?.() ?? null,
       h('p', { style: { margin: '0 0 6px', fontSize: '16px' } }, l.description || 'Make it happen.'),
       l.goals.length ? h('ul', { class: 'brief-goals' }, l.goals.map((g) => h('li', null, goalLabel(g)))) : null,
       h(
@@ -980,6 +988,7 @@ export class PlayScreen {
             )
           : null,
         receipt,
+        physicsInMachine([...new Set([...(this.cfg.concepts ?? []), ...conceptsInRun(r.chain, (id) => this.ctl.run?.sim.entities.get(id)?.type, 6 - (this.cfg.concepts?.length ?? 0))])]),
       ],
       actions,
       width: 600,
