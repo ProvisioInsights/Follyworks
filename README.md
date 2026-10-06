@@ -92,4 +92,4 @@ Ropes, belts and wires are tools in the parts bin: pick one, then click the two 
 
 ## License
 
-Copyright (c) 2026 Provisio Insights. All rights reserved. The source is public to read, but no license is granted to reuse it. See [LICENSE](LICENSE).
+MIT. Copyright (c) 2026 Provisio Insights. See [LICENSE](LICENSE).
