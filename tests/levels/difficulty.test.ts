@@ -8,6 +8,7 @@ import type { BuildDef, LevelDef } from '../../src/core/types';
 import { canPlace, countUsed, partsPlaced } from '../../src/editor/inventory';
 import { CAMPAIGN } from '../../src/game/campaign';
 import { applyDifficulty, buildKey, DIFFICULTIES, hardTimeLimit, referenceSolveTime } from '../../src/game/difficulty';
+import { triggerMet } from '../../src/game/guide';
 import { Simulation } from '../../src/sim/Simulation';
 
 const limitOf = (l: LevelDef) => l.restrictions?.timeLimit ?? 30;
@@ -105,6 +106,9 @@ for (const entry of CAMPAIGN) {
       if (entry.solutions[0].objects.length >= 2) expect(easy.preplaced.length).toBe(1);
       else expect(easy.preplaced.length).toBe(0);
       expect(partsPlaced(easy.solution!)).toBe(partsPlaced(entry.solutions[0]) - easy.preplaced.length);
+      // Tutorial guidance never asks for the part that is already pre-placed.
+      const gift = { objects: l.startingObjects.slice(normal.startingObjects.length), connections: [] };
+      for (const g of l.guide ?? []) if (g.until.kind === 'place') expect(triggerMet(g.until, gift, { ran: false, acked: new Set() }, 0), g.text).toBe(false);
     });
 
     it('hard is never easier than normal and caps parts at solutions[0]', () => {

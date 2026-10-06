@@ -1427,3 +1427,161 @@ body.reduced * {
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------- difficulty and tiered hints */
+:root {
+  --diff-easy: #7cd992;
+  --diff-normal: #e2a54a;
+  --diff-hard: #ff7b5c;
+}
+.diff-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  border: 1px solid currentColor;
+  font-family: var(--font-head);
+  font-size: calc(12px * var(--ts));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: 3px;
+}
+.diff-badge.easy,
+.diff-btn.easy,
+.diff-dot.easy {
+  --dc: var(--diff-easy);
+}
+.diff-badge.normal,
+.diff-btn.normal,
+.diff-dot.normal {
+  --dc: var(--diff-normal);
+}
+.diff-badge.hard,
+.diff-btn.hard,
+.diff-dot.hard {
+  --dc: var(--diff-hard);
+}
+.diff-badge {
+  color: var(--dc);
+}
+.diff-pick {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.diff-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--edge);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--cream-dim);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.diff-btn b {
+  font-family: var(--font-head);
+  font-size: calc(17px * var(--ts));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dc);
+}
+.diff-btn small {
+  font-size: calc(12px * var(--ts));
+  color: var(--muted);
+  line-height: 1.2;
+}
+.diff-btn:hover {
+  border-color: var(--dc);
+}
+.diff-btn.on {
+  border-color: var(--dc);
+  background: color-mix(in srgb, var(--dc) 16%, transparent);
+  box-shadow: 0 0 0 1px var(--dc) inset;
+}
+.diff-btn.on small {
+  color: var(--cream-dim);
+}
+.tile-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.diff-beaten {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+  padding: 0 2px;
+}
+/* A tiny difficulty ladder: three bars of rising height, lit in their colour once beaten. */
+.diff-dot {
+  width: 7px;
+  border-radius: 2px;
+  font-size: 0;
+  border: 1px solid #3c3027;
+  background: rgba(0, 0, 0, 0.3);
+}
+.diff-dot.easy {
+  height: 6px;
+}
+.diff-dot.normal {
+  height: 9px;
+}
+.diff-dot.hard {
+  height: 13px;
+}
+.diff-dot.on {
+  border-color: var(--dc);
+  background: var(--dc);
+}
+.hint-parts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hint-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px 2px 2px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--edge);
+}
+.hint-part canvas {
+  width: 34px;
+  height: 34px;
+}
+.hint-part small {
+  color: var(--muted);
+  font-size: calc(11px * var(--ts));
+}
+.result-notes {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 10px;
+}
+.result-notes .diff-badge {
+  margin-left: 0;
+  vertical-align: 0;
+}
+.hint-note {
+  font-family: var(--font-head);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: calc(13px * var(--ts));
+  color: var(--brass-hi);
+  border: 1px dashed var(--brass);
+  border-radius: 6px;
+  padding: 2px 8px;
+}

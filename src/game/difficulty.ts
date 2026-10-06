@@ -6,7 +6,8 @@
 //         bin; a part cap, if any, rises by one; and when solutions[0] places two or more objects,
 //         one of them (the first that no connection in the solution touches, else the first) is
 //         pre-placed at its exact spot as a locked starting object. The bin is not reduced for
-//         the gift, so Easy's bin is always a superset of Normal's.
+//         the gift, so Easy's bin is always a superset of Normal's. Tutorial guide steps that ask
+//         for exactly that part are dropped.
 // Hard:   time limit cut toward 60% of Normal, but never below the measured solve time of
 //         solutions[0] ×1.3 + 2 s (measured headlessly and memoised; the slowest of the reference
 //         and its ±4 px nudges), and never above Normal;
@@ -23,6 +24,7 @@ import type { BuildDef, InventoryItem, LevelDef, ObjectDef } from '../core/types
 import { countUsed, partsPlaced } from '../editor/inventory';
 import { DIFFICULTIES, type Difficulty } from '../persistence/save';
 import { Simulation } from '../sim/Simulation';
+import { triggerMet } from './guide';
 import type { CampaignEntry } from './levels/types';
 
 export { DIFFICULTIES, type Difficulty };
@@ -120,6 +122,8 @@ export const applyDifficulty = (entry: CampaignEntry, d: Difficulty, opts: { sol
     let solution = sol;
     if (help) {
       level.startingObjects = [...level.startingObjects, deepClone(help)];
+      // Tutorial guidance: drop "place this part" steps the pre-placed part already does.
+      if (level.guide) level.guide = level.guide.filter((g) => !(g.until.kind === 'place' && triggerMet(g.until, { objects: [help], connections: [] }, { ran: false, acked: new Set() }, 0)));
       solution = { objects: sol.objects.filter((o) => o.id !== help.id), connections: sol.connections };
       preplaced.push(help.id);
     }
