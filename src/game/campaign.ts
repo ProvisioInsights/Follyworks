@@ -1,35 +1,19 @@
-// The campaign: chapter files collected in order. Levels are pure data (see levels/*.ts).
+// The campaign: the tutorial and the mission groups, collected in play order. Levels are pure data
+// (see levels/*.ts).
 
 import type { LevelProgress } from '../persistence/save';
-import { CHAPTER_0 } from './levels/ch00_tutorial';
-import { CHAPTER_1 } from './levels/ch01';
-import { CHAPTER_2 } from './levels/ch02';
-import { CHAPTER_3 } from './levels/ch03';
-import { CHAPTER_4 } from './levels/ch04';
-import { CHAPTER_5 } from './levels/ch05';
-import { CHAPTER_6 } from './levels/ch06';
-import { CHAPTER_7 } from './levels/ch07';
-import { CHAPTER_8 } from './levels/ch08';
-import { CHAPTER_9 } from './levels/ch09';
-import { CHAPTER_10 } from './levels/ch10';
+import { GROUP_1 } from './levels/group1';
+import { GROUP_2 } from './levels/group2';
+import { GROUP_3 } from './levels/group3';
+import { GROUP_4 } from './levels/group4';
+import { GROUP_5 } from './levels/group5';
+import { TUTORIAL } from './levels/tutorial';
 import { CHAPTERS, type CampaignEntry } from './levels/types';
 
 export { CHAPTERS };
 export type { CampaignEntry };
 
-export const CAMPAIGN: CampaignEntry[] = [
-  ...CHAPTER_0,
-  ...CHAPTER_1,
-  ...CHAPTER_2,
-  ...CHAPTER_3,
-  ...CHAPTER_4,
-  ...CHAPTER_5,
-  ...CHAPTER_6,
-  ...CHAPTER_7,
-  ...CHAPTER_8,
-  ...CHAPTER_9,
-  ...CHAPTER_10,
-];
+export const CAMPAIGN: CampaignEntry[] = [...TUTORIAL, ...GROUP_1, ...GROUP_2, ...GROUP_3, ...GROUP_4, ...GROUP_5];
 
 export const campaignIndex = (id: string) => CAMPAIGN.findIndex((c) => c.level.id === id);
 

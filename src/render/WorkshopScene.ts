@@ -157,7 +157,8 @@ export class WorkshopScene extends Phaser.Scene {
     const vw = this.scale.width;
     const vh = this.scale.height;
     const i = this.insets;
-    const margin = { x: 40, top: 90, bottom: 50 };
+    // Just enough room around the world to show the ceiling slab and floor lip.
+    const margin = { x: 14, top: 34, bottom: 18 };
     const W = this.worldW + margin.x * 2;
     const H = this.worldH + margin.top + margin.bottom;
     const availW = Math.max(200, vw - i.left - i.right);

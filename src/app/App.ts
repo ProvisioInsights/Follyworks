@@ -314,7 +314,7 @@ export class App implements AppContext {
   private startDemo() {
     if (this.demo) return;
     const pick =
-      [...CAMPAIGN].reverse().find((c) => c.chapter === 10 && c.solutions.length) ??
+      [...CAMPAIGN].reverse().find((c) => c.chapter === CHAPTERS[CHAPTERS.length - 1].index && c.solutions.length) ??
       [...CAMPAIGN].reverse().find((c) => c.solutions.length) ??
       null;
     if (!pick) return;

@@ -7,11 +7,15 @@ import {
   type BuildDef,
   type ConnectionDef,
   type GoalDef,
+  type GuideStep,
+  type GuideTrigger,
   type InventoryItem,
   type LevelDef,
   type ObjectDef,
   type Rect,
+  type Props,
   type Selector,
+  type Vec,
 } from './types';
 
 export class LevelError extends Error {}
@@ -147,6 +151,54 @@ export interface ParseResult {
   problems: string[];
 }
 
+const vec = (v: unknown): Vec | undefined => (isObj(v) && typeof v.x === 'number' && typeof v.y === 'number' ? { x: v.x, y: v.y } : undefined);
+const HUD_TARGETS = ['run', 'rotate', 'flip', 'hint', 'reset', 'connect'];
+
+const parseGuideTrigger = (u: unknown): GuideTrigger | null => {
+  if (!isObj(u)) return null;
+  switch (u.kind) {
+    case 'place': {
+      if (typeof u.type !== 'string') return null;
+      const t: GuideTrigger = { kind: 'place', type: u.type };
+      const at = vec(u.at);
+      if (at) t.at = at;
+      if (typeof u.radius === 'number') t.radius = Math.max(4, u.radius);
+      if (typeof u.angle === 'number') t.angle = u.angle;
+      if (typeof u.angleTol === 'number') t.angleTol = Math.max(0.01, u.angleTol);
+      return t;
+    }
+    case 'connect':
+      return u.connection === 'wire' || u.connection === 'rope' || u.connection === 'belt' ? { kind: 'connect', connection: u.connection } : null;
+    case 'run':
+    case 'ack':
+      return { kind: u.kind };
+    default:
+      return null;
+  }
+};
+
+const parseGuideStep = (g: unknown): GuideStep | null => {
+  if (!isObj(g) || typeof g.text !== 'string') return null;
+  const until = parseGuideTrigger(g.until);
+  if (!until) return null;
+  const step: GuideStep = { text: g.text.slice(0, 300), until };
+  const p = g.point;
+  if (isObj(p)) {
+    const w = vec(p.world);
+    if (w) step.point = { world: w };
+    else if (typeof p.bin === 'string') step.point = { bin: p.bin };
+    else if (typeof p.hud === 'string' && HUD_TARGETS.includes(p.hud)) step.point = { hud: p.hud as 'run' };
+  }
+  const gh = g.ghost;
+  if (isObj(gh) && typeof gh.type === 'string' && typeof gh.x === 'number' && typeof gh.y === 'number') {
+    step.ghost = { type: gh.type, x: gh.x, y: gh.y };
+    if (typeof gh.angle === 'number') step.ghost.angle = gh.angle;
+    if (gh.flip === true) step.ghost.flip = true;
+    if (isObj(gh.props)) step.ghost.props = { ...(gh.props as Props) };
+  }
+  return step;
+};
+
 /** Parse untrusted JSON into a valid LevelDef. Throws LevelError only when unusable. */
 export const parseLevel = (input: unknown): ParseResult => {
   let raw: unknown = input;
@@ -233,6 +285,10 @@ export const parseLevel = (input: unknown): ParseResult => {
     if (typeof r.bonus.elegantTime === 'number') level.bonus.elegantTime = Math.max(0.5, r.bonus.elegantTime);
   }
   if (Array.isArray(r.hints)) level.hints = r.hints.filter((h): h is string => typeof h === 'string').slice(0, 6);
+  if (Array.isArray(r.guide)) {
+    const guide = r.guide.map(parseGuideStep).filter((g): g is GuideStep => !!g).slice(0, 20);
+    if (guide.length) level.guide = guide;
+  }
   if (isObj(r.metadata)) {
     const m = r.metadata;
     level.metadata = {
@@ -274,13 +330,20 @@ export const parseBuild = (raw: unknown, level: LevelDef): BuildDef => {
 export const exportLevel = (level: LevelDef) =>
   JSON.stringify({ format: 'follyworks-level', version: LEVEL_SCHEMA_VERSION, level }, null, 2);
 
+/**
+ * The standard workshop size for campaign, sandbox and new custom levels. Parts keep their
+ * physical sizes, so a smaller room shows them bigger on screen (the 1600×900 room made a
+ * rubber ball about 20 px tall on a laptop).
+ */
+export const STANDARD_WORLD = { width: 1120, height: 630, gravity: 1 } as const;
+
 export const blankLevel = (id: string, name = 'Untitled Contraption'): LevelDef => ({
   schemaVersion: LEVEL_SCHEMA_VERSION,
   id,
   name,
   description: '',
   environment: 'garage',
-  world: { width: 1600, height: 900, gravity: 1 },
+  world: { ...STANDARD_WORLD },
   fixedObjects: [],
   startingObjects: [],
   connections: [],

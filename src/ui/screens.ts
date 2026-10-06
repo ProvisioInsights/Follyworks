@@ -1,7 +1,7 @@
 // Menu, campaign map, custom-level manager and settings.
 
 import type { AppContext } from '../app/context';
-import { exportLevel, parseLevel } from '../core/level';
+import { exportLevel, parseLevel, STANDARD_WORLD } from '../core/level';
 import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/campaign';
 import { ENVIRONMENTS } from '../render/art/environment';
 import { h, icon, modal, toast } from './dom';
@@ -198,7 +198,7 @@ export const levelsScreen = (app: AppContext, refresh: () => void): Screen => {
               name: 'Untitled contraption',
               description: 'Explain what the player should make happen.',
               environment: 'garage',
-              world: { width: 1600, height: 900, gravity: 1 },
+              world: { ...STANDARD_WORLD },
               fixedObjects: [],
               startingObjects: [],
               connections: [],

@@ -37,6 +37,8 @@ export const belt = (a: ObjectDef, b: ObjectDef): ConnectionDef => ({
 
 export const level = (objects: ObjectDef[], connections: ConnectionDef[] = [], goals: GoalDef[] = []): LevelDef => {
   const l = blankLevel('test');
+  // Physics tests were written for the original 1600×900 room.
+  l.world = { width: 1600, height: 900, gravity: 1 };
   l.startingObjects = objects;
   l.connections = connections;
   l.goals = goals;

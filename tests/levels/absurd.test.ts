@@ -10,11 +10,6 @@ import { CAMPAIGN } from '../../src/game/campaign';
 import { scoreAttempt } from '../../src/game/scoring';
 import { Simulation } from '../../src/sim/Simulation';
 
-// Levels where no build within the inventory can beat solutions[0]'s stage count, so no ABSURD target
-// can separate them. t1/t2 only offer static parts plus one ball that is not a stage (max 0 stages);
-// t3/t4 top out at the same 2 stages as the reference; t5's shelf ball reaches the bin before the
-// player's only ball can catch it (no 3+ stage build found). These keep the default target.
-const NO_ABSURD_BUILD = new Set(['t1-first-drop', 't2-ramp-it-up', 't3-flip-the-switch', 't4-belt-up', 't5-tiny-machine']);
 
 const score = (level: LevelDef, build: BuildDef) => {
   const sim = new Simulation(level, build);
@@ -25,7 +20,8 @@ const score = (level: LevelDef, build: BuildDef) => {
 
 describe('ABSURD targets', () => {
   for (const { level, solutions } of CAMPAIGN) {
-    const exempt = NO_ABSURD_BUILD.has(level.id);
+    // Levels with absurdStages: 0 (the tutorials) offer no ABSURD bonus.
+    const exempt = level.bonus?.absurdStages === 0;
     it(`${level.id}: ${exempt ? 'reference solution does not earn ABSURD' : 'reference misses ABSURD, an elaborate solution earns it'}`, () => {
       const results = solutions.map((b) => score(level, b));
       const summary = results.map((r) => `${r.stages}${r.solved ? '' : '(unsolved)'}`).join(', ');

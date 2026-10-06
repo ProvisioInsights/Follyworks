@@ -1,14 +1,21 @@
-// Campaign content contract. Each chapter file exports CampaignEntry[]; campaign.ts collects them.
-// `solutions` are verification fixtures for tests only — the game never shows or requires them.
+// Campaign content contract. Each group file exports CampaignEntry[]; campaign.ts collects them.
+// `solutions` and `counterexamples` are verification fixtures for tests only. The game never shows
+// or requires them.
 
 import type { BuildDef, LevelDef } from '../../core/types';
 
 export interface CampaignEntry {
-  /** 0 = tutorial, 1..10 = chapters. */
+  /** 0 = tutorial, 1.. = mission groups (see CHAPTERS). */
   chapter: number;
   level: LevelDef;
-  /** One or more known-good builds (validated headlessly in tests/levels). */
+  /**
+   * Known-good builds, validated headlessly in tests/levels. solutions[0] is the simplest
+   * reference build: its part count is what "parts needed" means in the difficulty ramp, and it
+   * must not earn ABSURD. At least one solution must earn ABSURD when the level offers it.
+   */
   solutions: BuildDef[];
+  /** Tempting builds that must NOT solve the level (keeps the intended idea load-bearing). */
+  counterexamples?: { why: string; build: BuildDef }[];
 }
 
 export interface ChapterInfo {
@@ -17,16 +24,12 @@ export interface ChapterInfo {
   subtitle: string;
 }
 
+/** Mission groups in play order. Adding a group means adding a file in levels/ and a row here. */
 export const CHAPTERS: ChapterInfo[] = [
   { index: 0, title: 'Orientation', subtitle: 'Welcome to the workshop' },
-  { index: 1, title: 'Cause & Effect', subtitle: 'Things fall. Things hit things.' },
-  { index: 2, title: 'Gravity', subtitle: 'Heavy, light and everything in between' },
-  { index: 3, title: 'Momentum', subtitle: 'Launch, rebound, regret' },
-  { index: 4, title: 'Springs & Levers', subtitle: 'Small push, big shove' },
-  { index: 5, title: 'Ropes & Pulleys', subtitle: 'Pulling strings' },
-  { index: 6, title: 'Mechanical Power', subtitle: 'Gears, belts and motors' },
-  { index: 7, title: 'Air, Heat & Energy', subtitle: 'Hot air rises. So do balloons.' },
-  { index: 8, title: 'Electricity', subtitle: 'Mind the wires' },
-  { index: 9, title: 'Sensors & Logic', subtitle: 'If this, then that, then chaos' },
-  { index: 10, title: 'Ridiculous Machines', subtitle: 'Build the unnecessary' },
+  { index: 1, title: 'Workshop Basics', subtitle: 'Things fall. Things hit things.' },
+  { index: 2, title: 'Levers & Lines', subtitle: 'Seesaws, springs, ropes and pulleys' },
+  { index: 3, title: 'Moving Parts', subtitle: 'Motors, gears, belts, conveyors and Bolt' },
+  { index: 4, title: 'Hot Air & Sparks', subtitle: 'Fans, balloons, fire, batteries and magnets' },
+  { index: 5, title: 'Ridiculous Machines', subtitle: 'Sensors, logic, explosives and glorious overkill' },
 ];

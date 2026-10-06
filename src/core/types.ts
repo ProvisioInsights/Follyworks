@@ -88,6 +88,35 @@ export interface LevelMeta {
   blurb?: string;
 }
 
+/** What moves a tutorial guidance step on. */
+export type GuideTrigger =
+  /** A part of `type` is in the player's build (near `at` within `radius`, and within `angleTol` of `angle`, when given). */
+  | { kind: 'place'; type: string; at?: Vec; radius?: number; angle?: number; angleTol?: number }
+  /** The player has made a connection of this kind. */
+  | { kind: 'connect'; connection: ConnectionKind }
+  /** The player pressed RUN. */
+  | { kind: 'run' }
+  /** The player pressed "Got it" on the card. */
+  | { kind: 'ack' };
+
+/** Where a guidance step points: a spot in the room, a parts-bin entry, or a HUD control. */
+export type GuidePointer =
+  | { world: Vec }
+  | { bin: string }
+  | { hud: 'run' | 'rotate' | 'flip' | 'hint' | 'reset' | 'connect' };
+
+/**
+ * One step of optional on-screen guidance (tutorial levels mostly). Steps run in order; a step
+ * whose trigger is already satisfied is skipped. Guidance never restricts what the player does.
+ */
+export interface GuideStep {
+  text: string;
+  point?: GuidePointer;
+  /** A translucent outline of a part showing one good place for it. */
+  ghost?: { type: string; x: number; y: number; angle?: number; flip?: boolean; props?: Props };
+  until: GuideTrigger;
+}
+
 export interface WorldDef {
   width: number;
   height: number;
@@ -113,6 +142,8 @@ export interface LevelDef {
   restrictions?: Restrictions;
   bonus?: BonusDef;
   hints?: string[];
+  /** Optional step-by-step on-screen guidance. */
+  guide?: GuideStep[];
   metadata?: LevelMeta;
 }
 
