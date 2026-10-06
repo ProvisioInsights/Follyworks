@@ -131,8 +131,9 @@ export class Simulation {
     this.placedParts =
       (build.objects?.length ?? 0) + (build.connections ?? []).filter((c) => c.kind !== 'wire').length;
     this.updateContacts();
-    // Build-mode preview: always-on lasers show where they point before RUN (pure, no effects).
-    this.beams = traceBeams(this, false);
+    // Build-mode preview: always-on lasers show where they point before RUN. Light sensors already
+    // in such a beam start lit; nothing else changes.
+    this.beams = traceBeams(this, false, true);
   }
 
   // ------------------------------------------------------------------ construction

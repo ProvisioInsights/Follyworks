@@ -169,7 +169,7 @@ export const laserFiring = (e: Entity) => e.alive && (e.props.alwaysOn === true 
  * Trace every beam. With `live` false this is a pure query (rewind display, build-mode preview);
  * with `live` true it also applies the beams' effects to the world for this tick.
  */
-export const traceBeams = (sim: Simulation, live: boolean): BeamSeg[] => {
+export const traceBeams = (sim: Simulation, live: boolean, primeSensors = false): BeamSeg[] => {
   const beams: BeamSeg[] = [];
   const lasers = sim.list.filter((e) => e.type === 'laser' && e.alive);
   const sensorsLit = new Map<Entity, BeamColor[]>();
@@ -312,6 +312,15 @@ export const traceBeams = (sim: Simulation, live: boolean): BeamSeg[] => {
       }
     }
   }
+  if (primeSensors) {
+    // Before the first tick: a sensor already in an always-on beam starts lit, so a NOT gate
+    // behind it does not fire a spurious pulse at RUN.
+    for (const e of sim.list) {
+      if (e.type !== 'light_sensor') continue;
+      const want = e.str('color');
+      e.state.lit = (sensorsLit.get(e) ?? []).some((c) => want === 'any' || c === colorBits(want));
+    }
+  }
   if (!live) return beams;
 
   // ---- effects (live ticks only) ----
@@ -322,10 +331,9 @@ export const traceBeams = (sim: Simulation, live: boolean): BeamSeg[] => {
     if (e.type === 'light_sensor') {
       const want = e.str('color');
       const seen = (sensorsLit.get(e) ?? []).some((c) => want === 'any' || c === colorBits(want));
-      if (seen && !e.state.lit) {
-        sim.emit({ t: 'sfx', name: 'zap', x: e.x, y: e.y, vol: 0.4 });
-        sim.activate(e, 'Light sensor saw the beam');
-      }
+      if (seen && !e.state.lit) sim.emit({ t: 'sfx', name: 'zap', x: e.x, y: e.y, vol: 0.4 });
+      // A sensor that starts in the beam still counts as a stage the first tick it is lit.
+      if (seen && !e.activated) sim.activate(e, 'Light sensor saw the beam');
       e.state.lit = seen;
     }
     const warm = heated.get(e);
