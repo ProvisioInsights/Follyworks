@@ -708,6 +708,52 @@ input[type='checkbox'] {
 }
 
 /* numbered goal tags that sit in the room next to what each goal is about */
+/* Floating selection toolbar and the turn / stretch readout (ui/SelectionBar.ts). */
+.layer > .sel-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  z-index: 2;
+  border-radius: 12px;
+}
+.sel-bar .icon-btn {
+  width: 36px;
+  height: 36px;
+  z-index: 1;
+}
+.sel-bar .icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.sel-bar .icon-btn.danger:hover:not(:disabled) {
+  color: var(--red);
+}
+.layer > .manip-badge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  pointer-events: none;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: rgba(11, 8, 6, 0.86);
+  border: 1.5px solid rgba(111, 227, 255, 0.55);
+  color: var(--cream);
+  font-family: var(--font-head);
+  font-size: calc(14px * var(--ts));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.layer > .manip-badge.snapped {
+  border-color: #6fe3ff;
+  color: #ffffff;
+}
+
 .layer > .goal-tags {
   position: absolute;
   inset: 0;

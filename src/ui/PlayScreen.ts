@@ -22,6 +22,7 @@ import type { Simulation } from '../sim/Simulation';
 import { append, clear, h, icon, iconBtn, modal, plural, toast } from './dom';
 import { EditorPanel } from './EditorPanel';
 import { GoalMarkers } from './GoalMarkers';
+import { SelectionBar } from './SelectionBar';
 import { GuideCoach } from './GuideCoach';
 import { conceptsInRun } from '../content/runConcepts';
 import type { ConceptId } from '../content/science';
@@ -118,6 +119,7 @@ export class PlayScreen {
   private dead = false;
   private guide: GuideCoach | null = null;
   private goalTags: GoalMarkers;
+  private selBar: SelectionBar;
 
   constructor(app: AppContext, cfg: PlayConfig) {
     this.app = app;
@@ -144,6 +146,7 @@ export class PlayScreen {
     this.ctl.editor.snap = app.settings.snap;
     this.build();
     this.goalTags = new GoalMarkers({ root: this.root, canvas: app.canvas, ctl: this.ctl, scene: app.scene });
+    this.selBar = new SelectionBar({ root: this.root, canvas: app.canvas, ctl: this.ctl, scene: app.scene });
     if (cfg.level.guide?.length && (cfg.kind === 'campaign' || cfg.kind === 'test')) {
       this.guide = new GuideCoach(cfg.level, {
         root: this.root,
@@ -184,6 +187,7 @@ export class PlayScreen {
     this.resultModal?.close();
     this.guide?.destroy();
     this.goalTags.destroy();
+    this.selBar.destroy();
     this.ctl.destroy();
     this.editorPanel?.destroy();
     this.root.remove();
@@ -808,8 +812,10 @@ export class PlayScreen {
       if (!running) ed.deleteSelection();
     } else if (k === 'q' || k === 'Q') {
       if (!running) ed.rotate(-1, e.shiftKey);
-    } else if (k === 'e' || k === 'E' || k === 'r' || k === 'R') {
+    } else if (k === 'e' || k === 'E') {
       if (!running) ed.rotate(1, e.shiftKey);
+    } else if (k === 'r' || k === 'R') {
+      if (!running) ed.resetAngle();
     } else if (k === 'f' || k === 'F') {
       if (!running) ed.flip();
     } else if (k === 'g' || k === 'G') {

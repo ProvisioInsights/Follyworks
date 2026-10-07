@@ -789,6 +789,23 @@ describe('Rotate and resize handles', () => {
     expect(s.reshapeObject('bat', { x: 0, y: 0, angle: 1 })).toBe(false);
   });
 
+  it('resets angles to 0 in one undo step, skipping parts that cannot turn', () => {
+    const s = player(plankLevel());
+    const a = s.makeObject('plank', 300, 300);
+    const b = s.makeObject('plank', 600, 300);
+    s.addObject(a);
+    s.addObject(b);
+    s.rotateObjects([a.id], 0.4);
+    s.rotateObjects([b.id], -0.7);
+    expect(s.resetAngles([a.id, b.id])).toBe(true);
+    expect(s.find(a.id)!.angle).toBe(0);
+    expect(s.find(b.id)!.angle).toBe(0);
+    s.undo();
+    expect(s.find(a.id)!.angle).toBeCloseTo(0.4, 6);
+    expect(s.find(b.id)!.angle).toBeCloseTo(-0.7, 6);
+    expect(s.resetAngles(['nope'])).toBe(false);
+  });
+
   it('only parts whose bodies are built from a size prop offer resize handles', async () => {
     const { allComponents } = await import('../src/components/registry');
     for (const def of allComponents()) {
