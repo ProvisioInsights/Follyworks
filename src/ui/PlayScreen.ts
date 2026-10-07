@@ -110,6 +110,7 @@ export class PlayScreen {
   private hints: HintLadder;
   private hintGhostSet: { n: number; ents: Entity[] } = { n: 0, ents: [] };
   private resultModal: { close: () => void } | null = null;
+  private dockRunning: boolean | null = null;
   private timeUpEl: HTMLElement | null = null;
   private editorPanel: EditorPanel | null = null;
   private keyHandler: (e: KeyboardEvent) => void;
@@ -366,6 +367,21 @@ export class PlayScreen {
     const bin = this.els.leftCol.getBoundingClientRect();
     const right = this.cfg.kind === 'editor' ? 320 : 20;
     this.app.scene.setInsets({ top: 58, left: bin.right + 6, right, bottom: 78 });
+    this.placeDock();
+  }
+
+  /** Keep the dock centred, unless that would cover the edit tools (narrow windows): then sit just right of them. */
+  private placeDock() {
+    const dock = this.els.dock;
+    dock.style.left = '';
+    dock.style.transform = '';
+    if (this.els.tools.style.display === 'none') return;
+    const t = this.els.tools.getBoundingClientRect();
+    const d = dock.getBoundingClientRect();
+    if (d.left < t.right + 10) {
+      dock.style.left = `${t.right + 10}px`;
+      dock.style.transform = 'none';
+    }
   }
 
   // ------------------------------------------------------------------ rendering
@@ -386,6 +402,10 @@ export class PlayScreen {
     this.els.runControls.style.display = running ? 'flex' : 'none';
     this.els.buildInfo.style.display = running ? 'none' : 'flex';
     this.els.tools.style.display = running ? 'none' : 'flex';
+    if (running !== this.dockRunning) {
+      this.dockRunning = running;
+      this.placeDock();
+    }
     this.els.binList.style.opacity = running ? '0.55' : '1';
     this.els.bin.style.pointerEvents = running ? 'none' : 'auto';
     const lim = this.session.level.restrictions?.timeLimit;
