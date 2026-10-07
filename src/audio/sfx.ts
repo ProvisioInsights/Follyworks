@@ -717,6 +717,179 @@ export const RECIPES: Record<string, Recipe> = {
     return Math.max(a, b, c);
   },
 
+  // --- goofy parts
+  squawk: (v) => {
+    // rubber chicken: a reedy honk that bends up then sags, with a growl and a wheezy squeak
+    const { ctx } = v;
+    const t = v.t;
+    const dur = 0.42;
+    const o = oscNode(ctx, 'sawtooth', 520 * v.p, t, t + dur + 0.02);
+    o.frequency.setValueAtTime(430 * v.p, t);
+    o.frequency.exponentialRampToValueAtTime(760 * v.p, t + 0.07);
+    o.frequency.exponentialRampToValueAtTime(610 * v.p, t + 0.22);
+    o.frequency.exponentialRampToValueAtTime(330 * v.p, t + dur);
+    const growl = oscNode(ctx, 'sine', 38, t, t + dur + 0.02);
+    const gg = gainNode(ctx, 40 * v.p);
+    growl.connect(gg).connect(o.frequency);
+    const f1 = filterNode(ctx, 'bandpass', 1350 * v.p, 2.2);
+    const f2 = filterNode(ctx, 'peaking', 2600 * v.p, 2);
+    f2.gain.value = 9;
+    const g = gainNode(ctx, 0);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.75, t + 0.02);
+    g.gain.setValueAtTime(0.7, t + 0.2);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    g.gain.setValueAtTime(0, t + dur + 0.001);
+    o.connect(f1).connect(f2).connect(g).connect(v.out);
+    const breath = noise(v, 'white', 0, dur * 0.8, 0.08, 'bandpass', 3200, 2200, 1.4, 0.01);
+    const squeak = tone(v, 'square', 1900, 2600, 0, 0.04, 0.05, 0.002);
+    return Math.max(dur + 0.02, breath, squeak);
+  },
+
+  trapSnap: (v) => {
+    // crack + wooden thock + a short spring twang
+    const crack = noise(v, 'white', 0, 0.018, 0.7, 'highpass', 2200, null, 0.8, 0.0003);
+    const thock = modal(v, 0.004, 420, [1, 2.3, 3.9], [0.07, 0.04, 0.02], [1, 0.5, 0.2], 0.5);
+    const low = tone(v, 'sine', 160, 80, 0, 0.09, 0.4, 0.001, 0.05);
+    const twang = tone(v, 'triangle', 760, 520, 0.01, 0.22, 0.1, 0.002, 0.2);
+    return Math.max(crack, thock, low, twang);
+  },
+
+  toasterLever: (v) => {
+    // ratchety clunk of the lever going down
+    let e = 0;
+    for (let i = 0; i < 4; i++) e = Math.max(e, tick(v, i * 0.025, 1800 - i * 220, 0.22, 0.018));
+    e = Math.max(e, modal(v, 0.11, 260, [1, 2.6], [0.12, 0.06], [1, 0.4], 0.35));
+    return Math.max(e, tone(v, 'sine', 120, 90, 0.11, 0.1, 0.3));
+  },
+
+  toasterDing: (v) => {
+    // the bright little bell, then the spring that throws the toast
+    const ding = modal(v, 0, 2093, [1, 2.76, 5.4], [0.9, 0.35, 0.15], [1, 0.3, 0.12], 0.32);
+    const ting = tone(v, 'sine', 4186, null, 0, 0.05, 0.06);
+    const { ctx } = v;
+    const t = v.t + 0.03;
+    const dur = 0.35;
+    const o = oscNode(ctx, 'triangle', 240 * v.p, t, t + dur);
+    glide(o.frequency, t, 220 * v.p, 420 * v.p, dur);
+    const lfo = oscNode(ctx, 'sine', 30, t, t + dur);
+    const lg = gainNode(ctx, 60 * v.p);
+    lfo.connect(lg).connect(o.frequency);
+    const g = gainNode(ctx, 0);
+    perc(g.gain, t, 0.22, 0.004, dur - 0.01);
+    o.connect(g).connect(v.out);
+    return Math.max(ding, ting, dur + 0.04);
+  },
+
+  kettle: (v) => {
+    // a rising steam whistle that warbles as the pressure builds
+    const { ctx } = v;
+    const t = v.t;
+    const len = 1.3;
+    const end = t + len + 0.2;
+    const g = gainNode(ctx, 0);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.16, t + 0.25);
+    g.gain.setValueAtTime(0.16, t + len);
+    g.gain.exponentialRampToValueAtTime(0.0001, end);
+    g.gain.setValueAtTime(0, end + 0.001);
+    g.connect(v.out);
+    const wob = oscNode(ctx, 'sine', 6.5, t, end);
+    const wg = gainNode(ctx, 22 * v.p);
+    for (const r of [1, 1.5]) {
+      const o = oscNode(ctx, 'sine', 1300 * r * v.p, t, end);
+      o.frequency.setValueAtTime(1150 * r * v.p, t);
+      o.frequency.exponentialRampToValueAtTime(1850 * r * v.p, t + 0.5);
+      wob.connect(wg).connect(o.frequency);
+      const og = gainNode(ctx, r === 1 ? 1 : 0.25);
+      o.connect(og).connect(g);
+    }
+    const hiss = noise(v, 'white', 0, len, 0.08, 'bandpass', 2600, 3600, 1.2, 0.15);
+    return Math.max(hiss, len + 0.21);
+  },
+
+  yowl: (v) => {
+    // "mrrRAOWW!": a nasal glide through vowel formants, with a hiss on the front
+    const { ctx } = v;
+    const t = v.t;
+    const dur = 0.62;
+    const o = oscNode(ctx, 'sawtooth', 420 * v.p, t, t + dur + 0.02);
+    o.frequency.setValueAtTime(380 * v.p, t);
+    o.frequency.exponentialRampToValueAtTime(900 * v.p, t + 0.16);
+    o.frequency.exponentialRampToValueAtTime(760 * v.p, t + 0.36);
+    o.frequency.exponentialRampToValueAtTime(420 * v.p, t + dur);
+    const vib = oscNode(ctx, 'sine', 7, t, t + dur + 0.02);
+    const vg = gainNode(ctx, 18 * v.p);
+    vib.connect(vg).connect(o.frequency);
+    const f = filterNode(ctx, 'bandpass', 900 * v.p, 2.5);
+    f.frequency.setValueAtTime(700 * v.p, t);
+    f.frequency.exponentialRampToValueAtTime(1500 * v.p, t + 0.2);
+    f.frequency.exponentialRampToValueAtTime(800 * v.p, t + dur);
+    const f2 = filterNode(ctx, 'peaking', 2900 * v.p, 3);
+    f2.gain.value = 6;
+    const g = gainNode(ctx, 0);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.7, t + 0.06);
+    g.gain.setValueAtTime(0.65, t + 0.4);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    g.gain.setValueAtTime(0, t + dur + 0.001);
+    o.connect(f).connect(f2).connect(g).connect(v.out);
+    const hiss = noise(v, 'white', 0, 0.12, 0.2, 'highpass', 3500, null, 0.7, 0.01);
+    return Math.max(dur + 0.02, hiss);
+  },
+
+  meow: (v) => {
+    const { ctx } = v;
+    const t = v.t;
+    const dur = 0.28;
+    const o = oscNode(ctx, 'triangle', 700 * v.p, t, t + dur + 0.02);
+    o.frequency.setValueAtTime(620 * v.p, t);
+    o.frequency.exponentialRampToValueAtTime(880 * v.p, t + 0.08);
+    o.frequency.exponentialRampToValueAtTime(560 * v.p, t + dur);
+    const f = filterNode(ctx, 'bandpass', 1200 * v.p, 1.8);
+    const g = gainNode(ctx, 0);
+    perc(g.gain, t, 0.45, 0.03, dur - 0.03);
+    o.connect(f).connect(g).connect(v.out);
+    return dur + 0.03;
+  },
+
+  bell: (v) => {
+    // a proper bell partial set (hum, prime, minor third, fifth, nominal) and a strike
+    const base = 660;
+    const ring = modal(v, 0, base, [0.5, 1, 1.19, 1.5, 2, 2.52, 3.01], [2.4, 1.8, 1.4, 1.1, 1.0, 0.6, 0.4], [0.5, 1, 0.45, 0.3, 0.55, 0.2, 0.12], 0.28);
+    const beat = modal(v, 0, base * 1.004, [1, 2], [1.6, 0.9], [0.5, 0.25], 0.18);
+    const strike = noise(v, 'white', 0, 0.012, 0.35, 'bandpass', 3800, null, 1.2, 0.0005);
+    const clank = tone(v, 'triangle', 1400, 900, 0, 0.03, 0.12, 0.001);
+    return Math.max(ring, beat, strike, clank);
+  },
+
+  swish: (v) => {
+    // through the net, then a little crowd going "yeah!"
+    const net = noise(v, 'white', 0, 0.22, 0.45, 'bandpass', 2400, 6200, 1.2, 0.02);
+    const brush = noise(v, 'pink', 0.02, 0.18, 0.25, 'highpass', 1800, null, 0.7, 0.03);
+    const { ctx } = v;
+    const t = v.t + 0.12;
+    const dur = 1.1;
+    let e = Math.max(net, brush);
+    for (const [fc, q, a] of [[700, 3, 0.5], [1150, 4, 0.35], [2400, 5, 0.18]] as const) {
+      const s = noiseNode(ctx, v.nb.pink, t, t + dur);
+      const f = filterNode(ctx, 'bandpass', fc, q);
+      const am = oscNode(ctx, 'sine', rnd(5, 9), t, t + dur);
+      const amg = gainNode(ctx, a * 0.3);
+      const g = gainNode(ctx, 0);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(a, t + 0.18);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      g.gain.setValueAtTime(0, t + dur + 0.001);
+      am.connect(amg).connect(g.gain);
+      s.connect(f).connect(g).connect(v.out);
+    }
+    e = Math.max(e, 0.12 + dur + 0.01);
+    // a whistle from the stands
+    e = Math.max(e, tone(v, 'sine', 1900, 2500, 0.3, 0.25, 0.05, 0.02, 0.15));
+    return e;
+  },
+
   splash: (v) => {
     let e = noise(v, 'white', 0, 0.35, 0.4, 'bandpass', 2600, 900, 0.6, 0.006);
     e = Math.max(e, noise(v, 'pink', 0, 0.2, 0.35, 'lowpass', 900, 300, 0.7));
@@ -746,10 +919,10 @@ export function normMaterial(m: string): Material {
 }
 
 /** What a body is, beyond its material, for impact flavour ('' when nothing special). */
-export type ImpactKind = '' | 'domino' | 'heavy' | 'ball' | 'floor';
+export type ImpactKind = '' | 'domino' | 'heavy' | 'ball' | 'floor' | 'pin';
 
 export function normKind(k: unknown): ImpactKind {
-  return k === 'domino' || k === 'heavy' || k === 'ball' || k === 'floor' ? k : '';
+  return k === 'domino' || k === 'heavy' || k === 'ball' || k === 'floor' || k === 'pin' ? k : '';
 }
 
 /**
@@ -767,6 +940,15 @@ export function impactLayer(v: Voice, mat: Material, e: number, amp: number, kin
     const rumble = noise(v, 'brown', 0, 0.2 + 0.2 * e, amp * 0.45 * e, 'lowpass', 260, 120, 0.9, 0.004);
     const ring = mat === 'metal' && e > 0.35 ? modal(v, 0, 420 * j, [1, 2.71, 5.2], [0.25, 0.15, 0.08], [1, 0.35, 0.12], amp * 0.06 * e) : 0;
     return Math.max(body, knock, trans, rumble, ring);
+  }
+  if (kind === 'pin') {
+    // bowling pins: a hollow maple "tok" and a quick rattle as it clatters
+    const f = 760 * j;
+    const trans = noise(v, 'white', 0, 0.005, amp * 0.4 * bright, 'bandpass', 2800 * j, null, 1.6, 0.0004);
+    const body = modal(v, 0, f, [1, 1.58, 2.37, 3.6], [0.11, 0.07, 0.04, 0.025], [1, 0.6 * bright, 0.35 * bright, 0.15 * bright], amp * 0.55);
+    const knock = tone(v, 'sine', 330 * j, 230 * j, 0, 0.05, amp * 0.35 * (0.3 + 0.7 * e), 0.001, 0.03);
+    const rattle = e > 0.3 ? modal(v, 0.035 + 0.02 * Math.random(), f * 1.12, [1, 1.6], [0.05, 0.03], [1, 0.5], amp * 0.25 * e) : 0;
+    return Math.max(trans, body, knock, rattle);
   }
   if (kind === 'domino') {
     // the classic clack: bright, short, slightly hollow; lower against the floor

@@ -23,8 +23,9 @@ export type SfxName =
   | 'spring' | 'boing' | 'whoosh' | 'pop' | 'gear' | 'zap' | 'boom' | 'snap' | 'fuse'
   | 'punch' | 'cannon' | 'ding' | 'switch' | 'plate' | 'robotStep' | 'robotBeep'
   | 'success' | 'goal' | 'rewind' | 'tick' | 'connect' | 'disconnect' | 'ignite' | 'splash'
-  | 'laserOn' | 'beamHit' | 'sensorOn';
-export type LoopName = 'motor' | 'fan' | 'conveyor' | 'rocket' | 'flame' | 'magnet' | 'laserHum';
+  | 'laserOn' | 'beamHit' | 'sensorOn'
+  | 'squawk' | 'trapSnap' | 'toasterLever' | 'toasterDing' | 'kettle' | 'yowl' | 'meow' | 'bell' | 'swish';
+export type LoopName = 'motor' | 'fan' | 'conveyor' | 'rocket' | 'flame' | 'magnet' | 'laserHum' | 'steam';
 
 export interface Volumes { master: number; sfx: number; music: number } // 0..1 each
 
@@ -34,8 +35,9 @@ export const SFX_NAMES: readonly SfxName[] = [
   'punch', 'cannon', 'ding', 'switch', 'plate', 'robotStep', 'robotBeep',
   'success', 'goal', 'rewind', 'tick', 'connect', 'disconnect', 'ignite', 'splash',
   'laserOn', 'beamHit', 'sensorOn',
+  'squawk', 'trapSnap', 'toasterLever', 'toasterDing', 'kettle', 'yowl', 'meow', 'bell', 'swish',
 ];
-export const LOOP_NAMES: readonly LoopName[] = ['motor', 'fan', 'conveyor', 'rocket', 'flame', 'magnet', 'laserHum'];
+export const LOOP_NAMES: readonly LoopName[] = ['motor', 'fan', 'conveyor', 'rocket', 'flame', 'magnet', 'laserHum', 'steam'];
 
 interface SfxSpec {
   /** output gain */
@@ -87,10 +89,19 @@ const SPEC: Record<SfxName, SfxSpec> = {
   laserOn: { g: 0.6, wet: 0.15, gap: 0.08, prio: 1, jit: 0.03 },
   beamHit: { g: 0.7, wet: 0.08, gap: 0.07, prio: 0, jit: 0.08 },
   sensorOn: { g: 0.6, wet: 0.15, gap: 0.08, prio: 1, jit: 0.0 },
+  squawk: { g: 0.62, wet: 0.12, gap: 0.12, prio: 1, jit: 0.04 },
+  trapSnap: { g: 0.7, wet: 0.1, gap: 0.05, prio: 1, jit: 0.05 },
+  toasterLever: { g: 0.6, wet: 0.08, gap: 0.1, prio: 1, jit: 0.04 },
+  toasterDing: { g: 0.6, wet: 0.2, gap: 0.1, prio: 1, jit: 0.02 },
+  kettle: { g: 0.6, wet: 0.2, gap: 0.5, prio: 1, jit: 0.03 },
+  yowl: { g: 0.62, wet: 0.15, gap: 0.3, prio: 1, jit: 0.06 },
+  meow: { g: 0.5, wet: 0.12, gap: 0.3, prio: 0, jit: 0.08 },
+  bell: { g: 0.6, wet: 0.35, gap: 0.12, prio: 1, jit: 0.01 },
+  swish: { g: 0.65, wet: 0.25, gap: 0.2, prio: 1, jit: 0.03 },
 };
 
 /** Per-loop-kind level trims so that vol=1 loops sit well under the sfx. */
-const LOOP_TRIM: Record<LoopName, number> = { motor: 0.8, fan: 1.2, conveyor: 1, rocket: 0.8, flame: 2.0, magnet: 0.65, laserHum: 0.8 };
+const LOOP_TRIM: Record<LoopName, number> = { motor: 0.8, fan: 1.2, conveyor: 1, rocket: 0.8, flame: 2.0, magnet: 0.65, laserHum: 0.8, steam: 0.9 };
 
 const MAX_VOICES = 24;
 const MAX_IMPACT_VOICES = 8;
@@ -461,7 +472,7 @@ export class AudioEngine {
 
   private impactLayers(v: Voice, a: Material, ka: ImpactKind, b: Material, kb: ImpactKind, e: number): number {
     // a special body (domino, heavy ball) leads; the other side adds a quieter material layer
-    const special = (k: ImpactKind): boolean => k === 'domino' || k === 'heavy';
+    const special = (k: ImpactKind): boolean => k === 'domino' || k === 'heavy' || k === 'pin';
     if (special(ka) || special(kb)) {
       const [ma, mka, mb, mkb] = special(ka) && (!special(kb) || ka === 'heavy') ? [a, ka, b, kb] : [b, kb, a, ka];
       let d = impactLayer(v, ma, e, 1, mka);

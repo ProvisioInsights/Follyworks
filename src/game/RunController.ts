@@ -21,6 +21,7 @@ const LOOP_FOR: Record<string, LoopName> = {
   candle: 'flame',
   magnet: 'magnet',
   laser: 'laserHum',
+  teapot: 'steam',
 };
 
 export interface RunCallbacks {
@@ -162,7 +163,7 @@ export class RunController {
           audio.impact(ev.matA, ev.matB, ev.speed, this.pan(ev.x), ev.kindA, ev.kindB);
           break;
         case 'sfx':
-          audio.play(ev.name as SfxName, { vol: ev.vol, pan: this.pan(ev.x) });
+          audio.play(ev.name as SfxName, { vol: ev.vol, pan: this.pan(ev.x), pitch: ev.pitch });
           break;
         case 'goal':
           audio.play('ding');
