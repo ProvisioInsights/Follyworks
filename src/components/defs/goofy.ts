@@ -507,8 +507,14 @@ registerComponent({
       if (ny > 0.6) grounded = true;
       if (Math.abs(nx) > 0.5 && Math.sign(nx) === e.state.dir) {
         // low things (a plank on the floor) are hopped onto; heavy or fixed things turn it round
-        if (c.point.y > b.position.y + 13 - 9) kerb = true;
-        else if (!loose(other) || other.body.mass > 5) wall = true;
+        // A fixed or heavy kerb needs free space just above it, otherwise it is the foot of a wall
+        // (like Bolt). Light loose things (pins, balls) are still hopped into and shoved.
+        const ob = (c.a === e ? c.bodyB : c.bodyA).parent;
+        const probe = { x: b.position.x + e.state.dir * 25, y: b.position.y + 13 - 20 };
+        const solid = !loose(other) || other.body.mass > 5;
+        const clear = !solid || !ob.parts.some((pt: any, i: number) => (i > 0 || ob.parts.length === 1) && M.Vertices.contains(pt.vertices, probe));
+        if (c.point.y > b.position.y + 13 - 9 && clear) kerb = true;
+        else if (solid) wall = true;
       }
     }
     if (!e.state.awake) {

@@ -257,6 +257,24 @@ describe('cat', () => {
     expect(ent(s3, cat3).state.awake).toBe(true);
   });
 
+  it('turns at a low wall instead of climbing it, but still hops a plank lying on the floor', () => {
+    const cat = obj('cat', 500, FLOOR - 13, {}, { flip: true });
+    const ball = obj('ball', 500, 700);
+    const wall = obj('wall', 380, FLOOR - 25, { w: 20, h: 50 });
+    const s = sim([cat, ball, wall]);
+    run(s, 3);
+    const c = ent(s, cat);
+    expect(c.state.dir).toBe(1);
+    expect(c.body.position.x).toBeGreaterThan(395);
+
+    const cat2 = obj('cat', 500, FLOOR - 13, {}, { flip: true });
+    const ball2 = obj('ball', 500, 700);
+    const plank = obj('plank', 380, FLOOR - 6, { length: 80 });
+    const s2 = sim([cat2, ball2, plank]);
+    run(s2, 2);
+    expect(ent(s2, cat2).body.position.x).toBeLessThan(380);
+  });
+
   it('a yowl wakes a second cat nearby (cats chain)', () => {
     const a = obj('cat', 500, FLOOR - 13);
     const b = obj('cat', 650, FLOOR - 13);
