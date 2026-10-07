@@ -61,8 +61,10 @@ Each part is one `ComponentDef` (`src/components/registry.ts`):
   - `logic` is pure signal pass-through, run to a fixed point.
   - `step` runs before physics; `afterStep` runs after it.
   - `rotorSource` / `onRotor` belong to the rotation network.
-  - `onCollide`, `onHeat`, `onBlast` and `onRopePull` react to events.
-  - `interior` is used by container goals; `isActive` feeds visuals and activate goals.
+  - `onCollide`, `onHeat`, `onBlast`, `onNoise` and `onRopePull` react to events. Loud parts call `sim.noise(x, y, r, source)` (chicken, bell, explosions, pops, cannon, toaster, teapot, mousetrap); after heat spreads each tick, every other live part within `r` gets `onNoise` (the cat wakes). Noises live one tick and are never snapshotted.
+  - `interior` is used by container goals; `tally` (a list of entity ids in `e.state`, e.g. the hoop's swishes) counts for `containerCount` goals instead; `isActive` feeds visuals and activate goals, which can ask for `count` parts on at once ("knock down 5 pins").
+
+The goofy parts live in `components/defs/goofy.ts`, their art in `render/art/goofyParts.ts` and views in `render/goofyViews.ts` (spread into `DEFS` and `VIEW_SPECS`). A view part can set `front` to draw over other parts (the hoop's rim and net go in front of the ball).
 
 Adding a part means adding one definition plus its art in `render/art/parts.ts` and a view in `render/views.ts`. Nothing else switches on part type.
 
