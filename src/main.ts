@@ -1,10 +1,16 @@
 import '@fontsource/nunito/400.css';
 import '@fontsource/nunito/700.css';
+import '@fontsource/nunito/800.css';
+import '@fontsource/nunito/900.css';
 import '@fontsource/barlow-condensed/500.css';
 import '@fontsource/barlow-condensed/600.css';
 import '@fontsource/barlow-condensed/700.css';
 import '@fontsource/saira-stencil-one/400.css';
+import '@fontsource/press-start-2p/400.css';
+import '@fontsource/vt323/400.css';
 import './ui/styles.css';
+import './ui/modern.css';
+import './ui/arcade.css';
 import './components';
 import { App } from './app/App';
 

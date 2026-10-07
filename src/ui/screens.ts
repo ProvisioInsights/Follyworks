@@ -2,7 +2,7 @@
 
 import type { AppContext } from '../app/context';
 import { exportLevel, parseLevel, STANDARD_WORLD } from '../core/level';
-import { THEMES, themeFor, type ThemeSetting } from '../core/themes';
+import { pickableThemes, THEMES, themeFor, UI_STYLES, type ThemeSetting, type UiStyle } from '../core/themes';
 import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/campaign';
 import { buildKey, DIFFICULTIES, DIFFICULTY_LABELS } from '../game/difficulty';
 import { LAB } from '../game/levels/lab';
@@ -416,8 +416,19 @@ export const settingsDialog = (app: AppContext, focus?: 'difficulty') => {
     'select',
     { 'aria-label': 'Theme' },
     h('option', { value: 'auto', selected: s.theme === 'auto' }, 'Auto (follows the era)'),
-    ...THEMES.map((t) => h('option', { value: t.id, selected: s.theme === t.id }, t.name)),
+    ...pickableThemes(s.arcadeUnlocked).map((t) => h('option', { value: t.id, selected: s.theme === t.id }, t.name)),
   ) as HTMLSelectElement;
+  const uiSel = h(
+    'select',
+    { 'aria-label': 'Interface style' },
+    ...UI_STYLES.map((u) => h('option', { value: u.id, selected: s.uiStyle === u.id }, u.name)),
+  ) as HTMLSelectElement;
+  const uiNote = h('div', { class: 'muted', style: { fontSize: '12px' } }, UI_STYLES.find((u) => u.id === s.uiStyle)?.blurb ?? '');
+  uiSel.addEventListener('change', () => {
+    uiNote.textContent = UI_STYLES.find((u) => u.id === uiSel.value)?.blurb ?? '';
+    app.sfx('click');
+    app.updateSettings({ uiStyle: uiSel.value as UiStyle });
+  });
   const themeNote = h('div', { class: 'muted', style: { fontSize: '12px' } });
   const noteFor = (v: string) =>
     (themeNote.textContent = v === 'auto' ? 'Each mission group has its own era, from stone age to far future' : THEMES.find((t) => t.id === v)?.blurb ?? '');
@@ -441,6 +452,8 @@ export const settingsDialog = (app: AppContext, focus?: 'difficulty') => {
         text,
         h('span', null, 'Theme', themeNote),
         themeSel,
+        h('span', null, 'Interface style', uiNote),
+        uiSel,
         ...check('Reduce motion', 'reducedMotion', 'No camera shake or ambient animation'),
         ...check('Tutorial guidance', 'guidance', 'Step-by-step pointers in the first missions'),
         ...check('Snap to grid', 'snap'),

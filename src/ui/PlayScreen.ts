@@ -15,7 +15,7 @@ import type { AttemptResult } from '../game/scoring';
 import type { Difficulty } from '../game/difficulty';
 import { applyHintPenalty, ghostEntities, GHOST_TIER, HintLadder, hintTierLabel, type HintView } from '../game/hints';
 import type { Entity } from '../sim/Entity';
-import { THEMES, type ThemeId, type ThemeSetting } from '../core/themes';
+import { pickableThemes, type ThemeId, type ThemeSetting } from '../core/themes';
 import { paintIcon } from '../render/art/parts';
 import { skinCanvas } from '../render/skin';
 import { goalLabel, goalMarker } from '../sim/goals';
@@ -235,7 +235,7 @@ export class PlayScreen {
     );
     this.els.goals = h('div', { class: 'goals' });
     this.els.goals.addEventListener('pointerleave', () => (this.ctl.focusGoal = null));
-    const right = h('div', { style: { display: 'flex', gap: '4px', alignItems: 'center' } });
+    const right = h('div', { class: 'tb-right', style: { display: 'flex', gap: '4px', alignItems: 'center' } });
     if (cfg.level.guide?.length && (cfg.kind === 'campaign' || cfg.kind === 'test'))
       right.append((this.els.guideBtn = iconBtn('map', 'Step-by-step guide on/off', () => this.setGuide(!this.guide?.visible))));
     if (this.hints.available && cfg.kind !== 'editor') right.append((this.els.hintBtn = iconBtn('bulb', 'Hint <kbd>H</kbd>', () => this.nextHint())));
@@ -258,7 +258,7 @@ export class PlayScreen {
         'select',
         { 'aria-label': 'Theme', tip: 'Theme for this visit (Settings sets it everywhere)', onChange: (e: Event) => cfg.theme!.set((e.target as HTMLSelectElement).value as ThemeSetting) },
         h('option', { value: 'auto', selected: cfg.theme.value() === 'auto' }, 'Theme: as Settings'),
-        ...THEMES.map((t) => h('option', { value: t.id, selected: cfg.theme!.value() === t.id }, t.name)),
+        ...pickableThemes(this.app.settings.arcadeUnlocked).map((t) => h('option', { value: t.id, selected: cfg.theme!.value() === t.id }, t.name)),
       );
       right.append(pick);
     }
@@ -269,7 +269,7 @@ export class PlayScreen {
       iconBtn('info', 'Controls', () => this.showControls()),
       iconBtn('gear', 'Settings', () => this.app.openSettings()),
     );
-    this.root.append(h('div', { class: 'topbar' }, back, title, this.els.goals, right));
+    this.root.append((this.els.topbar = h('div', { class: 'topbar' }, h('div', { class: 'tb-left' }, back, title), this.els.goals, right)));
 
     // parts bin
     this.els.binList = h('div', { class: 'bin-list scroll' });
@@ -381,7 +381,9 @@ export class PlayScreen {
     this.guide?.update();
     const bin = this.els.leftCol.getBoundingClientRect();
     const right = this.cfg.kind === 'editor' ? 320 : 20;
-    this.app.scene.setInsets({ top: 58, left: bin.right + 6, right, bottom: 78 });
+    // the top bar's height depends on the interface style (a flush bar or floating pills)
+    const top = Math.max(58, Math.round(this.els.topbar.getBoundingClientRect().bottom) + 2);
+    this.app.scene.setInsets({ top, left: bin.right + 6, right, bottom: 78 });
     this.placeDock();
   }
 
