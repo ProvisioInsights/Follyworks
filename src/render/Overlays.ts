@@ -7,7 +7,7 @@ import type { Entity } from '../sim/Entity';
 import { matches } from '../sim/goals';
 import type { Simulation } from '../sim/Simulation';
 import type { Rope } from '../sim/ropes';
-import type { TransformHandles } from '../game/EditorController';
+import type { ManipReadout, TransformHandles } from '../game/EditorController';
 import type { BeamSeg } from '../sim/optics';
 
 export type ToolKind = 'rope' | 'belt' | 'wire';
@@ -49,6 +49,10 @@ export interface OverlayState {
   handles?: TransformHandles | null;
   /** Camera zoom, so handles keep a constant on-screen size. */
   zoom?: number;
+  /** A rotate / stretch drag in progress: pivot and snap guide (the badge is DOM, ui/SelectionBar.ts). */
+  manip?: ManipReadout | null;
+  /** The corner turn zone under the pointer, for a small hint arc. */
+  hoverCorner?: Vec | null;
   /** Goal highlighted from the HUD. */
   focusGoal?: number | null;
 }
@@ -216,13 +220,51 @@ export class Overlays {
     }
     if (st.showForces) this.drawForces(tp, sim);
     if (st.guide && st.mode === 'build') this.drawGuide(tp, st.guide, st.t);
-    if (st.handles && st.mode === 'build') this.drawHandles(tp, st.handles, 1 / Math.max(0.3, st.zoom ?? 1));
+    if (st.handles && st.mode === 'build') {
+      const k = 1 / Math.max(0.3, st.zoom ?? 1);
+      if (st.manip) this.drawManip(tp, st.manip, k);
+      this.drawHandles(tp, st.handles, k, st.hoverCorner ?? null);
+    }
+  }
+
+  /** While turning or stretching: a faint guide line when the angle sits on 0/45/90°, and the pivot. */
+  private drawManip(g: Phaser.GameObjects.Graphics, m: ManipReadout, k: number) {
+    if (m.guide) {
+      const L = 1400;
+      const dx = Math.cos(m.guide.angle) * L;
+      const dy = Math.sin(m.guide.angle) * L;
+      g.lineStyle(1.5 * k, 0x6fe3ff, 0.45);
+      const n = 120;
+      // dashed, so it reads as a guide rather than a wire
+      for (let i = 0; i < n; i += 2) {
+        const a = -1 + (2 * i) / n;
+        const b = -1 + (2 * (i + 1)) / n;
+        g.lineBetween(m.guide.x + dx * a, m.guide.y + dy * a, m.guide.x + dx * b, m.guide.y + dy * b);
+      }
+    }
+    g.fillStyle(0x0b0806, 0.85);
+    g.fillCircle(m.pivot.x, m.pivot.y, 4.5 * k);
+    g.fillStyle(0x6fe3ff, 1);
+    g.fillCircle(m.pivot.x, m.pivot.y, 3 * k);
   }
 
   /** Rotate knob on a stem above the part, and square grips on the edges that can be dragged to resize. */
-  private drawHandles(g: Phaser.GameObjects.Graphics, hs: TransformHandles, k: number) {
+  private drawHandles(g: Phaser.GameObjects.Graphics, hs: TransformHandles, k: number, hoverCorner: Vec | null) {
     const SEL = 0x6fe3ff;
     const INK = 0x0b0806;
+    if (hoverCorner) {
+      // a quarter arc round the hovered corner says "drag here to turn"
+      const c = hoverCorner;
+      const out = Math.atan2(c.y - hs.center.y, c.x - hs.center.x);
+      g.lineStyle(4 * k, INK, 0.45);
+      g.beginPath();
+      g.arc(c.x, c.y, 13 * k, out - 0.9, out + 0.9, false);
+      g.strokePath();
+      g.lineStyle(2 * k, SEL, 0.95);
+      g.beginPath();
+      g.arc(c.x, c.y, 13 * k, out - 0.9, out + 0.9, false);
+      g.strokePath();
+    }
     if (hs.rotate) {
       const { pos, base } = hs.rotate;
       g.lineStyle(4 * k, INK, 0.5);
@@ -244,6 +286,16 @@ export class Overlays {
       g.fillTriangle(ax - 2.4 * k, ay - 0.6 * k, ax + 1.6 * k, ay - 2.2 * k, ax + 0.8 * k, ay + 2 * k);
     }
     for (const q of hs.resize) {
+      if (q.swing) {
+        // ends that swing are round, like the end points of a line
+        g.fillStyle(INK, 0.9);
+        g.fillCircle(q.pos.x, q.pos.y, 8.5 * k);
+        g.fillStyle(0xfff2d8, 1);
+        g.fillCircle(q.pos.x, q.pos.y, 7 * k);
+        g.fillStyle(SEL, 1);
+        g.fillCircle(q.pos.x, q.pos.y, 3.2 * k);
+        continue;
+      }
       const ax = q.axis === 'w' ? hs.u : hs.v;
       const bx = q.axis === 'w' ? hs.v : hs.u;
       const corner = (s: number, t: number) => ({ x: q.pos.x + ax.x * s + bx.x * t, y: q.pos.y + ax.y * s + bx.y * t });
