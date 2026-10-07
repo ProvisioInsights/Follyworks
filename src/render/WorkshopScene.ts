@@ -132,6 +132,7 @@ export class WorkshopScene extends Phaser.Scene {
   private addView(e: Entity) {
     const spec = new EntityView(this, this.bank, e, this.layers.views);
     if (spec.mounted) this.layers.mounted.add(spec.root);
+    if (spec.frontRoot) this.layers.over.add(spec.frontRoot);
     this.views.set(e.id, spec);
   }
 

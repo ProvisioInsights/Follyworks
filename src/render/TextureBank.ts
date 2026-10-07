@@ -179,6 +179,21 @@ export class TextureBank {
       c.fillStyle = g;
       c.fillRect(0, s / 2 - 2, s, 4);
     });
+    mk('fx_feather', 32, (c, s) => {
+      // a small curved feather: soft vane with a quill down the middle
+      c.translate(s / 2, s / 2);
+      c.rotate(-0.5);
+      c.fillStyle = 'rgba(255,255,255,0.95)';
+      c.beginPath();
+      c.ellipse(0, 0, s * 0.42, s * 0.16, 0, 0, Math.PI * 2);
+      c.fill();
+      c.strokeStyle = 'rgba(150,130,100,0.8)';
+      c.lineWidth = 1.2;
+      c.beginPath();
+      c.moveTo(-s * 0.46, 0);
+      c.quadraticCurveTo(0, -s * 0.04, s * 0.4, 0);
+      c.stroke();
+    });
     mk('fx_square', 8, (c, s) => {
       c.fillStyle = '#fff';
       c.fillRect(0, 0, s, s);

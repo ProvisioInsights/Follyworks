@@ -4,7 +4,7 @@
 
 import type { ObjectDef, Props, PropValue, Vec } from '../core/types';
 import type { Entity } from '../sim/Entity';
-import type { Simulation } from '../sim/Simulation';
+import type { Noise, Simulation } from '../sim/Simulation';
 
 export type Category = 'basic' | 'mechanical' | 'force' | 'chaos' | 'control' | 'creature' | 'optics' | 'scenery';
 
@@ -108,10 +108,17 @@ export interface ComponentDef {
   onBlast?: (e: Entity, sim: Simulation, from: Vec, strength: number) => void;
   /** Collision began with another entity (or world wall when other is null). */
   onCollide?: (e: Entity, other: Entity | null, info: CollideInfo, sim: Simulation) => void;
+  /** Heard a noise (squawk, bell, bang) made within the noise's radius this tick. */
+  onNoise?: (e: Entity, noise: Noise, sim: Simulation) => void;
   /** A rope attached at `anchor` pulled with impulse magnitude in direction dir (world). */
   onRopePull?: (e: Entity, anchor: string, impulse: number, dir: Vec, sim: Simulation) => void;
   /** Container interior in local coordinates (for containerCount goals). */
   interior?: (props: Props) => { x: number; y: number; w: number; h: number };
+  /**
+   * Ids of the entities that have scored in this part (a hoop's swishes). When defined,
+   * containerCount goals count these instead of what is inside `interior`, with no hold time.
+   */
+  tally?: (e: Entity) => string[];
   /** Whether the entity currently counts as "active" for activate goals and visuals. */
   isActive?: (e: Entity) => boolean;
 }

@@ -17,6 +17,7 @@ import {
   rivet, screw, hexBolt, glint, sheen, coilSpring, smoothPath, label, hazard, dropShadow,
 } from './partHelpers';
 import { OPTICS_DEFS } from './opticsParts';
+import { GOOFY_DEFS, goofyIconLayers } from './goofyParts';
 
 export interface PaintedTexture {
   canvas: HTMLCanvasElement;
@@ -3079,6 +3080,7 @@ const DEFS: Record<string, PartDef> = {
   tool_belt: { size: () => centred(64, 64), paint: paintToolBelt },
   tool_wire: { size: () => centred(64, 64), paint: paintToolWire },
   ...OPTICS_DEFS,
+  ...GOOFY_DEFS,
 };
 
 /** Internal-only painters (icons). */
@@ -3154,6 +3156,8 @@ interface Layer {
 
 function iconLayers(type: string, props: Params): Layer[] {
   const b = (k: string, d: boolean) => (typeof props[k] === 'boolean' ? (props[k] as boolean) : d);
+  const goofy = goofyIconLayers(type);
+  if (goofy) return goofy;
   switch (type) {
     case 'ball': return [{ key: 'ball', rot: 0.4 }, { key: 'shine_s' }];
     case 'bowling_ball': return [{ key: 'bowling_ball' }, { key: 'shine_m' }];

@@ -137,6 +137,7 @@ export const popBalloon = (e: Entity, sim: Simulation, label: string) => {
   sim.emit({ t: 'fx', kind: 'pop', x: p.x, y: p.y });
   sim.emit({ t: 'fx', kind: 'confetti', x: p.x, y: p.y });
   sim.emit({ t: 'sfx', name: 'pop', x: p.x, y: p.y });
+  sim.noise(p.x, p.y, 220, e);
   e.activated = false;
   sim.activate(e, label, 'air');
 };

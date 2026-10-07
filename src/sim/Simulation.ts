@@ -25,12 +25,16 @@ export type FxKind =
   | 'zap'
   | 'dust'
   | 'exhaust'
-  | 'bounce';
+  | 'bounce'
+  | 'swish'
+  | 'steam'
+  | 'feathers'
+  | 'soundwave';
 
 export type SimEvent =
   | { t: 'impact'; x: number; y: number; speed: number; matA: string; matB: string; kindA?: string; kindB?: string }
   | { t: 'activate'; key: string; label: string; domain: string; x: number; y: number }
-  | { t: 'sfx'; name: string; x: number; y: number; vol?: number }
+  | { t: 'sfx'; name: string; x: number; y: number; vol?: number; pitch?: number }
   | { t: 'fx'; kind: FxKind; x: number; y: number; dx?: number; dy?: number; scale?: number }
   | { t: 'goal'; index: number }
   | { t: 'solved' }
@@ -63,6 +67,17 @@ export interface HeatSource {
   owner: Entity | null;
 }
 
+/**
+ * A loud sound this tick (a squawk, a bell, a bang). Listeners such as the cat hear it through
+ * `onNoise` when they are within `r`. Noises live for one tick and are never snapshotted.
+ */
+export interface Noise {
+  x: number;
+  y: number;
+  r: number;
+  source: Entity | null;
+}
+
 export interface SimOptions {
   /** Skip connections/objects that fail to resolve instead of throwing. Always true in game. */
   lenient?: boolean;
@@ -71,7 +86,8 @@ export interface SimOptions {
 const MATERIALS = ['metal', 'wood', 'rubber', 'glass', 'paper', 'robot', 'stone'];
 const materialOf = (e: Entity | null) => (e ? e.def.tags.find((t) => MATERIALS.includes(t)) ?? 'wood' : 'stone');
 /** Audio flavour for impacts: dominoes clack, heavy balls thud; null = the room itself. */
-const impactKindOf = (e: Entity | null) => (!e ? 'floor' : e.def.tags.includes('domino') ? 'domino' : e.def.tags.includes('heavy') ? 'heavy' : e.def.tags.includes('ball') ? 'ball' : '');
+const impactKindOf = (e: Entity | null) =>
+  !e ? 'floor' : e.def.tags.includes('domino') ? 'domino' : e.def.tags.includes('pin') ? 'pin' : e.def.tags.includes('heavy') ? 'heavy' : e.def.tags.includes('ball') ? 'ball' : '';
 
 const SUBSTEPS = 2;
 
@@ -99,6 +115,8 @@ export class Simulation {
   private contactsByEntity = new Map<Entity, Contact[]>();
   private prevContactIds = new Set<string>();
   heat: HeatSource[] = [];
+  /** Noises made this tick (cleared at the start of every step; see `noise`). */
+  noises: Noise[] = [];
   /** Light beams as of the end of the last tick (recomputed from poses; see sim/optics.ts). */
   beams: BeamSeg[] = [];
   /** Body id -> owning entity (parents and parts). */
@@ -309,7 +327,9 @@ export class Simulation {
     } else if (this.chain.some((c) => c.key === key)) return false;
     const dom = domain ?? (typeof e === 'string' ? 'mechanical' : e.def.domain);
     this.chain.push({ key, label, domain: dom, time: this.time });
-    const pos = typeof e === 'string' ? { x: 0, y: 0 } : e.body?.position ?? { x: e.x, y: e.y };
+    // a keyed stage ("pot:boil", "hoop>ball") shows its caption at the part it names
+    const subj = typeof e === 'string' ? this.entities.get(e.split(/[>:]/)[0]) : e;
+    const pos = subj ? subj.body?.position ?? { x: subj.x, y: subj.y } : { x: 0, y: 0 };
     this.emit({ t: 'activate', key, label, domain: dom, x: pos.x, y: pos.y });
     return true;
   }
@@ -340,6 +360,13 @@ export class Simulation {
     this.heat.push({ x, y, r, owner });
   }
 
+  /** Make a noise heard by listeners within `radius` this tick (a squawk, a ding, a bang). */
+  noise(x: number, y: number, radius: number, source: Entity | null) {
+    if (this.noises.length >= 64) return;
+    this.noises.push({ x, y, r: radius, source });
+    this.emit({ t: 'fx', kind: 'soundwave', x, y, scale: radius / 260 });
+  }
+
   kill(e: Entity) {
     if (!e.alive) return;
     e.alive = false;
@@ -359,6 +386,7 @@ export class Simulation {
     this.emit({ t: 'fx', kind: 'explosion', x, y, scale: radius / 160 });
     this.emit({ t: 'sfx', name: 'boom', x, y, vol: Math.min(1, strength / 900) });
     this.emit({ t: 'shake', amount: Math.min(1, strength / 1000) });
+    this.noise(x, y, radius * 2, source);
     for (const e of [...this.list]) {
       if (!e.alive || e === source) continue;
       const b = e.body;
@@ -414,6 +442,7 @@ export class Simulation {
   step() {
     this.capturePrev();
     this.heat.length = 0;
+    this.noises.length = 0;
     for (const r of this.ropes) r.tension = 0;
 
     propagatePower(this);
@@ -443,6 +472,7 @@ export class Simulation {
     for (const e of this.list) if (e.alive && e.def.afterStep) e.def.afterStep(e, this);
     this.beams = traceBeams(this, true);
     this.applyHeat();
+    this.hearNoises();
     this.cullOutOfBounds();
 
     this.tick++;
@@ -468,7 +498,7 @@ export class Simulation {
       const st = e.state;
       if (st.lit && !st.done) return false;
       if (st.fireAt >= 0 && !st.rang) return false;
-      if (st.walking) return false;
+      if (st.walking || st.busy) return false;
     }
     return true;
   }
@@ -615,6 +645,18 @@ export class Simulation {
     }
   }
 
+  /** Tell every listener about each noise it is close enough to hear (a yowl can wake another cat). */
+  private hearNoises() {
+    for (let i = 0; i < this.noises.length; i++) {
+      const n = this.noises[i];
+      for (const e of this.list) {
+        if (!e.alive || e === n.source || !e.def.onNoise || !e.body) continue;
+        const p = e.body.position;
+        if (Math.hypot(p.x - n.x, p.y - n.y) <= n.r) e.def.onNoise(e, n, this);
+      }
+    }
+  }
+
   private cullOutOfBounds() {
     const { w, h } = this.bounds;
     for (const e of this.list) {
@@ -699,6 +741,7 @@ export class Simulation {
     this.prevContactIds.clear();
     this.contacts = [];
     this.contactsByEntity.clear();
+    this.noises.length = 0;
     // Beams are a pure function of poses, inputs and state, so they are recomputed, not stored.
     this.beams = traceBeams(this, false);
   }

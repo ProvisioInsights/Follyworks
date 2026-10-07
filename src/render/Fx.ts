@@ -245,6 +245,42 @@ export class Fx {
       case 'bounce':
         this.spawn('fx_ring', true, { x, y, s0: 8, s1: 46, max: 0.2, a0: 0.5 });
         break;
+      case 'swish': {
+        // a party popper out of the net: a pop ring, streamers and paper bits fanning upward
+        this.spawn('fx_ring', true, { x, y, s0: 10, s1: 90, max: 0.3, a0: 0.8, tint: 0xfff2c0 });
+        const cols = [0xf2c043, 0xe0543c, 0x4fdcf5, 0x7cf0a0, 0xe07ad0, 0xfff2d8];
+        for (let i = 0; i < 26; i++) {
+          const a = R(-Math.PI * 0.85, -Math.PI * 0.15);
+          const v = R(220, 560);
+          const streamer = i % 3 === 0;
+          this.spawn(streamer ? 'fx_spark' : 'fx_square', false, {
+            x: x + R(-10, 10), y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 650, drag: 2.4, max: R(0.9, 1.5),
+            s0: streamer ? R(16, 24) : R(5, 8), s1: streamer ? 10 : R(4, 6), tint: cols[i % cols.length], rot: R(0, 6), vr: R(-14, 14), stretch: streamer,
+          });
+        }
+        break;
+      }
+      case 'steam': {
+        const l = Math.hypot(dx, dy) || 1;
+        const ux = dx / l;
+        const uy = dy / l;
+        for (let i = 0; i < 2; i++) {
+          const v = R(160, 300);
+          this.spawn('fx_smoke', false, { x, y, vx: ux * v + R(-25, 25), vy: uy * v + R(-25, 25) - 20, g: -30, drag: 1.8, max: R(0.6, 1.1), s0: 8, s1: R(40, 64), a0: 0.65, tint: 0xf4f6f8, rot: R(0, 6), vr: R(-1, 1) });
+        }
+        break;
+      }
+      case 'feathers':
+        for (let i = 0; i < 5; i++) {
+          const a = R(-Math.PI, 0);
+          const v = R(60, 180);
+          this.spawn('fx_feather', false, { x: x + R(-6, 6), y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, g: 90, drag: 3, max: R(0.9, 1.5), s0: R(9, 13), s1: R(8, 11), tint: [0xfff6d8, 0xf6e4a8, 0xffffff][i % 3], rot: R(0, 6), vr: R(-5, 5) });
+        }
+        break;
+      case 'soundwave':
+        if (this.reducedMotion) break;
+        for (let i = 0; i < 2; i++) this.spawn('fx_ring', true, { x, y, s0: 16 + i * 14, s1: 260 * Math.max(0.4, scale) * (1 - i * 0.25), max: 0.45 + i * 0.1, a0: 0.2, tint: 0xfff4dc });
+        break;
       default:
         break;
     }

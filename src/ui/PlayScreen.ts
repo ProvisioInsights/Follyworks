@@ -96,6 +96,16 @@ const GOAL_ICONS: Record<GoalDef['kind'], string> = {
   contact: 'link',
 };
 
+/** Goals about the goofy parts get their own chip icon (a cat, a bell, a pin, a hoop). */
+const PART_GOAL_ICONS: Record<string, string> = { cat: 'cat', bell: 'bell', bowling_pin: 'pin', candle: 'flame', basketball_hoop: 'hoop', rubber_chicken: 'chicken', teapot: 'flame', toaster: 'bolt' };
+const goalIcon = (g: GoalDef, level: LevelDef): string => {
+  const objs = [...level.fixedObjects, ...level.startingObjects];
+  const sel = g.kind === 'activate' ? g.target : null;
+  const type =
+    g.kind === 'containerCount' ? objs.find((o) => o.id === g.container)?.type : sel && 'type' in sel ? sel.type : sel && 'id' in sel ? objs.find((o) => o.id === sel.id)?.type : undefined;
+  return (type && PART_GOAL_ICONS[type]) || GOAL_ICONS[g.kind];
+};
+
 export class PlayScreen {
   readonly root: HTMLDivElement;
   readonly ctl: PlayController;
@@ -472,7 +482,8 @@ export class PlayScreen {
     const run = this.ctl.run;
     const sim = run?.sim ?? this.editor.buildSim;
     const markers = goals.map((g, i) => goalMarker(g, sim, run?.sim.goals.status[i]));
-    const key = JSON.stringify([goals.map(goalLabel), run?.sim.goals.status.map((s) => [s.met, Math.round(s.progress * 10)]), markers.map((m) => m.detail)]);
+    const lvl = this.session.level;
+    const key = JSON.stringify([goals.map((g) => goalLabel(g, lvl)), run?.sim.goals.status.map((s) => [s.met, Math.round(s.progress * 10)]), markers.map((m) => m.detail)]);
     if (el.dataset.key === key) return;
     el.dataset.key = key;
     clear(el);
@@ -488,8 +499,8 @@ export class PlayScreen {
         'div',
         { class: `goal-chip ${met ? 'met' : ''}`, tip: met ? 'Done!' : `Goal ${i + 1}: ${markers[i].text}. Point here to find it in the room.` },
         h('span', { class: 'dot' }, met ? icon('check', 12) : String(i + 1)),
-        h('span', { class: 'gk' }, icon(GOAL_ICONS[g.kind], 14)),
-        h('span', { class: 'gl' }, goalLabel(g)),
+        h('span', { class: 'gk' }, icon(goalIcon(g, lvl), 14)),
+        h('span', { class: 'gl' }, goalLabel(g, lvl)),
         detail ? h('span', { class: 'gd' }, detail) : null,
         st && !met && st.progress > 0 ? h('span', { class: 'bar' }, h('i', { style: { width: `${Math.round(st.progress * 100)}%` } })) : null,
       );
@@ -858,7 +869,7 @@ export class PlayScreen {
     const body = [
       this.cfg.briefIntro?.() ?? null,
       h('p', { style: { margin: '0 0 6px', fontSize: '16px' } }, l.description || 'Make it happen.'),
-      l.goals.length ? h('ul', { class: 'brief-goals' }, l.goals.map((g) => h('li', null, goalLabel(g)))) : null,
+      l.goals.length ? h('ul', { class: 'brief-goals' }, l.goals.map((g) => h('li', null, goalLabel(g, l)))) : null,
       h(
         'div',
         { class: 'brief-meta' },
@@ -1028,7 +1039,7 @@ const receiptRows = (r: AttemptResult, sim: Simulation | undefined) => {
   if (sim) {
     sim.level.goals.forEach((g, i) => {
       const st = sim.goals.status[i];
-      if (st?.met && st.metAt !== null) rows.push({ time: st.metAt, label: `✓ ${goalLabel(g)}`, goal: true });
+      if (st?.met && st.metAt !== null) rows.push({ time: st.metAt, label: `✓ ${goalLabel(g, sim.level)}`, goal: true });
     });
   }
   return rows.sort((a, b) => a.time - b.time || (a.goal ? 1 : 0) - (b.goal ? 1 : 0));

@@ -196,6 +196,7 @@ const fire = (e: Entity, sim: Simulation) => {
   M.Body.setAngularVelocity(ball.body, 0);
   sim.emit({ t: 'fx', kind: 'muzzle', x: muzzle.x, y: muzzle.y, dx: d.x, dy: d.y });
   sim.emit({ t: 'sfx', name: 'cannon', x: muzzle.x, y: muzzle.y });
+  sim.noise(muzzle.x, muzzle.y, 360, e);
   sim.emit({ t: 'shake', amount: 0.35 });
   sim.activate(e, 'Cannon fired');
 };
