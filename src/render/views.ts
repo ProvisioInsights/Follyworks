@@ -462,6 +462,21 @@ export class EntityView {
     }
   }
 
+  /**
+   * Happy hop when a mission is solved: `u` runs 0..1 over the bounce. Applied after `sync`, on
+   * the drawn containers only (the body never moves), so it is purely cosmetic.
+   */
+  applyCheer(u: number) {
+    if (u <= 0 || u >= 1 || !this.entity.alive) return;
+    const fade = 1 - u;
+    const hop = Math.abs(Math.sin(u * Math.PI * 2)) * 9 * fade;
+    const squash = 1 + Math.sin(u * Math.PI * 4) * 0.07 * fade;
+    for (const h of [...this.holders.values(), this.upright]) {
+      h.y -= hop;
+      h.setScale(h.scaleX * (2 - squash), h.scaleY * squash);
+    }
+  }
+
   private baseAlpha = 1;
   setGhost(on: boolean, valid = true) {
     this.baseAlpha = on ? 0.62 : 1;

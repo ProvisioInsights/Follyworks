@@ -60,6 +60,8 @@ import {
   valveWheel,
   ventGrille,
 } from './envHelpers';
+import { DAYLIGHT, type Daylight, bigPlant, bunting, doodle, flowerPot, freshPaint, skyPane, sunbeam, sunnyWindow } from './envCheer';
+import { HAPPY_ENVS } from './envHappy';
 import { THEMED_ENVS } from './envThemes';
 
 // ---------------------------------------------------------------------------
@@ -77,9 +79,11 @@ export interface EnvironmentInfo {
 export const ENVIRONMENTS: EnvironmentInfo[] = [
   { id: 'garage', name: 'Improvised Garage', blurb: 'Pegboard, oil stains and a roller door that sticks halfway. Warm bulbs, cold coffee.', accent: 0xf0a04b },
   { id: 'underground', name: 'Underground Workshop', blurb: 'Dug deep under the yard. Orange tube light, dripping roots and fungus that glows when nobody is looking.', accent: 0x7cf0a0 },
-  { id: 'greenhouse', name: 'Greenhouse Laboratory', blurb: 'Sunken glasshouse at dusk. Grow lights hum over the seedlings and the air is thick enough to drink.', accent: 0xe07ad0 },
+  { id: 'greenhouse', name: 'Greenhouse Laboratory', blurb: 'Sunken glasshouse on a summer afternoon. Grow lights hum over the seedlings and the air is thick enough to drink.', accent: 0xe07ad0 },
   { id: 'maintenance', name: 'Maintenance Room', blurb: 'Painted steel, big pipes and a breaker panel that blinks in a rhythm only the building understands.', accent: 0xf2c043 },
-  { id: 'basement', name: 'Strange Domestic Basement', blurb: 'Peeling wallpaper, a washing machine with opinions, string lights and one small window full of moon.', accent: 0x9ab8ff },
+  { id: 'basement', name: 'Strange Domestic Basement', blurb: 'Sunny wallpaper, a washing machine with opinions, string lights and one small window full of lawn.', accent: 0x9ab8ff },
+  { id: 'backyard', name: 'Sunny Backyard Workshop', blurb: 'A potting bench, a red shed, sunflowers along the fence and bunting strung from the tree.', accent: 0x7cc45e },
+  { id: 'playroom', name: 'Birthday Playroom', blurb: 'Balloons, a HAPPY DAY banner, a cake on the table and a box of toys nobody has put away.', accent: 0xf2a6d8 },
   { id: 'research', name: 'Abandoned Research Facility', blurb: 'Tiled walls, cyan monitors still running, violet sparks in the junction box and a hatch that stays shut.', accent: 0x4fdcf5 },
 ];
 
@@ -168,6 +172,11 @@ export interface EnvDef {
   floor(P: Painter): void;
   /** Furniture / machinery inside the room, drawn before the calm veil. */
   props(P: Painter): void;
+  /**
+   * Cheerful dressing (sunny windows, bunting, plants, doodles), painted on its own layer and
+   * knocked back more gently than props (see envCheer.ts).
+   */
+  cheer?(P: Painter): void;
   /** Lamps & emissive bits drawn after the veil (stay crisp). */
   lights(P: Painter): void;
   /** Extra detail in the soil cutaway (outside the room). */
@@ -576,22 +585,24 @@ function paintExterior(P: Painter, def: EnvDef): void {
   turf(g, rng, X0, X0 + W, G.surfaceY, T.grass, T.soil.top);
 }
 
-function paintShell(P: Painter, def: EnvDef): void {
+function paintShell(P: Painter, def: EnvDef, day?: Daylight): void {
   const { far: g, G, T } = P;
   const rng = P.rng.fork(23);
+  const occ = day ? 0.5 : 1;
   // back wall
   clipped(g, backPath(G), () => {
     def.backWall(P);
+    if (day?.paint !== undefined) freshPaint(g, backPath(G), day.paint, day.paintAlpha ?? 0.5);
     // ceiling-line shadow and wall grime at the top
-    g.fillStyle = vGrad(g, G.by0, G.by0 + 90, [[0, 0x000000, 0.45], [1, 0x000000, 0]]);
+    g.fillStyle = vGrad(g, G.by0, G.by0 + 90, [[0, 0x000000, 0.45 * occ], [1, 0x000000, 0]]);
     g.fillRect(G.bx0, G.by0, G.bx1 - G.bx0, 90);
     // floor-line occlusion
-    g.fillStyle = vGrad(g, G.by1 - 70, G.by1, [[0, 0x000000, 0], [1, 0x000000, 0.4]]);
+    g.fillStyle = vGrad(g, G.by1 - 70, G.by1, [[0, 0x000000, 0], [1, 0x000000, 0.4 * occ]]);
     g.fillRect(G.bx0, G.by1 - 70, G.bx1 - G.bx0, 70);
     // corner occlusion
-    g.fillStyle = hGrad(g, G.bx0, G.bx0 + 70, [[0, 0x000000, 0.4], [1, 0x000000, 0]]);
+    g.fillStyle = hGrad(g, G.bx0, G.bx0 + 70, [[0, 0x000000, 0.4 * occ], [1, 0x000000, 0]]);
     g.fillRect(G.bx0, G.by0, 70, G.by1 - G.by0);
-    g.fillStyle = hGrad(g, G.bx1 - 70, G.bx1, [[0, 0x000000, 0], [1, 0x000000, 0.4]]);
+    g.fillStyle = hGrad(g, G.bx1 - 70, G.bx1, [[0, 0x000000, 0], [1, 0x000000, 0.4 * occ]]);
     g.fillRect(G.bx1 - 70, G.by0, 70, G.by1 - G.by0);
   });
   // side walls
@@ -612,6 +623,10 @@ function paintShell(P: Painter, def: EnvDef): void {
     both.addPath(leftPath(G));
     both.addPath(rightPath(G));
     clipped(g, both, () => def.sideWalls?.(P));
+  }
+  if (day?.paint !== undefined) {
+    freshPaint(g, leftPath(G), shade(day.paint, -0.1), (day.paintAlpha ?? 0.5) * 0.8);
+    freshPaint(g, rightPath(G), shade(day.paint, -0.1), (day.paintAlpha ?? 0.5) * 0.8);
   }
   // ceiling underside
   clipped(g, ceilPath(G), () => {
@@ -655,12 +670,26 @@ function paintShell(P: Painter, def: EnvDef): void {
   g.restore();
 }
 
-function paintVeil(P: Painter, flat = false): void {
+function paintVeil(P: Painter, flat = false, day?: Daylight): void {
   const { far: g, G, T } = P;
+  const veil = day?.veil ?? T.veil;
+  const veilAlpha = day?.veilAlpha ?? T.veilAlpha;
+  const dark = day ? 0.45 : 1;
   clipped(g, roomPath(G), () => {
+    if (day) {
+      // daylight: warm sun from the upper left, soft-light so it brightens without flattening
+      g.save();
+      g.globalCompositeOperation = 'soft-light';
+      const gr = g.createLinearGradient(0, G.ceilY, G.w * 0.7, G.h);
+      gr.addColorStop(0, css(day.sun, day.sunAlpha));
+      gr.addColorStop(1, css(day.sun, day.sunAlpha * 0.3));
+      g.fillStyle = gr;
+      g.fillRect(0, G.ceilY, G.w, G.h - G.ceilY);
+      g.restore();
+    }
     if (flat) {
       // flat art: one even wash keeps the backdrop calm without painterly lighting
-      g.fillStyle = css(T.veil, T.veilAlpha);
+      g.fillStyle = css(veil, veilAlpha);
       g.fillRect(0, G.ceilY, G.w, G.h - G.ceilY);
       return;
     }
@@ -672,30 +701,30 @@ function paintVeil(P: Painter, flat = false): void {
     g.restore();
     g.save();
     g.globalCompositeOperation = 'multiply';
-    blob(g, 0, G.h, G.w * 0.35, G.h * 0.5, T.shadow, 0.45);
-    blob(g, G.w, G.h, G.w * 0.35, G.h * 0.5, T.shadow, 0.45);
+    blob(g, 0, G.h, G.w * 0.35, G.h * 0.5, T.shadow, 0.45 * dark);
+    blob(g, G.w, G.h, G.w * 0.35, G.h * 0.5, T.shadow, 0.45 * dark);
     g.restore();
-    // calm the centre: low-contrast mid-dark wash
-    blob(g, G.w / 2, G.h * 0.47, G.w * 0.4, G.h * 0.4, T.veil, T.veilAlpha, 0.35);
+    // calm the centre: a low-contrast wash (light and warm in daylight)
+    blob(g, G.w / 2, G.h * 0.47, G.w * 0.4, G.h * 0.4, veil, veilAlpha, 0.35);
     // inner shadow along the front cut (room is recessed behind the cut)
-    g.fillStyle = hGrad(g, 0, 26, [[0, 0x000000, 0.45], [1, 0x000000, 0]]);
+    g.fillStyle = hGrad(g, 0, 26, [[0, 0x000000, 0.45 * dark], [1, 0x000000, 0]]);
     g.fillRect(0, G.ceilY, 26, G.h - G.ceilY);
-    g.fillStyle = hGrad(g, G.w - 26, G.w, [[0, 0x000000, 0], [1, 0x000000, 0.45]]);
+    g.fillStyle = hGrad(g, G.w - 26, G.w, [[0, 0x000000, 0], [1, 0x000000, 0.45 * dark]]);
     g.fillRect(G.w - 26, G.ceilY, 26, G.h - G.ceilY);
-    g.fillStyle = vGrad(g, G.ceilY, G.ceilY + 22, [[0, 0x000000, 0.5], [1, 0x000000, 0]]);
+    g.fillStyle = vGrad(g, G.ceilY, G.ceilY + 22, [[0, 0x000000, 0.5 * dark], [1, 0x000000, 0]]);
     g.fillRect(0, G.ceilY, G.w, 22);
   });
 }
 
-function paintFinish(P: Painter, flat = false): void {
+function paintFinish(P: Painter, flat = false, day?: Daylight): void {
   const { far: g, G } = P;
   const X0 = -ENV_MARGIN.left, Y0 = -ENV_MARGIN.top;
   const W = G.w + ENV_MARGIN.left + ENV_MARGIN.right;
   const H = G.h + ENV_MARGIN.top + ENV_MARGIN.bottom;
   // painterly unevenness & grain over everything
   if (!flat) {
-    texture(g, 'mottle', X0, Y0, W, H, { alpha: 0.14, op: 'soft-light', scale: 2.2, offsetX: 37, offsetY: 91 });
-    texture(g, 'grain', X0, Y0, W, H, { alpha: 0.1, op: 'overlay' });
+    texture(g, 'mottle', X0, Y0, W, H, { alpha: day ? 0.06 : 0.14, op: 'soft-light', scale: 2.2, offsetX: 37, offsetY: 91 });
+    texture(g, 'grain', X0, Y0, W, H, { alpha: day ? 0.07 : 0.1, op: 'overlay' });
   }
   // vignette focused on the world rect
   const cx = G.w / 2, cy = G.h / 2;
@@ -703,8 +732,9 @@ function paintFinish(P: Painter, flat = false): void {
   const r1 = Math.hypot(W / 2, H / 2) * 1.02;
   const gr = g.createRadialGradient(cx, cy, r0, cx, cy, r1);
   gr.addColorStop(0, 'rgba(0,0,0,0)');
-  gr.addColorStop(0.6, 'rgba(8,6,4,0.28)');
-  gr.addColorStop(1, 'rgba(6,4,3,0.6)');
+  const v = day ? 0.5 : 1;
+  gr.addColorStop(0.6, `rgba(8,6,4,${(0.28 * v).toFixed(3)})`);
+  gr.addColorStop(1, `rgba(6,4,3,${(0.6 * v).toFixed(3)})`);
   g.save();
   g.translate(cx, cy);
   g.scale(1, H / W + 0.25);
@@ -722,7 +752,7 @@ const garage: EnvDef = {
   theme: {
     soil: { top: 0x5b4330, mid: 0x4a3526, deep: 0x2b1f17, rock: 0x7a6f62, root: 0x3a2a1c },
     grass: 0x6f7d3a,
-    sky: [0x161c28, 0x343a45],
+    sky: [0x5aaef0, 0xc4e8fb],
     concrete: 0x8a857a,
     side: 0x585a4c,
     ceiling: 0x5a574f,
@@ -907,6 +937,17 @@ const garage: EnvDef = {
     g.lineTo(bx + 82, G.by1 - 200);
     g.stroke();
   },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // a sunny window between the pegboard and the roller door, with a geranium on the sill
+    sunnyWindow(P, 432, 136, 250, 170, { cols: 3, rows: 2, sun: [0.8, 0.28], clouds: 2, sill: true, beam: 140 });
+    bunting(g, 60, 34, 410, 40, 16);
+    bunting(g, 712, 40, 1062, 34, 16, [0x4fa8e0, 0xf2c043, 0xe07ab8, 0x6cc87a, 0xe0603c]);
+    doodle(g, rng, 520, 360, 74, 88, 'machine', -0.05);
+    doodle(g, rng, 612, 372, 62, 72, 'sun', 0.07);
+    flowerPot(g, rng, 330, 424, 26);
+    bigPlant(g, rng, 752, G.by1, 150);
+  },
   lights(P) {
     const { far: g, light, G, amb } = P;
     const warm = 0xffb25c;
@@ -1004,7 +1045,7 @@ const underground: EnvDef = {
   theme: {
     soil: { top: 0x4a3a2c, mid: 0x3a2c22, deep: 0x1f1813, rock: 0x6d6a63, root: 0x2f2318 },
     grass: 0x5e6a35,
-    sky: [0x10141c, 0x272b31],
+    sky: [0x5aaef0, 0xc4e8fb],
     concrete: 0x77736a,
     side: 0x4a443b,
     ceiling: 0x4c463e,
@@ -1143,6 +1184,25 @@ const underground: EnvDef = {
     fungus(g, light, rng, G.bx1 - 14, G.by0 + 40, 5, GLOW_GREEN, 1);
     fungus(g, light, rng, G.bx0 + 10, G.by0 + 46, 4, GLOW_GREEN, 1);
   },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // the hatch above the ladder is propped open: a disc of blue sky and a shaft of sun
+    g.save();
+    g.beginPath();
+    g.ellipse(958, -24, 40, 14, 0, 0, Math.PI * 2);
+    g.clip();
+    skyPane(g, rng, 900, -50, 120, 60, { clouds: 1 });
+    g.restore();
+    sunbeam(P, 958, -16, 70, 190, G.by1 + 16, -40, 0.2);
+    // a light well onto the yard, high on the wall
+    sunnyWindow(P, 520, 104, 190, 120, { cols: 2, rows: 1, sun: [0.22, 0.3], clouds: 1, beam: 90 });
+    bunting(g, 80, 44, 430, 52, 18);
+    bunting(g, 700, 52, 905, 44, 12, [0x6cc87a, 0xf2c043, 0xe0603c, 0x4fa8e0]);
+    doodle(g, rng, 548, 300, 70, 84, 'robot', -0.06);
+    doodle(g, rng, 636, 316, 62, 56, 'rainbow', 0.05);
+    flowerPot(g, rng, 840, 482, 24);
+    bigPlant(g, rng, 330, G.by1, 140);
+  },
   lights(P) {
     const { far: g, light, G, amb } = P;
     const orange = 0xff9a48;
@@ -1231,7 +1291,7 @@ const greenhouse: EnvDef = {
   theme: {
     soil: { top: 0x51402c, mid: 0x433426, deep: 0x2a2019, rock: 0x77705f, root: 0x3a2c1d },
     grass: 0x7a8a3f,
-    sky: [0x283250, 0x7a5f6a],
+    sky: [0x5aaef0, 0xc4e8fb],
     concrete: 0x8a857a,
     side: 0x50574a,
     ceiling: 0x2e3a48,
@@ -1245,25 +1305,17 @@ const greenhouse: EnvDef = {
     const { far: g, rng, G } = P;
     const x = G.bx0, y = G.by0, w = G.bx1 - G.bx0;
     const knee = G.by1 - 150;
-    // dusk sky through the glass
-    g.fillStyle = vGrad(g, y, knee, [[0, 0x252e48], [0.45, 0x3d4260], [0.8, 0x6e5868], [1, 0x9a6a5a]]);
-    g.fillRect(x, y, w, knee - y);
-    // low sun haze
-    blob(g, x + w * 0.62, knee, w * 0.5, 140, 0xc88a62, 0.35);
-    // stars
-    for (let i = 0; i < w / 30; i++) {
-      g.fillStyle = css(0xe8e8ff, rng.range(0.15, 0.5));
-      g.fillRect(rng.range(x, x + w), rng.range(y, y + (knee - y) * 0.4), 1.4, 1.4);
-    }
+    // a bright summer sky through the glass, sun high on the right, fluffy clouds
+    skyPane(g, rng, x, y, w, knee - y, { sun: [0.82, 0.18], clouds: 4, top: 0x4aa6ee, bottom: 0xd6f0fb });
     // distant tree line & hills
-    g.fillStyle = css(0x2b2f36, 0.9);
+    g.fillStyle = css(0x7cc06a, 0.95);
     g.beginPath();
     g.moveTo(x, knee);
     for (let hx = x; hx <= x + w; hx += 30) g.lineTo(hx, knee - 50 - Math.sin(hx * 0.004) * 26);
     g.lineTo(x + w, knee);
     g.closePath();
     g.fill();
-    g.fillStyle = css(0x1e2327);
+    g.fillStyle = css(0x4f9a4a);
     for (let tx = x; tx < x + w; tx += rng.range(14, 36)) {
       const th = rng.range(16, 60);
       g.beginPath();
@@ -1451,6 +1503,11 @@ const greenhouse: EnvDef = {
       amb.push({ kind: 'sway', x: bx, y: by, size: 14, period: 6 + i * 1.5, layer: 'far' });
     });
   },
+  cheer(P) {
+    const { far: g, rng } = P;
+    bunting(g, 60, 70, 1060, 70, 24);
+    doodle(g, rng, 500, 300, 64, 78, 'sun', -0.04);
+  },
   lights(P) {
     const { light, G, amb } = P;
     // humid haze
@@ -1505,7 +1562,7 @@ const maintenance: EnvDef = {
   theme: {
     soil: { top: 0x4f3e2e, mid: 0x403227, deep: 0x251c16, rock: 0x6e6c66, root: 0x34271b },
     grass: 0x66733a,
-    sky: [0x1b2027, 0x3b4146],
+    sky: [0x5aaef0, 0xc4e8fb],
     concrete: 0x7f8282,
     side: 0x43524f,
     ceiling: 0x4b5050,
@@ -1682,6 +1739,17 @@ const maintenance: EnvDef = {
       g.fill();
     }
   },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // two high windows onto a blue sky between the wall lamps
+    sunnyWindow(P, 300, 172, 160, 120, { cols: 2, rows: 2, sun: [0.75, 0.3], clouds: 1, beam: 120 });
+    sunnyWindow(P, 540, 172, 160, 120, { cols: 2, rows: 2, clouds: 2, beam: 120 });
+    bunting(g, 60, 104, 780, 104, 14);
+    doodle(g, rng, 296, 340, 62, 72, 'cat', -0.06);
+    doodle(g, rng, 690, 330, 66, 80, 'machine', 0.05);
+    flowerPot(g, rng, 452, 482, 24);
+    bigPlant(g, rng, 590, G.by1, 130);
+  },
   lights(P) {
     const { far: g, light, G, amb } = P;
     const amber = 0xffc070;
@@ -1746,7 +1814,7 @@ const basement: EnvDef = {
   theme: {
     soil: { top: 0x4c3b2d, mid: 0x3e3026, deep: 0x231b15, rock: 0x726c62, root: 0x33261b },
     grass: 0x55663a,
-    sky: [0x0f1424, 0x283048],
+    sky: [0x5aaef0, 0xc4e8fb],
     concrete: 0x7d776d,
     side: 0x4f4b3e,
     ceiling: 0x4e4a40,
@@ -1913,8 +1981,8 @@ const basement: EnvDef = {
     }
     // moonbeam
     const beamLen = G.by1 - wy;
-    lightCone(light, wx + ww / 2, wy + wh, ww * 0.9, ww * 2.4, beamLen, MOON, 0.09, G.w * 0.12);
-    blob(g, wx + ww / 2 + G.w * 0.12, G.by1 + 10, ww * 1.1, 18, MOON, 0.12);
+    lightCone(light, wx + ww / 2, wy + wh, ww * 0.9, ww * 2.4, beamLen, 0xfff0c0, 0.12, G.w * 0.12);
+    blob(g, wx + ww / 2 + G.w * 0.12, G.by1 + 10, ww * 1.1, 18, 0xfff0c0, 0.14);
     amb.push({ kind: 'dust', x: wx, y: wy + wh, w: ww + G.w * 0.14, h: beamLen * 0.8, color: 0xc8d8ff, layer: 'far' });
 
     // jam-jar shelf top-left
@@ -1990,6 +2058,14 @@ const basement: EnvDef = {
     amb.push({ kind: 'flicker', x: ox + ow / 2, y: oy + oh - 35, w: 30, h: 12, color: 0xff8a3a, period: 1.8, layer: 'far' });
     texture(g, 'grime', ox, oy, ow, oh, { alpha: 0.5, scale: 0.8 });
     amb.push({ kind: 'drip', x: ox + 86, y: oy - 30, color: 0xb0b8b8, size: 2, period: 4.8, layer: 'far' });
+  },
+  cheer(P) {
+    const { far: g, rng } = P;
+    // the little high window now looks out on a sunny lawn
+    sunnyWindow(P, 393, 2, 200, 96, { cols: 2, rows: 1, sun: [0.75, 0.32], clouds: 1, curtains: 0xf08a8a });
+    doodle(g, rng, 650, 300, 66, 80, 'cat', 0.06);
+    doodle(g, rng, 300, 330, 62, 72, 'rainbow', -0.05);
+    flowerPot(g, rng, 520, 560, 26);
   },
   lights(P) {
     const { far: g, light, rng, G, amb } = P;
@@ -2104,7 +2180,7 @@ const research: EnvDef = {
   theme: {
     soil: { top: 0x463c33, mid: 0x3a3029, deep: 0x1f1a16, rock: 0x6c6a66, root: 0x30261c },
     grass: 0x56633a,
-    sky: [0x12161c, 0x30363e],
+    sky: [0x5aaef0, 0xc4e8fb],
     concrete: 0x84888a,
     side: 0x4a5755,
     ceiling: 0x464c4c,
@@ -2284,6 +2360,18 @@ const research: EnvDef = {
     texture(g, 'speckle', 0, -60, 120, 60, { alpha: 0.9 });
     g.restore();
   },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // tall windows thrown open: the lab has gone to seed, beautifully
+    sunnyWindow(P, 410, 118, 150, 170, { cols: 2, rows: 3, sun: [0.7, 0.22], clouds: 1, beam: 110 });
+    sunnyWindow(P, 590, 118, 150, 170, { cols: 2, rows: 3, clouds: 1, beam: 110 });
+    bunting(g, 60, 92, 1060, 92, 18, [0x6cc87a, 0x4fa8e0, 0xf2c043, 0xe07ab8, 0xfff2d8]);
+    doodle(g, rng, 452, 330, 66, 80, 'robot', -0.05);
+    doodle(g, rng, 600, 340, 62, 72, 'rocket', 0.06);
+    flowerPot(g, rng, 200, 470, 26);
+    bigPlant(g, rng, 560, G.by1, 140);
+    bigPlant(g, rng, 1030, G.by1, 120);
+  },
   lights(P) {
     const { far: g, light, G, amb } = P;
     const cool = 0xcfe8f0;
@@ -2343,7 +2431,7 @@ const research: EnvDef = {
 // Registry & entry point
 // ---------------------------------------------------------------------------
 
-const DEFS: Record<string, EnvDef> = { garage, underground, greenhouse, maintenance, basement, research };
+const DEFS: Record<string, EnvDef> = { garage, underground, greenhouse, maintenance, basement, research, ...HAPPY_ENVS };
 
 /**
  * Paint all layers. Deterministic for the same (id, w, h, scale).
@@ -2376,9 +2464,10 @@ export function paintEnvironment(id: string, w: number, h: number, scale: number
   const amb: AmbientEmitter[] = [];
   const P: Painter = { far, light, near, rng: root.fork(1), G, T: def.theme, amb };
 
+  const day = DAYLIGHT[envId];
   paintExterior(P, def);
   P.rng = root.fork(2);
-  paintShell(P, def);
+  paintShell(P, def, day);
   P.rng = root.fork(3);
   // Furniture and machinery are painted on their own layer and knocked back (less colour, less
   // contrast, a touch of blur) before joining the wall, so nothing in the room's dressing reads as
@@ -2393,10 +2482,35 @@ export function paintEnvironment(id: string, w: number, h: number, scale: number
   far.globalAlpha = filterable ? 0.9 : 0.55;
   far.drawImage(propsC, 0, 0);
   far.restore();
-  paintVeil(P, def.flat);
+  if (def.cheer) {
+    // Cheerful dressing: knocked back too, but more gently, so the sky stays blue and the bunting
+    // stays bright while still sitting behind the parts.
+    const [cheerC, cheerG] = make();
+    P.rng = root.fork(6);
+    clipped(cheerG, roomPath(G), () => def.cheer?.({ ...P, far: cheerG }));
+    far.save();
+    far.setTransform(1, 0, 0, 1, 0, 0);
+    if (filterable) far.filter = `saturate(0.8) contrast(0.86) blur(${((def.flat ? 0.4 : 0.7) * s).toFixed(2)}px)`;
+    far.globalAlpha = filterable ? 0.94 : 0.7;
+    far.drawImage(cheerC, 0, 0);
+    far.restore();
+  }
+  paintVeil(P, def.flat, day);
   P.rng = root.fork(4);
   clipped(far, roomPath(G), () => def.lights(P));
-  paintFinish(P, def.flat);
+  paintFinish(P, def.flat, day);
+  if (day && filterable) {
+    // Daylight grade over the whole backdrop: brighter and a touch more colourful.
+    const [copyC, copyG] = make();
+    copyG.setTransform(1, 0, 0, 1, 0, 0);
+    copyG.drawImage(farC, 0, 0);
+    far.save();
+    far.setTransform(1, 0, 0, 1, 0, 0);
+    far.clearRect(0, 0, pw, ph);
+    far.filter = `brightness(${day.brightness}) saturate(${day.saturate})`;
+    far.drawImage(copyC, 0, 0);
+    far.restore();
+  }
   P.rng = root.fork(5);
   def.near(P);
 

@@ -2667,3 +2667,57 @@ body.reduced .star.on {
   text-transform: uppercase;
   box-shadow: 3px 3px 0 #0e0e1a;
 }
+
+/* ------------------------------------------------------------------ sunny menus
+   The title and campaign screens borrow the rooms' daylight: a sky wash with soft clouds
+   over the blurred workshop scene. Panels keep their own (dark or themed) fills, so text
+   contrast is unchanged; only the backdrop brightens. Sky colours follow the theme. */
+
+:root {
+  --sky-top: rgba(90, 174, 240, 0.62);
+  --sky-bot: rgba(196, 232, 251, 0.3);
+  --sky-floor: rgba(26, 20, 14, 0.5);
+  --menu-shade: rgba(34, 66, 104, 0.94);
+}
+[data-theme='stone'] {
+  --sky-top: rgba(108, 182, 232, 0.6);
+  --sky-bot: rgba(246, 214, 160, 0.32);
+  --sky-floor: rgba(48, 32, 18, 0.5);
+  --menu-shade: rgba(84, 56, 30, 0.94);
+}
+[data-theme='steam'] {
+  --sky-top: rgba(120, 180, 226, 0.58);
+  --sky-bot: rgba(248, 220, 168, 0.32);
+  --sky-floor: rgba(40, 26, 14, 0.52);
+  --menu-shade: rgba(78, 52, 30, 0.94);
+}
+[data-theme='comic'] {
+  --sky-top: rgba(70, 168, 248, 0.66);
+  --sky-bot: rgba(255, 238, 170, 0.34);
+  --menu-shade: rgba(30, 60, 128, 0.94);
+}
+[data-theme='future'] {
+  --sky-top: rgba(150, 140, 232, 0.6);
+  --sky-bot: rgba(214, 238, 250, 0.34);
+  --sky-floor: rgba(20, 18, 40, 0.5);
+  --menu-shade: rgba(58, 50, 112, 0.94);
+}
+
+.menu {
+  background:
+    linear-gradient(90deg, var(--menu-shade) 0%, var(--menu-shade) 18%, transparent 34%),
+    radial-gradient(ellipse 60% 40% at 78% 0%, rgba(255, 240, 190, 0.28), transparent 70%);
+}
+.screen {
+  background:
+    radial-gradient(ellipse 120px 34px at 12% 14%, rgba(255, 255, 255, 0.55), transparent 70%),
+    radial-gradient(ellipse 90px 26px at 16% 11%, rgba(255, 255, 255, 0.5), transparent 70%),
+    radial-gradient(ellipse 150px 38px at 58% 9%, rgba(255, 255, 255, 0.5), transparent 70%),
+    radial-gradient(ellipse 110px 30px at 63% 6%, rgba(255, 255, 255, 0.45), transparent 70%),
+    radial-gradient(ellipse 130px 34px at 90% 20%, rgba(255, 255, 255, 0.45), transparent 70%),
+    radial-gradient(circle at 96% 4%, rgba(255, 236, 150, 0.7) 0, rgba(255, 220, 120, 0.25) 60px, transparent 140px),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 45%, var(--sky-floor) 100%);
+}
+.screen-head {
+  background: rgba(18, 13, 10, 0.55);
+}

@@ -479,7 +479,8 @@ export class App implements AppContext {
     if (!pick) return;
     const level = deepClone(pick.level);
     const build = deepClone(pick.solutions[0]);
-    this.scene.setEnvironment(level.environment, level.world.width, level.world.height);
+    // the title machine always runs in the sunny backyard (other themes swap in their own room)
+    this.scene.setEnvironment('backyard', level.world.width, level.world.height);
     this.scene.setInsets({ top: 30, left: Math.min(520, window.innerWidth * 0.36), right: 30, bottom: 30 });
     this.scene.resetView();
     const make = () =>

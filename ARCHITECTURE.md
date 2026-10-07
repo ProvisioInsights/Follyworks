@@ -105,7 +105,8 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - Themes (`core/themes.ts`): `App.theme` resolves the session pick (sandbox/editor), then `settings.theme`, then the era of the chapter (`CHAPTER_THEME`). `App.refreshTheme` sets `<html data-theme>` for the HUD CSS, calls `WorkshopScene.setTheme` and the audio engine's optional `setMusicTheme`.
 - Part skins (`render/skin.ts`) are applied by `TextureBank` at paint time: the painted canvas is graded per theme (posterize and ink lines, halftone, earthy grain, brass and rivets, neon rim) with alpha left untouched, and cached under `key@theme`. The rim halo style is per theme too. On a theme change the bank removes every texture it painted, so only one theme's art is in GPU memory. Glow overlays and `fx_` sprites are left raw. Bin icons use the same `skinCanvas`.
 - Theme rooms (`render/art/envThemes.ts`: cave, foundry, toolbox, rooftop, neonlab) are ordinary `EnvDef`s. `roomFor(theme, levelEnv)` picks the room; Modern keeps the level's own environment. On a screen change the repaint is deferred to the next `setSim` / `setEnvironment`.
-- Particles and labels (`Fx.ts`) are pooled and hard-capped.
+- Particles and labels (`Fx.ts`) are pooled and hard-capped. `Fx.celebrate` schedules the solve burst (paper cannons, streamers) on the stinger beat; `RunController` cancels it on scrub, step back and dispose, and `WorkshopScene.celebrate` adds a short hop and glow on the parts involved. All of it is visual only and reads nothing back into the simulation.
+- Cheerful dressing lives in `render/art/envCheer.ts` (sky panes, sunny windows, bunting, doodles, plants and the per-room `DAYLIGHT` grade) and is painted by an optional `EnvDef.cheer` layer, composited after props with a gentler knock-back. `render/art/envHappy.ts` holds the Backyard and Playroom rooms.
 - Phaser runs with `maxTextures: 1` (see DECISIONS.md).
 
 ## Interface
