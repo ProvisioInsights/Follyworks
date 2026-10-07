@@ -1,6 +1,6 @@
 // Fun audit runner: `npm run fun:audit`. Measures every campaign and Physics Lab level with
 // src/analysis/funAudit.ts and writes docs/fun/fun-audit.md (readable) and fun-audit.json (data).
-// FUN_SAMPLES sets samples per measurement (default 12); FUN_ONLY=id,id limits the levels and
+// FUN_SAMPLES sets samples per measurement (default 12) and FUN_SEED the random seed; FUN_ONLY=id,id limits the levels and
 // writes docs/fun/fun-audit.partial.md instead.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -11,6 +11,7 @@ import { CAMPAIGN, CHAPTERS, levelCode } from '../../src/game/campaign';
 import { LAB } from '../../src/game/levels/lab';
 
 const samples = Number(process.env.FUN_SAMPLES ?? 12);
+const seed = Number(process.env.FUN_SEED ?? 7);
 const only = process.env.FUN_ONLY?.split(',');
 
 it('audits every level', () => {
@@ -22,7 +23,7 @@ it('audits every level', () => {
   const seen = new Set<string>();
   const rows: (FunReport & { code: string; group: string })[] = [];
   for (const { e, code, group } of entries) {
-    const r = auditLevel(e.level, e.solutions[0], { samples });
+    const r = auditLevel(e.level, e.solutions[0], { samples, seed });
     const kinds = new Set([...e.level.inventory.map((i) => i.type), ...e.level.startingObjects.map((o) => o.type), ...e.level.fixedObjects.map((o) => o.type)]);
     kinds.delete('wall');
     if (group !== 'Physics Lab') {
