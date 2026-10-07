@@ -1,6 +1,7 @@
 // Fun audit runner: `npm run fun:audit`. Measures every campaign and Physics Lab level with
 // src/analysis/funAudit.ts and writes docs/fun/fun-audit.md (readable) and fun-audit.json (data).
-// FUN_SAMPLES sets samples per measurement (default 12); FUN_ONLY=id,id limits the levels.
+// FUN_SAMPLES sets samples per measurement (default 12); FUN_ONLY=id,id limits the levels and
+// writes docs/fun/fun-audit.partial.md instead.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
@@ -32,8 +33,10 @@ it('audits every level', () => {
   }
 
   mkdirSync('docs/fun', { recursive: true });
-  writeFileSync('docs/fun/fun-audit.json', JSON.stringify({ samples, spreads: SPREADS, limits: LIMITS, levels: rows }, null, 1) + '\n');
-  writeFileSync('docs/fun/fun-audit.md', render(rows));
+  // A partial run (FUN_ONLY) leaves the committed full report alone.
+  const base = only ? 'docs/fun/fun-audit.partial' : 'docs/fun/fun-audit';
+  writeFileSync(`${base}.json`, JSON.stringify({ samples, spreads: SPREADS, limits: LIMITS, levels: rows }, null, 1) + '\n');
+  writeFileSync(`${base}.md`, render(rows));
 }, 3_600_000);
 
 const f1 = (x: number) => x.toFixed(1);
