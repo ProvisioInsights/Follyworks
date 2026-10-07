@@ -485,71 +485,93 @@ const party: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 6-6: one beam, four candles
+// ---------------------------------------------------------------- 6-6: make a wish
 
-const cakeMirrors = (extra: ObjectDef[] = []): ObjectDef[] => [
-  o('s-bat', 'battery', 40, 598),
+const wishBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
+  o('s-chicken', 'rubber_chicken', 235, 602),
+  o('s-ramp', 'plank', 384, 599, { length: 110 }, -25 * DEG),
+  o('s-bat', 'battery', 40, 600),
+  o('s-m1', 'mirror', 120, 193, {}, UP),
+  o('s-m2', 'mirror', 170, 161, {}, UP),
+  o('s-m3', 'mirror', 220, 129, {}, UP),
+  o('s-m4', 'mirror', 270, 97, {}, UP),
   ...extra,
-  o('s-sp1', 'beam_splitter', 344, 140, {}, DOWN),
-  o('s-sp2', 'beam_splitter', 484, 140, {}, DOWN),
-  o('s-sp3', 'beam_splitter', 624, 140, {}, DOWN),
-  o('s-m1', 'mirror', 764, 140, {}, DOWN),
+  o('s-lens', 'lens', 480, 151, { focal: 200 }),
 ];
-const birthday: CampaignEntry = {
+const wishWires = [wire('s-w1', 's-bat', 'g6f-switch')];
+const wish: CampaignEntry = {
   chapter: 6,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g6-birthday',
-    name: 'Many Happy Returns',
-    description: 'Four candles on the cake and one laser to light them all. A beam stops at the first candle it meets, so it will have to be shared out.',
+    id: 'g6-make-a-wish',
+    name: 'Make A Wish',
+    description: 'Wake Whiskers so he scampers over the switch, and four lasers come on. Squeeze all four beams through the pinhole with a lens to light the birthday candles, and one of them boils the kettle for tea.',
     environment: 'research',
     world: WORLD(),
-    fixedObjects: [o('g6f-leg-l', 'wall', 330, 597, { w: 20, h: 66, material: 'steel' }), o('g6f-leg-r', 'wall', 770, 597, { w: 20, h: 66, material: 'steel' })],
-    startingObjects: [
-      o('g6f-laser', 'laser', 90, 140, { alwaysOn: false, color: 'red' }),
-      o('g6f-table', 'plank', 550, 557, { length: 520 }),
-      o('g6f-candle-1', 'candle', 340, 521, { lit: false }),
-      o('g6f-candle-2', 'candle', 480, 521, { lit: false }),
-      o('g6f-candle-3', 'candle', 620, 521, { lit: false }),
-      o('g6f-candle-4', 'candle', 760, 521, { lit: false }),
+    fixedObjects: [
+      o('g6f-ramp', 'plank', 90, 420, { length: 140 }, 20 * DEG),
+      o('g6f-laser-shelf', 'wall', 195, 330, { w: 220, h: 12, material: 'steel' }),
+      o('g6f-switch-shelf', 'wall', 520, 580, { w: 160, h: 12, material: 'steel' }),
+      o('g6f-pen', 'wall', 604, 608, { w: 8, h: 44, material: 'steel' }),
+      o('g6f-wall-top', 'wall', 680, 65, { w: 20, h: 130, material: 'brick' }),
+      o('g6f-wall-bottom', 'wall', 680, 395, { w: 20, h: 470, material: 'brick' }),
+      o('g6f-tier-1', 'wall', 1000, 98, { w: 40, h: 6, material: 'wood' }),
+      o('g6f-tier-2', 'wall', 900, 157, { w: 40, h: 6, material: 'wood' }),
+      o('g6f-tier-3', 'wall', 960, 197, { w: 40, h: 6, material: 'wood' }),
+      o('g6f-tier-4', 'wall', 1040, 261, { w: 40, h: 6, material: 'wood' }),
+      o('g6f-grill', 'wall', 1050, 212, { w: 80, h: 6, material: 'steel' }),
     ],
-    connections: [],
+    startingObjects: [
+      o('g6f-ball', 'ball', 40, 385),
+      o('g6f-catch', 'bucket', 235, 598),
+      o('g6f-cat', 'cat', 300, 617),
+      o('g6f-switch', 'toggle_switch', 520, 555),
+      ...[0, 1, 2, 3].map((k) => o(`g6f-laser-${k + 1}`, 'laser', 120 + 50 * k, 296, { alwaysOn: false, color: 'red' }, -90 * DEG)),
+      o('g6f-candle-1', 'candle', 1000, 66, { lit: false }),
+      o('g6f-candle-2', 'candle', 900, 125, { lit: false }),
+      o('g6f-candle-3', 'candle', 960, 165, { lit: false }),
+      o('g6f-candle-4', 'candle', 1040, 229, { lit: false }),
+      o('g6f-teapot', 'teapot', 1046, 188),
+    ],
+    connections: [0, 1, 2, 3].map((k) => wire(`g6f-w${k + 1}`, 'g6f-switch', `g6f-laser-${k + 1}`, 'in', 'out')),
     inventory: [
       { type: 'battery', count: 1 },
-      { type: 'beam_splitter', count: 3 },
-      { type: 'mirror', count: 2 },
-      { type: 'color_filter', count: 1 },
+      { type: 'rubber_chicken', count: 1 },
+      { type: 'plank', count: 1 },
+      { type: 'mirror', count: 5 },
+      { type: 'lens', count: 1 },
+      { type: 'beam_splitter', count: 1 },
     ],
     goals: [
-      { kind: 'activate', target: { id: 'g6f-candle-1' }, label: 'Light candle 1' },
-      { kind: 'activate', target: { id: 'g6f-candle-2' }, label: 'Light candle 2' },
-      { kind: 'activate', target: { id: 'g6f-candle-3' }, label: 'Light candle 3' },
-      { kind: 'activate', target: { id: 'g6f-candle-4' }, label: 'Light candle 4' },
+      { kind: 'activate', target: { type: 'candle' }, count: 4, label: 'Light all four birthday candles' },
+      { kind: 'activate', target: { id: 'g6f-teapot' }, label: 'Boil the kettle for birthday tea' },
     ],
-    restrictions: { timeLimit: 12 },
-    bonus: { elegantParts: 5, elegantTime: 3, absurdStages: 10 },
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 8, elegantTime: 4.5, absurdStages: 22 },
     hints: [
-      'A mirror sends all of the beam one way. A beam splitter sends half on and half off to the side.',
-      'Hang splitters along the beam above the candles, each turned to drop half its light straight down. Use a mirror over the last candle.',
-      'Each split leaves a weaker beam, and a weaker beam takes longer to light a wick. Give it a couple of seconds.',
+      'A squawk wakes a cat. Put the rubber chicken where the rolling ball will land on it, and give Whiskers a plank up to the switch shelf.',
+      'The switch is wired to all four lasers but has no power of its own: it needs a battery. Then turn each beam right with a mirror so the four run side by side.',
+      'A lens bends parallel beams so they all cross at its focal point. Put that point in the pinhole: the focal length is how far the point is from the lens.',
     ],
     metadata: { chapter: 6, order: 6, author: 'Follyworks', blurb: 'Make a wish. Then make it four times.' },
   },
   solutions: [
-    { objects: cakeMirrors(), connections: [wire('s-w1', 's-bat', 'g6f-laser')] },
-    // ABSURD: tint the beam red. It already was.
-    {
-      objects: cakeMirrors([o('s-filter', 'color_filter', 180, 140, { color: 'red' })]),
-      connections: [wire('s-w1', 's-bat', 'g6f-laser')],
-    },
+    { objects: wishBuild(), connections: wishWires },
+    // ABSURD: a splitter skims half of one beam off underneath the lens, into a spare mirror and down onto the plank.
+    { objects: wishBuild([o('s-split', 'beam_splitter', 120, 235, {}, UP), o('s-m5', 'mirror', 400, 235, {}, DOWN)]), connections: wishWires },
   ],
   counterexamples: [
     {
-      why: 'a mirror takes the whole beam, so only one candle gets any',
-      build: {
-        objects: [o('s-bat', 'battery', 40, 598), o('s-m1', 'mirror', 344, 140, {}, DOWN), o('s-m2', 'mirror', 484, 140, {}, DOWN)],
-        connections: [wire('s-w1', 's-bat', 'g6f-laser')],
-      },
+      why: 'without the lens only the beam that happens to line up with the pinhole gets through',
+      build: { objects: wishBuild().filter((x) => x.type !== 'lens'), connections: wishWires },
+    },
+    {
+      why: 'with no rubber chicken in the bucket the ball lands silently and Whiskers sleeps on',
+      build: { objects: wishBuild().filter((x) => x.type !== 'rubber_chicken'), connections: wishWires },
+    },
+    {
+      why: 'without a ramp Whiskers runs under the switch shelf and never flicks it',
+      build: { objects: wishBuild().filter((x) => x.type !== 'plank'), connections: wishWires },
     },
   ],
 };
@@ -876,4 +898,4 @@ const lightShow: CampaignEntry = {
   ],
 };
 
-export const GROUP_6: CampaignEntry[] = [dingDong, teaTime, strike, breakfast, party, birthday, colourCoded, relay, tripwire, lightShow];
+export const GROUP_6: CampaignEntry[] = [dingDong, teaTime, strike, breakfast, party, wish, colourCoded, relay, tripwire, lightShow];
