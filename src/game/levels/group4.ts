@@ -110,7 +110,7 @@ const upUpAndAway: CampaignEntry = {
 
 const M2_BUILD = {
   candle: o('s-candle', 'candle', 150, 190),
-  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 22 * DEG),
+  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 20 * DEG),
   plankB: o('s-plank-b', 'plank', 717, 350, { length: 100 }, 20 * DEG),
   trap: o('s-trap', 'mousetrap', 295, 625),
 };
@@ -305,8 +305,8 @@ const M4_BUILD = {
   battery: o('s-battery', 'battery', 40, 601),
   trap: o('s-trap', 'mousetrap', 245, 625),
   bumper: o('s-bumper', 'plank', 652, 520, { length: 80 }, 90 * DEG),
-  bridgeA: o('s-bridge-a', 'plank', 850, 567, { length: 58 }),
-  bridgeB: o('s-bridge-b', 'plank', 990, 567, { length: 58 }),
+  bridgeA: o('s-bridge-a', 'plank', 850, 567, { length: 60 }),
+  bridgeB: o('s-bridge-b', 'plank', 990, 567, { length: 60 }),
 };
 
 const partyPooper: CampaignEntry = {
@@ -499,9 +499,9 @@ const birthdaySurprise: CampaignEntry = {
 
 const M6_BUILD = {
   candle: o('s-candle', 'candle', 150, 190),
-  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 22 * DEG),
+  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 20 * DEG),
   plankB: o('s-plank-b', 'plank', 717, 350, { length: 100 }, 20 * DEG),
-  gap: o('s-gap', 'plank', 920, 400, { length: 70 }, 8 * DEG),
+  gap: o('s-gap', 'plank', 920, 400, { length: 70 }, 10 * DEG),
   stop: o('s-stop', 'plank', 1064, 374, { length: 70 }, 90 * DEG),
   battery: o('s-battery', 'battery', 40, 601),
 };
@@ -692,12 +692,12 @@ const threePointer: CampaignEntry = {
 
 const M8_BUILD = {
   fan: o('s-fan', 'fan', 150, 104, { strength: 2, range: 160 }),
-  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 22 * DEG),
+  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 20 * DEG),
   battery: o('s-battery', 'battery', 40, 601),
   bumper: o('s-bumper', 'plank', 632, 520, { length: 80 }, 90 * DEG),
-  bridgeA: o('s-bridge-a', 'plank', 770, 567, { length: 58 }),
-  bridgeB: o('s-bridge-b', 'plank', 890, 567, { length: 58 }),
-  bridgeC: o('s-bridge-c', 'plank', 995, 567, { length: 88 }),
+  bridgeA: o('s-bridge-a', 'plank', 770, 567, { length: 60 }),
+  bridgeB: o('s-bridge-b', 'plank', 890, 567, { length: 60 }),
+  bridgeC: o('s-bridge-c', 'plank', 995, 567, { length: 90 }),
 };
 
 const launchDay: CampaignEntry = {
@@ -809,8 +809,8 @@ const launchDay: CampaignEntry = {
 
 const M9_BUILD = {
   battery: o('s-battery', 'battery', 40, 601),
-  bridgeA: o('s-bridge-a', 'plank', 140, 220, { length: 58 }),
-  bridgeB: o('s-bridge-b', 'plank', 250, 220, { length: 58 }),
+  bridgeA: o('s-bridge-a', 'plank', 140, 220, { length: 60 }),
+  bridgeB: o('s-bridge-b', 'plank', 250, 220, { length: 60 }),
   trap: o('s-trap', 'mousetrap', 245, 625),
   balloon: o('s-balloon', 'balloon', 650, 351, { lift: 2.5 }),
   fan: o('s-fan', 'fan', 120, 120, { strength: 6, range: 700 }),
@@ -940,9 +940,9 @@ const M10_BUILD = {
   fan: o('s-fan', 'fan', 30, 100, { strength: 5, range: 700 }),
   battery: o('s-battery', 'battery', 300, 601),
   bumper: o('s-bumper', 'plank', 632, 520, { length: 80 }, 90 * DEG),
-  bridgeA: o('s-bridge-a', 'plank', 770, 567, { length: 58 }),
-  bridgeB: o('s-bridge-b', 'plank', 890, 567, { length: 58 }),
-  bridgeC: o('s-bridge-c', 'plank', 995, 567, { length: 88 }),
+  bridgeA: o('s-bridge-a', 'plank', 770, 567, { length: 60 }),
+  bridgeB: o('s-bridge-b', 'plank', 890, 567, { length: 60 }),
+  bridgeC: o('s-bridge-c', 'plank', 995, 567, { length: 90 }),
   shelfGap: o('s-shelf-gap', 'plank', 285, 336, { length: 50 }),
   backboard: o('s-backboard', 'plank', 476, 490, { length: 120 }, 90 * DEG),
 };
