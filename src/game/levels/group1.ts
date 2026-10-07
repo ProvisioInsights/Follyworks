@@ -750,4 +750,105 @@ const g1i: CampaignEntry = {
   ],
 };
 
-export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f, g1g, g1h, g1i];
+// ---------------------------------------------------------------- 10: the grand finale
+
+const g1j: CampaignEntry = {
+  chapter: 1,
+  level: {
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    id: 'g1-whole-shebang',
+    name: 'The Whole Shebang',
+    description: 'Everything at once. Roll a ball into the basketball for a swish, catch it on a mousetrap so it flies into the bell, then point the startled cat at the dominoes and the toaster.',
+    environment: 'garage',
+    world: world(),
+    fixedObjects: [
+      block('g1j-shelf-1', 205, 150, 90, 14),
+      block('g1j-shelf-2', 340, 162, 80, 14),
+      o('g1j-oops', 'bucket', 275, FLOOR - 22),
+      block('g1j-roof', 300, 86, 180, 10, 'steel'),
+      block('g1j-backstop', 500, 160, 14, 150, 'brick'),
+      slope('g1j-funnel-l', 400, 230, 438, 280, 'steel', 8),
+      slope('g1j-funnel-r', 500, 235, 482, 280, 'steel', 8),
+      block('g1j-chute-l', 436, 298, 8, 36, 'steel'),
+      block('g1j-chute-r', 484, 298, 8, 36, 'steel'),
+      o('g1j-hoop', 'basketball_hoop', 456, 332),
+      block('g1j-shaft-l', 433, 490, 8, 220, 'brick'),
+      block('g1j-shaft-r', 479, 437, 8, 164, 'brick'),
+      block('g1j-curb', 515, 615, 8, 30, 'brick'),
+      block('g1j-bell-arm', 720, 352, 50, 8, 'steel'),
+      o('g1j-bell', 'bell', 720, 376),
+      block('g1j-shelf-l', 667, 200, 305, 14),
+      block('g1j-shelf-r', 945, 200, 130, 14),
+      o('g1j-toaster', 'toaster', 615, 173, { slices: 1, power: 300 }, -15 * DEG),
+      o('g1j-plate', 'bucket', 552, 171),
+      o('g1j-laundry', 'bucket', 1045, FLOOR - 22),
+    ],
+    startingObjects: [
+      o('g1j-bball', 'basketball', 355, 139),
+      o('g1j-cat', 'cat', 950, 180),
+      o('g1j-dom-1', 'domino', 800, 164),
+      o('g1j-dom-2', 'domino', 770, 164),
+      o('g1j-dom-3', 'domino', 740, 164),
+      o('g1j-dom-4', 'domino', 710, 164),
+      o('g1j-dom-5', 'domino', 680, 164),
+      o('g1j-chicken', 'rubber_chicken', 552, 176),
+      o('g1j-pin-1', 'bowling_pin', 548, FLOOR - 24),
+      o('g1j-pin-2', 'bowling_pin', 580, FLOOR - 24),
+      o('g1j-pin-3', 'bowling_pin', 612, FLOOR - 24),
+    ],
+    connections: [],
+    inventory: [
+      { type: 'ball', count: 1 },
+      { type: 'plank', count: 4 },
+      { type: 'mousetrap', count: 1 },
+      { type: 'trampoline', count: 1 },
+    ],
+    goals: [
+      { kind: 'containerCount', container: 'g1j-hoop', count: 1, filter: { id: 'g1j-bball' }, label: 'Swish the basketball' },
+      { kind: 'activate', target: { id: 'g1j-toaster' }, label: 'Make the toast pop' },
+    ],
+    restrictions: { timeLimit: 30 },
+    bonus: { elegantParts: 6, elegantTime: 11, absurdStages: 23 },
+    hints: [
+      'Roll a ball down a plank onto the top shelf, and bridge the hole so it reaches the basketball.',
+      'The basketball drops straight down the shaft under the hoop. Whatever lands at the bottom gets a mousetrap to the face.',
+      'Whiskers wakes up facing right. Turn the cat round with a plank on end, and bridge the hole in its shelf.',
+    ],
+    metadata: meta(10, 'Swish, SNAP, DING, YOWL, clatter, DING.'),
+  },
+  solutions: [
+    {
+      objects: [
+        o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG),
+        o('ball-a', 'ball', 30, 40),
+        o('plank-b', 'plank', 275, 154, { length: 46 }, 15 * DEG),
+        o('trap-a', 'mousetrap', 456, 625),
+        o('plank-c', 'plank', 850, 200, { length: 58 }),
+        o('plank-d', 'plank', 998, 160, { length: 60 }, 90 * DEG),
+      ],
+      connections: [],
+    },
+    // ABSURD: a trampoline on the floor gives the basketball one last boing after the strike.
+    {
+      objects: [
+        o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG),
+        o('ball-a', 'ball', 30, 40),
+        o('plank-b', 'plank', 275, 154, { length: 46 }, 15 * DEG),
+        o('trap-a', 'mousetrap', 456, 625),
+        o('plank-c', 'plank', 850, 200, { length: 58 }),
+        o('plank-d', 'plank', 998, 160, { length: 60 }, 90 * DEG),
+        o('tramp-a', 'trampoline', 700, 612),
+      ],
+      connections: [],
+    },
+  ],
+  counterexamples: [
+    { why: 'the hole in the top shelf is left open', build: { objects: [o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG), o('ball-a', 'ball', 30, 40), o('trap-a', 'mousetrap', 456, 625), o('plank-c', 'plank', 850, 200, { length: 58 }), o('plank-d', 'plank', 998, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'no mousetrap at the bottom of the shaft', build: { objects: [o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG), o('ball-a', 'ball', 30, 40), o('plank-b', 'plank', 275, 154, { length: 46 }, 15 * DEG), o('plank-c', 'plank', 850, 200, { length: 58 }), o('plank-d', 'plank', 998, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'the hole in the cat shelf is not bridged', build: { objects: [o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG), o('ball-a', 'ball', 30, 40), o('plank-b', 'plank', 275, 154, { length: 46 }, 15 * DEG), o('trap-a', 'mousetrap', 456, 625), o('plank-d', 'plank', 998, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'nothing turns Whiskers round', build: { objects: [o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG), o('ball-a', 'ball', 30, 40), o('plank-b', 'plank', 275, 154, { length: 46 }, 15 * DEG), o('trap-a', 'mousetrap', 456, 625), o('plank-c', 'plank', 850, 200, { length: 58 })], connections: [] } },
+    { why: 'a rubber ball dropped down the hoop is not a basketball', build: { objects: [o('ball-a', 'ball', 456, 200), o('trap-a', 'mousetrap', 456, 625), o('plank-c', 'plank', 850, 200, { length: 58 }), o('plank-d', 'plank', 998, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+  ],
+};
+
+export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f, g1g, g1h, g1i, g1j];
