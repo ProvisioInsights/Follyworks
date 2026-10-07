@@ -95,7 +95,7 @@ const counterCulture: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 2-2: seesaw fling into the hoop
+// ---------------------------------------------------------------- 2-2: seesaw, chicken, cat, strike
 
 const leverExpectations: CampaignEntry = {
   chapter: 2,
@@ -521,7 +521,7 @@ const pullTheCord: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 2-7: dumbwaiter around a trampoline
+// ---------------------------------------------------------------- 2-7: dumbwaiter rings the attic bell
 
 const dumbwaiter: CampaignEntry = {
   chapter: 2,
@@ -530,68 +530,94 @@ const dumbwaiter: CampaignEntry = {
     id: 'g2-dumbwaiter',
     name: 'Dumbwaiter',
     description:
-      'Send the bucket of balls up the shaft to the kitchen without spilling them. Mind the trampoline somebody left on the workbench next to the shaft.',
+      'Whiskers is napping in the attic next to his bowling pins. Send the dumbwaiter up the shaft to ring the bell: the falling bowling ball makes a fine counterweight.',
     environment: 'basement',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g2g-beam', 'wall', 420, 52, { w: 460, h: 20, material: 'steel' }),
-      o('g2g-shaft-l', 'wall', 236, 400, { w: 14, h: 300, material: 'brick' }),
-      o('g2g-kitchen', 'wall', 130, 250, { w: 200, h: 16, material: 'wood' }),
-      o('g2g-bench', 'wall', 470, 525, { w: 90, h: 210, material: 'brick' }),
+      o('g2g-beam', 'wall', 640, 30, { w: 760, h: 20, material: 'steel' }),
+      o('g2g-chute', 'wall', 110, 100, { w: 220, h: 14, material: 'wood' }, 0.32),
+      o('g2g-ledge', 'wall', 270, 160, { w: 70, h: 16, material: 'wood' }),
+      o('g2g-ramp', 'plank', 310, 280, { length: 150 }, 0.28),
+      o('g2g-ramp-2', 'plank', 500, 311, { length: 80 }, 0.28),
+      o('g2g-shaft-l', 'wall', 762, 470, { w: 14, h: 320, material: 'brick' }),
+      o('g2g-shaft-r', 'wall', 868, 525, { w: 14, h: 210, material: 'brick' }),
+      o('g2g-shaft-top', 'wall', 787, 324, { w: 64, h: 16, material: 'brick' }),
+      o('g2g-bell', 'bell', 792, 368),
+      o('g2g-attic', 'wall', 993, 428, { w: 236, h: 16, material: 'wood' }),
+      o('g2g-attic-roof', 'plank', 993, 353, { length: 236 }),
     ],
     startingObjects: [
-      o('g2g-car', 'bucket', 300, 612, { anchored: false }),
-      o('g2g-ball-a', 'ball', 286, 608),
-      o('g2g-ball-b', 'ball', 314, 608),
-      o('g2g-pulley', 'pulley', 300, 96),
-      o('g2g-tramp', 'trampoline', 470, 404),
-      o('g2g-hook', 'hook', 560, 76),
+      o('g2g-ball', 'ball', 30, 58),
+      o('g2g-bowl', 'bowling_ball', 299, 132),
+      o('g2g-car', 'bucket', 820, 608, { anchored: false }),
+      o('g2g-chicken', 'rubber_chicken', 820, 611),
+      o('g2g-cat', 'cat', 920, 407),
+      o('g2g-pin-1', 'bowling_pin', 1000, 392),
+      o('g2g-pin-2', 'bowling_pin', 1030, 392),
+      o('g2g-pin-3', 'bowling_pin', 1060, 392),
+      o('g2g-pin-4', 'bowling_pin', 1090, 392),
     ],
     connections: [],
     inventory: [
+      { type: 'pulley', count: 2 },
       { type: 'rope', count: 1 },
-      { type: 'pulley', count: 1 },
-      { type: 'bucket', count: 1 },
-      { type: 'bowling_ball', count: 1 },
-      { type: 'ball', count: 2 },
+      { type: 'bucket', count: 2 },
+      { type: 'plank', count: 1 },
     ],
-    goals: [
-      { kind: 'height', target: { id: 'g2g-car' }, maxY: 250, label: 'Raise the bucket to kitchen level' },
-      { kind: 'containerCount', container: 'g2g-car', count: 2, filter: { type: 'ball' }, label: 'Keep both balls in the bucket' },
-    ],
-    restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 4, elegantTime: 3, absurdStages: 5 },
+    goals: [{ kind: 'activate', target: { type: 'bowling_pin' }, count: 3, label: 'Knock down 3 bowling pins' }],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 5, elegantTime: 7, absurdStages: 17 },
     hints: [
-      'The bucket and its balls weigh 4 kg, so the counterweight has to be heavier than that.',
-      'Both ends of a rope hang from the middle of a pulley wheel, so one pulley would bring the counterweight crashing into the bucket. And if the counterweight lands on the trampoline, it bounces straight back up.',
-      'Add a second pulley further along the beam so the counterweight hangs well clear of the trampoline: an unbolted bucket with the bowling ball in it.',
+      'A dumbwaiter is a lift with a counterweight: when the heavy side goes down, the car goes up.',
+      'Hang an unbolted bucket where the bowling ball drops off the lower ramp, and rope it over two pulleys on the beam to the dumbwaiter’s handle. Don’t forget the gap between the ramps.',
+      'Bridge the gap between the two ramps, put pulleys on the beam above the dumbwaiter and above the end of the lower ramp, hang an unbolted bucket under the second one, and rope it over both to the dumbwaiter’s handle.',
     ],
-    metadata: { chapter: 2, order: 7, author: 'Follyworks', blurb: 'Room service, the hard way.' },
+    metadata: { chapter: 2, order: 7, author: 'Follyworks', blurb: 'Going up: kitchenware, cats.' },
   },
   solutions: [
     {
-      objects: [o('s-pulley', 'pulley', 700, 96), o('s-bucket', 'bucket', 700, 260, { anchored: false }), o('s-bowl', 'bowling_ball', 700, 250)],
-      connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['g2g-pulley', 's-pulley'])],
+      objects: [
+        o('s-bridge', 'plank', 422, 300, { length: 74 }),
+        o('s-pulley', 'pulley', 820, 60),
+        o('s-pulley-2', 'pulley', 585, 60),
+        o('s-bucket', 'bucket', 585, 395, { anchored: false }),
+      ],
+      connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['s-pulley', 's-pulley-2'])],
     },
-    // ABSURD: a rubber ball rides the counterweight, another boings off the workbench trampoline.
+    // ABSURD: a second bucket on the floor catches the rubber ball as it chases the bowling ball down.
     {
       objects: [
-        o('s-pulley', 'pulley', 700, 96),
-        o('s-bucket', 'bucket', 700, 260, { anchored: false }),
-        o('s-bowl', 'bowling_ball', 700, 250),
-        o('s-ball-a', 'ball', 700, 180),
-        o('s-ball-b', 'ball', 470, 300),
+        o('s-bridge', 'plank', 422, 300, { length: 74 }),
+        o('s-pulley', 'pulley', 820, 60),
+        o('s-pulley-2', 'pulley', 585, 60),
+        o('s-bucket', 'bucket', 585, 395, { anchored: false }),
+        o('s-catcher', 'bucket', 722, 608),
       ],
-      connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['g2g-pulley', 's-pulley'])],
+      connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['s-pulley', 's-pulley-2'])],
     },
   ],
   counterexamples: [
     {
-      why: 'the counterweight drops onto the trampoline',
+      why: 'with no bridge the bowling ball never reaches the counterweight',
       build: {
-        objects: [o('s-pulley', 'pulley', 470, 96), o('s-bucket', 'bucket', 470, 230, { anchored: false }), o('s-bowl', 'bowling_ball', 470, 220)],
-        connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['g2g-pulley', 's-pulley'])],
+        objects: [o('s-pulley', 'pulley', 820, 60), o('s-pulley-2', 'pulley', 585, 60), o('s-bucket', 'bucket', 585, 395, { anchored: false })],
+        connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['s-pulley', 's-pulley-2'])],
       },
+    },
+    {
+      why: 'a bolted-down counterweight bucket never falls',
+      build: {
+        objects: [o('s-bridge', 'plank', 422, 300, { length: 74 }), o('s-pulley', 'pulley', 820, 60), o('s-pulley-2', 'pulley', 585, 60), o('s-bucket', 'bucket', 585, 395)],
+        connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['s-pulley', 's-pulley-2'])],
+      },
+    },
+    {
+      why: 'a bucket dropped down the shaft is too wide to reach the bell',
+      build: { objects: [o('s-bucket', 'bucket', 850, 200, { anchored: false })], connections: [] },
+    },
+    {
+      why: 'a bucket dropped on the attic roof cannot reach Whiskers or the pins',
+      build: { objects: [o('s-bucket', 'bucket', 960, 250, { anchored: false })], connections: [] },
     },
   ],
 };
