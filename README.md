@@ -13,7 +13,7 @@ Follyworks is a 2D physics contraption puzzle game for the browser. Each puzzle 
 - **"How it works" cards**: select a part to read the real physics behind it, and the results card lists the physics your machine actually used. Where the game simplifies, the card says so.
 - **Three results per puzzle**: SOLVED, ELEGANT (few parts or a quick finish) and ABSURD (a long chain reaction). The results card explains each one.
 - **Rewind and timeline scrub**, pause, frame step, half-speed and quarter-speed slow motion, and exact reset.
-- **Undo/redo**, copy/paste, duplicate, rotate and resize handles on the selected part, flip, grid snap, pan and zoom.
+- **Undo/redo**, copy/paste, duplicate, flip, grid snap, pan and zoom, and modern on-part handles: swing a plank by its end, turn a part from its corners or knob, and a floating toolbar by the selection.
 - **Numbered goals** in the top bar, each with a matching tag in the room on the thing it is about, a live count or hold timer, and a highlight when you point at it.
 - **Sandbox** with every part and no rules, plus named save slots.
 - **Level editor** with fixed and starting objects, inventory, goals, instant test-and-return, local saves, and JSON import and export.
@@ -58,7 +58,7 @@ node e2e/smoke.mjs           # the main loop with real mouse and keyboard: place
 node e2e/acceptance.mjs      # move/rotate/duplicate/delete, pan/zoom, slow motion, frame step, exact reset,
                              # level rename/duplicate/import/delete, test-and-return, saves surviving reload, corrupt save
 node e2e/campaign.mjs        # plays every level with its reference solution in the real browser
-node e2e/transform.mjs       # rotate and resize handles by mouse, overlap refusal, in-room goal tags
+node e2e/transform.mjs       # knob, end swing, corner turn, R reset, selection toolbar by mouse; overlap refusal; goal tags
 node e2e/difficulty.mjs      # difficulty picker, HUD badge, every hint tier, per-difficulty progress and map badges
 ```
 
@@ -70,8 +70,11 @@ Each takes an optional URL argument and exits non-zero on failure. Set `SHOTS=<d
 | --- | --- |
 | Place a part | Drag from the parts bin, or click it then click the stage |
 | Move / select | Drag a part; drag on empty space to box-select |
-| Rotate | Drag the round knob above the selected part, `Q` / `E` (hold `Shift` for fine steps), or Alt + wheel. Hold `Alt` while dragging the knob for 1° steps |
-| Resize | Drag the square grips on the ends of a plank, seesaw or conveyor (all four edges of a wall in the level editor); the far end stays put |
+| Rotate | Drag the round knob above the selected part, or grab just outside any corner of it (the cursor turns into a curved arrow); `Q` / `E` (hold `Shift` for fine steps), or Alt + wheel. Drags snap to the part's step (5° if it has none); hold `Alt` for any angle. A badge by the pointer shows the angle |
+| Swing an end | Drag the round grip on an end of a plank or conveyor (a wall's long ends in the level editor): the other end stays put while the part turns and stretches to follow, like the end of a line. `Shift` keeps the length, `Alt` frees the angle |
+| Resize | Drag the square grips on a seesaw's ends or a wall's short edges; the far side stays put |
+| Straighten | `R`, or double-click the knob |
+| Selection toolbar | Floats beside the selected part: turn 15° left / right, flip, duplicate, delete |
 | Flip | `F` |
 | Duplicate, copy, paste | `Ctrl+D`, `Ctrl+C`, `Ctrl+V` |
 | Delete | `Del` or `Backspace` |
