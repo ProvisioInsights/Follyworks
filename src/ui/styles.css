@@ -1698,6 +1698,8 @@ body.reduced * {
   border: 1px dashed var(--brass);
   border-radius: 6px;
   padding: 2px 8px;
+}
+
 /* ================================================================== themes
    The HUD follows the visual theme (src/core/themes.ts) through [data-theme] on <html>.
    'modern' is the default look above. Each theme only overrides tokens and the surfaces that
