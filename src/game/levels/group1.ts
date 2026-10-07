@@ -567,4 +567,94 @@ const g1g: CampaignEntry = {
   ],
 };
 
-export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f, g1g];
+// ---------------------------------------------------------------- 8: zigzag, mousetrap, bell, cat, dominoes, pins
+
+const g1h: CampaignEntry = {
+  chapter: 1,
+  level: {
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    id: 'g1-snap-ding-strike',
+    name: 'Snap, Ding, Strike',
+    description: 'Get the ball down the zigzag and onto a mousetrap. SNAP: it flies into the bell. DING: Whiskers wakes up, turns round (with help) and stampedes through the dominoes into the pins.',
+    environment: 'basement',
+    world: world(),
+    fixedObjects: [
+      slope('g1h-ramp-1', 20, 90, 300, 140),
+      slope('g1h-ramp-2', 380, 156, 520, 182),
+      block('g1h-shaft-l', 521, 400, 8, 400, 'brick'),
+      slope('g1h-shaft-lip', 576, 206, 560, 232, 'brick', 8),
+      block('g1h-shaft-r', 559, 366, 8, 268, 'brick'),
+      block('g1h-curb', 592, 615, 8, 30, 'brick'),
+      block('g1h-bell-arm', 860, 321, 50, 8, 'steel'),
+      o('g1h-bell', 'bell', 860, 345),
+      o('g1h-bucket', 'bucket', 880, FLOOR - 22),
+      block('g1h-shelf-l', 740, 200, 260, 14),
+      block('g1h-shelf-r', 995, 200, 130, 14),
+      o('g1h-laundry', 'bucket', 1085, FLOOR - 22),
+    ],
+    startingObjects: [
+      o('g1h-ball', 'ball', 40, 70),
+      o('g1h-cat', 'cat', 1000, 180),
+      o('g1h-dom-1', 'domino', 850, 164),
+      o('g1h-dom-2', 'domino', 820, 164),
+      o('g1h-dom-3', 'domino', 790, 164),
+      o('g1h-dom-4', 'domino', 760, 164),
+      o('g1h-dom-5', 'domino', 730, 164),
+      o('g1h-pin-1', 'bowling_pin', 702, 165),
+      o('g1h-pin-2', 'bowling_pin', 678, 165),
+      o('g1h-pin-3', 'bowling_pin', 654, 165),
+      o('g1h-pin-4', 'bowling_pin', 630, 165),
+      o('g1h-chicken', 'rubber_chicken', 880, FLOOR - 17),
+    ],
+    connections: [],
+    inventory: [
+      { type: 'plank', count: 4 },
+      { type: 'mousetrap', count: 2 },
+    ],
+    goals: [
+      { kind: 'activate', target: { id: 'g1h-bell' }, label: 'Ring the bell' },
+      { kind: 'activate', target: { type: 'bowling_pin' }, count: 3, label: 'Knock down three pins' },
+    ],
+    restrictions: { timeLimit: 25 },
+    bonus: { elegantParts: 5, elegantTime: 11, absurdStages: 17 },
+    hints: [
+      'Bridge the hole in the zigzag, and stop the ball flying past the shaft.',
+      'A mousetrap at the bottom of the shaft throws the ball up and to the right, the same way every time.',
+      'Whiskers wakes up running the wrong way. A plank stood on end turns the cat round, and cats do not jump holes.',
+    ],
+    metadata: meta(8, 'Snap. Ding. Yowl. Clatter.'),
+  },
+  solutions: [
+    {
+      objects: [
+        o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG),
+        o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG),
+        o('trap-a', 'mousetrap', 538, 625),
+        o('plank-c', 'plank', 900, 200, { length: 58 }),
+        o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG),
+      ],
+      connections: [],
+    },
+    // ABSURD: a second mousetrap catches the ball after the bell and flings it again.
+    {
+      objects: [
+        o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG),
+        o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG),
+        o('trap-a', 'mousetrap', 538, 625),
+        o('plank-c', 'plank', 900, 200, { length: 58 }),
+        o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG),
+        o('trap-b', 'mousetrap', 650, 625, {}, 0, true),
+      ],
+      connections: [],
+    },
+  ],
+  counterexamples: [
+    { why: 'the hole in the ramp is left open', build: { objects: [o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-c', 'plank', 900, 200, { length: 58 }), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'nothing stops the ball, so it flies past the shaft', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-c', 'plank', 900, 200, { length: 58 }), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'no mousetrap: the ball just lands at the bottom of the shaft', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG), o('plank-c', 'plank', 900, 200, { length: 58 }), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'nothing bridges the gap, so Whiskers falls off the shelf', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'nothing turns Whiskers round, so the cat runs off into the laundry basket', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-c', 'plank', 900, 200, { length: 58 })], connections: [] } },
+  ],
+};
+
+export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f, g1g, g1h];
