@@ -153,7 +153,7 @@ function debris(v: Voice, at: number, spread: number, n: number, amp: number): n
 // ---------------------------------------------------------------------------
 // Themed stingers: 'ding' (a goal met), 'success' (results card), 'goal' (level solved).
 
-const TONIC: Record<MusicTheme, number> = { modern: 53, stone: 50, steam: 48, retro: 55, comic: 46, future: 57 };
+const TONIC: Record<MusicTheme, number> = { modern: 53, stone: 50, steam: 48, retro: 55, comic: 46, future: 57, arcade: 57 };
 
 function sparkle(v: Voice, at: number, len: number, amp: number): number {
   return noise(v, 'white', at, len, amp, 'highpass', 7000, null, 0.7, 0.04);
@@ -187,9 +187,9 @@ function whistle(v: Voice, at: number, len: number, m: number): number {
 
 /** Per-theme loudness trims (dB), measured from offline renders so every theme's stinger lands alike. */
 const STINGER_TRIM: Record<'ding' | 'success' | 'goal', Record<MusicTheme, number>> = {
-  ding: { modern: 1, stone: 0, steam: -3, retro: 6, comic: -1, future: 4 },
-  success: { modern: 0, stone: 3, steam: -3, retro: 3, comic: 0, future: -1 },
-  goal: { modern: 0, stone: 3, steam: -2, retro: 3, comic: 1, future: 0 },
+  ding: { modern: 1, stone: 0, steam: -3, retro: 6, comic: -1, future: 4, arcade: 8 },
+  success: { modern: 0, stone: 3, steam: -3, retro: 3, comic: 0, future: -1, arcade: -3 },
+  goal: { modern: 0, stone: 3, steam: -2, retro: 3, comic: 1, future: 0, arcade: 2 },
 };
 
 export function stinger(v0: Voice, size: 'ding' | 'success' | 'goal'): number {
@@ -233,6 +233,12 @@ export function stinger(v0: Voice, size: 'ding' | 'success' | 'goal'): number {
         k.arp(at(0.06), K + 31, 0.12, 0.6, o);
         k.arp(at(0.12), K + 36, 0.1, 0.7, o);
         return 1.3;
+      case 'arcade':
+        // a chippy three-step bleep up a major sixth, then a twinkling arpeggio tail
+        k.chip(at(0), K + 24, 0.14, 0.04, o, 12);
+        k.chip(at(0.045), K + 28, 0.14, 0.04, o, 12);
+        k.chip(at(0.09), K + 33, 0.15, 0.2, o, 25, 0, 1, { arp: [0, 4, 7, 12], arpRate: 0.03, decay: 0.5 });
+        return 0.4;
     }
   }
 
@@ -274,6 +280,15 @@ export function stinger(v0: Voice, size: 'ding' | 'success' | 'goal'): number {
         k.pad(at(0.25), chord, 0.16, 0.6, o, 'analog');
         k.bass(at(0.25), K - 24, 0.3, 0.5, o, 'sub');
         return 2.2;
+      case 'arcade':
+        arp.forEach((m, i) => k.chip(at(i * 0.055), m + 12, 0.11, 0.05, o, 25));
+        k.chip(at(0.24), K + 24, 0.1, 0.42, o, 12, -0.2, 1, { arp: [0, 4, 7, 12, 16], arpRate: 0.028, decay: 0.55 });
+        k.chip(at(0.24), K + 31, 0.09, 0.42, o, 25, 0.2, 1, { vib: 0.012, decay: 0.6 });
+        k.bass(at(0.24), K - 12, 0.3, 0.2, o, 'chip');
+        k.bass(at(0.46), K, 0.24, 0.2, o, 'chip');
+        k.chipDrum(at(0.24), 'kick', 0.4, o);
+        k.chipDrum(at(0.24), 'open', 0.08, o);
+        return 0.9;
     }
   }
 
@@ -351,8 +366,50 @@ export function stinger(v0: Voice, size: 'ding' | 'success' | 'goal'): number {
       k.kick(at(H), 0.35, o, 'deep');
       return Math.max(e, 3.0);
     }
+    case 'arcade': {
+      // an original "course clear": a triplet pickup, a held fanfare chord spelled as a fast
+      // arpeggio, a bVII-IV-I tag on the triangle and a noise-channel drum roll
+      e = Math.max(sparkle(v, H, 0.8, 0.02), tone(v, 'triangle', 90, 45, H, 0.2, 0.3, 0.002, 0.15));
+      [K + 19, K + 21, K + 23].forEach((m, i) => k.chip(at(i * 0.09), m + 12, 0.12, 0.07, o, 25));
+      [0, 1, 2, 3].forEach((i) => k.chipDrum(at(i * 0.09), 'tom', 0.14, o, 0, 1, K - 5 + i * 3));
+      k.chip(at(0.36), K + 33, 0.12, 0.12, o, 25);
+      k.chip(at(H), K + 36, 0.13, 0.75, o, 25, 0, 1, { vib: 0.014, decay: 0.7 });
+      k.chip(at(H), K + 24, 0.08, 0.75, o, 12, 0.25, 1, { arp: [0, 4, 7, 12], arpRate: 0.03, decay: 0.6 });
+      k.chip(at(H), K + 31, 0.05, 0.75, o, 50, -0.25, 1, { decay: 0.6 });
+      [K - 2, K - 7, K].forEach((m, i) => k.bass(at(H + i * 0.25), m, 0.28, 0.22, o, 'chip'));
+      k.chipDrum(at(H), 'kick', 0.4, o);
+      k.chipDrum(at(H), 'open', 0.08, o);
+      k.chipDrum(at(H + 0.5), 'kick', 0.3, o);
+      k.chip(at(H + 0.8), K + 31, 0.08, 0.05, o, 12);
+      k.chip(at(H + 0.86), K + 36, 0.1, 0.35, o, 12, 0, 1, { arp: [0, 12], arpRate: 0.04, decay: 0.5 });
+      return Math.max(e, 1.9);
+    }
   }
   return e;
+}
+
+/**
+ * The secret-unlocked jingle (the arcade easter egg): a rising chiptune power-up, about a second
+ * long. Two quick arpeggio climbs (major, then a lifted sus-to-major) on the pulse channels over a
+ * rising triangle, a noise swell and a twinkling top chord. Original; theme-independent.
+ */
+function secretJingle(v: Voice): number {
+  const k = new Inst(v.ctx, v.nb);
+  const o = v.out;
+  const K = 60;
+  const at = (x: number): number => v.t + x;
+  const step = 0.034;
+  const climb = [0, 4, 7, 12, 16, 19, 24, 2, 5, 9, 14, 17, 21, 26, 7, 11, 14, 19, 23, 26, 31];
+  climb.forEach((x, i) => k.chip(at(i * step), K + x, 0.07 + i * 0.002, step * 0.9, o, i < 7 ? 12 : 25, ((i % 3) - 1) * 0.2, 2, { decay: 0.7 }));
+  [0, 7, 12, 14, 19].forEach((x, i) => k.bass(at(i * step * 4), K - 24 + x, 0.22, step * 3.6, o, 'chip'));
+  const top = climb.length * step;
+  k.chip(at(top), K + 36, 0.1, 0.4, o, 25, 0, 2, { vib: 0.016, decay: 0.65 });
+  k.chip(at(top), K + 24, 0.07, 0.4, o, 12, 0.3, 2, { arp: [0, 4, 7, 12, 16], arpRate: 0.026, decay: 0.6 });
+  k.bass(at(top), K - 12, 0.26, 0.3, o, 'chip');
+  k.chipDrum(at(top), 'kick', 0.35, o);
+  const sw = noise(v, 'white', 0, top, 0.025, 'bandpass', 900, 7000, 2, top * 0.8);
+  const sp = sparkle(v, top, 0.45, 0.02);
+  return Math.max(sw, sp, top + 0.46);
 }
 
 export type Recipe = (v: Voice) => number;
@@ -633,6 +690,8 @@ export const RECIPES: Record<string, Recipe> = {
   // results card / level solved: themed flourishes (see stinger())
   success: (v) => stinger(v, 'success'),
   goal: (v) => stinger(v, 'goal'),
+  // the arcade theme was unlocked (Konami-code easter egg)
+  secret: secretJingle,
 
   rewind: (v) => {
     const { ctx } = v;

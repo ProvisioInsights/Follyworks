@@ -162,6 +162,11 @@ export interface EnvDef {
   exterior?(P: Painter): void;
   /** Flat art (retro): skip the painterly grain and soften the cinematic grade. */
   flat?: boolean;
+  /**
+   * A flat 2D stage instead of a cutaway room (arcade): `backWall` paints the whole room rect and
+   * there are no perspective side walls, ceiling, floor plane, seams or soft occlusion.
+   */
+  stage?: boolean;
   /** Clipped to the back wall rectangle. */
   backWall(P: Painter): void;
   /** Clipped to the two side-wall trapezoids (after the common shading). */
@@ -589,6 +594,10 @@ function paintShell(P: Painter, def: EnvDef, day?: Daylight): void {
   const { far: g, G, T } = P;
   const rng = P.rng.fork(23);
   const occ = day ? 0.5 : 1;
+  if (def.stage) {
+    clipped(g, roomPath(G), () => def.backWall(P));
+    return;
+  }
   // back wall
   clipped(g, backPath(G), () => {
     def.backWall(P);

@@ -15,6 +15,7 @@ export class Inst {
   private ends: number[] = [];
   private pulse: PeriodicWave | null = null;
   private organ: PeriodicWave | null = null;
+  private pulse12: PeriodicWave | null = null;
   /** count of notes refused by the limiter (diagnostics) */
   dropped = 0;
 
@@ -32,9 +33,16 @@ export class Inst {
       const re2 = new Float32Array(8);
       const im2 = new Float32Array([0, 1, 0.5, 0.22, 0.12, 0.05, 0.03, 0.01]);
       this.organ = ctx.createPeriodicWave(re2, im2);
+      // 12.5 % pulse: the thin, nasal duty of cartridge-era sound chips
+      const n3 = 32;
+      const re3 = new Float32Array(n3);
+      const im3 = new Float32Array(n3);
+      for (let k = 1; k < n3; k++) im3[k] = (2 / (k * Math.PI)) * Math.sin(k * Math.PI * 0.125);
+      this.pulse12 = ctx.createPeriodicWave(re3, im3);
     } catch {
       this.pulse = null;
       this.organ = null;
+      this.pulse12 = null;
     }
   }
 
@@ -170,10 +178,10 @@ export class Inst {
 
   // ------------------------------------------------------------------ bass
 
-  bass(t: number, m: number, amp: number, len: number, dest: AudioNode, kind: 'round' | 'tuba' | 'fm' | 'sub' | 'wood', prio: Prio = 2): void {
+  bass(t: number, m: number, amp: number, len: number, dest: AudioNode, kind: 'round' | 'tuba' | 'fm' | 'sub' | 'wood' | 'chip', prio: Prio = 2): void {
     const ctx = this.ctx;
     const f = midiToHz(m);
-    const tail = kind === 'wood' ? 0.25 : kind === 'fm' ? 0.12 : 0.3;
+    const tail = kind === 'wood' ? 0.25 : kind === 'fm' ? 0.12 : kind === 'chip' ? 0.03 : 0.3;
     const end = t + len + tail;
     if (!this.admit(t, end, prio)) return;
     switch (kind) {
@@ -242,6 +250,17 @@ export class Inst {
         s.connect(g);
         h.connect(hg).connect(g);
         g.connect(dest);
+        break;
+      }
+      case 'chip': {
+        // sound-chip triangle bass: no volume envelope to speak of, just gated on and off
+        const o = oscNode(ctx, 'triangle', f, t, end);
+        const g = gainNode(ctx, 0);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(amp, t + 0.003);
+        g.gain.setValueAtTime(amp, t + Math.max(0.004, len - 0.004));
+        g.gain.linearRampToValueAtTime(0, t + len + 0.02);
+        o.connect(g).connect(dest);
         break;
       }
       case 'wood': {
@@ -668,5 +687,106 @@ export class Inst {
     g.gain.linearRampToValueAtTime(amp, t + len * 0.9);
     g.gain.linearRampToValueAtTime(0, t + len);
     s.connect(bp).connect(g).connect(dest);
+  }
+
+  // ------------------------------------------------------------------ sound chip (arcade theme)
+
+  /**
+   * Chiptune pulse voice: a raw 12.5 / 25 / 50 % pulse with a stepped (4-bit style) volume
+   * envelope. Options: delayed vibrato, a fast pitch arpeggio (one channel spelling a chord the
+   * cartridge way, `arp` in semitones cycled every `arpRate` s) and a pitch slide into the note.
+   */
+  chip(
+    t: number,
+    m: number,
+    amp: number,
+    len: number,
+    dest: AudioNode,
+    duty: 12 | 25 | 50 = 25,
+    pan = 0,
+    prio: Prio = 1,
+    o: { vib?: number; arp?: number[]; arpRate?: number; slideFrom?: number; decay?: number } = {},
+  ): void {
+    const end = t + len + 0.05;
+    if (!this.admit(t, end, prio)) return;
+    const ctx = this.ctx;
+    const f = midiToHz(m);
+    const osc = oscNode(ctx, 'square', f, t, end);
+    const w = duty === 12 ? this.pulse12 : duty === 25 ? this.pulse : null;
+    if (w) osc.setPeriodicWave(w);
+    if (o.arp && o.arp.length > 1) {
+      const rate = Math.max(0.012, o.arpRate ?? 0.033);
+      for (let i = 0, tt = t; tt < end && i < 96; i++, tt += rate) osc.frequency.setValueAtTime(f * Math.pow(2, o.arp[i % o.arp.length] / 12), tt);
+    } else if (o.slideFrom) {
+      osc.frequency.setValueAtTime(midiToHz(o.slideFrom), t);
+      osc.frequency.exponentialRampToValueAtTime(f, t + Math.min(0.06, len * 0.5));
+    }
+    if (o.vib && len > 0.18) {
+      const lfo = oscNode(ctx, 'triangle', 6.2, t + 0.12, end);
+      const lg = gainNode(ctx, f * o.vib);
+      lfo.connect(lg).connect(osc.frequency);
+    }
+    const lp = filterNode(ctx, 'lowpass', 7200, 0.5);
+    const g = gainNode(ctx, 0);
+    // stepped decay to a sustain level, held, then a quick stepped release
+    const sus = clamp(o.decay ?? 0.62, 0.05, 1);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(amp, t + 0.002);
+    const steps = 4;
+    for (let i = 1; i <= steps; i++) {
+      const tt = t + i * 0.022;
+      if (tt >= t + len) break;
+      g.gain.setValueAtTime(amp * (1 - ((1 - sus) * i) / steps), tt);
+    }
+    const off = t + Math.max(0.01, len);
+    g.gain.setValueAtTime(amp * sus * 0.55, off);
+    g.gain.setValueAtTime(amp * sus * 0.25, off + 0.02);
+    g.gain.setValueAtTime(0, off + 0.04);
+    osc.connect(lp).connect(g).connect(this.panned(dest, pan));
+  }
+
+  /** Sound-chip percussion: triangle-drop kick, crunchy noise snare, ticking noise hats. */
+  chipDrum(t: number, kind: 'kick' | 'snare' | 'hat' | 'open' | 'tom', amp: number, dest: AudioNode, pan = 0, prio: Prio = 1, m = 45): void {
+    const len = kind === 'open' ? 0.16 : kind === 'hat' ? 0.04 : kind === 'snare' ? 0.13 : kind === 'tom' ? 0.14 : 0.12;
+    if (!this.admit(t, t + len, prio)) return;
+    const ctx = this.ctx;
+    const out = this.panned(dest, pan);
+    const crunchy = (f: number, type: BiquadFilterType, a: number, d: number, rate: number) => {
+      const s = noiseNode(ctx, this.nb.white, t, t + d + 0.01, rate);
+      const fl = filterNode(ctx, type, f, 0.8);
+      const g = gainNode(ctx, 0);
+      g.gain.setValueAtTime(a, t);
+      g.gain.setValueAtTime(a * 0.6, t + d * 0.3);
+      g.gain.setValueAtTime(a * 0.3, t + d * 0.6);
+      g.gain.setValueAtTime(0, t + d);
+      s.connect(fl).connect(g).connect(out);
+    };
+    switch (kind) {
+      case 'kick':
+      case 'tom': {
+        const f0 = kind === 'kick' ? 190 : midiToHz(m) * 2;
+        const f1 = kind === 'kick' ? 48 : midiToHz(m);
+        const tri = oscNode(ctx, 'triangle', f0, t, t + len);
+        tri.frequency.setValueAtTime(f0, t);
+        tri.frequency.exponentialRampToValueAtTime(f1, t + len * 0.7);
+        const g = gainNode(ctx, 0);
+        g.gain.setValueAtTime(amp, t);
+        g.gain.setValueAtTime(amp * 0.7, t + len * 0.5);
+        g.gain.setValueAtTime(0, t + len);
+        tri.connect(g).connect(out);
+        if (kind === 'kick') crunchy(3000, 'lowpass', amp * 0.25, 0.012, 0.5);
+        break;
+      }
+      case 'snare':
+        crunchy(2200, 'bandpass', amp, len, 0.55);
+        crunchy(6000, 'highpass', amp * 0.35, len * 0.6, 1);
+        break;
+      case 'hat':
+        crunchy(8000, 'highpass', amp, len, 1);
+        break;
+      case 'open':
+        crunchy(6500, 'highpass', amp, len, 1);
+        break;
+    }
   }
 }

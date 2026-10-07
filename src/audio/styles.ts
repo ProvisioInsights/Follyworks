@@ -1,4 +1,4 @@
-// The six music styles, one per visual theme. Each style declares its tempo, metre, keys, chord
+// The seven music styles, one per visual theme. Each style declares its tempo, metre, keys, chord
 // progressions and motif rhythms (the conductor in music.ts turns those into sections, chords and
 // melodies) and a `create` function that builds its buses and returns the per-16th step function.
 //
@@ -514,4 +514,98 @@ const future: StyleDef = {
   },
 };
 
-export const STYLES: Record<MusicTheme, StyleDef> = { modern, stone, steam, retro, comic, future };
+// ---------------------------------------------------------------------------- arcade
+
+// The secret "Insert Coin" theme: an original cartridge-era chiptune. Two pulse channels (a 25 %
+// lead with an echo copy, a thin 12.5 % channel spelling chords as fast arpeggios), a triangle bass
+// and noise-channel drums. Major with a flat seventh (bVII chords, a b7 in the tune) for that
+// sunny stage-one lilt. All melodies are generated; nothing here quotes a real game.
+const arcade: StyleDef = {
+  id: 'arcade',
+  bpm: [140, 150],
+  beats: 4,
+  swing: 0.5,
+  swingUnit: 16,
+  keys: [57, 60, 55],
+  mode: 'major',
+  sevenths: false,
+  melody: [0, 2, 4, 5, 7, 9, 10],
+  melRange: [12, 29],
+  chordCentre: 7,
+  progA: [[0, 7, 3, 0], [0, 5, 3, 7], [0, 3, 7, 3], [5, 3, 7, 0]],
+  progB: [[3, 7, 0, 0], [5, 3, 1, 7], [3, 3, 7, 7], [1, 7, 3, 0]],
+  chordBars: 1,
+  level: 0.7,
+  rhythms: [
+    'x.x.x.x...x.x...x.x.x.x...x.....',
+    'x..x..x.x.x.x...x..x..x.x.......',
+    'x...x.xxx...x...x.x.x.x...x.....',
+  ],
+  rhythmsB: ['x.xxx.x.x.x.x.x.x.xxx.x.x...x...', 'x.x.x.xxx.x.x...x.x.x.xxx.......'],
+  create(p) {
+    const { inst } = p;
+    const lead = p.bus(1, 0.1);
+    const echo = p.echo(3, 0.28, 0.32);
+    const arpBus = p.bus(1, 0.08, 5200);
+    const bass = p.bus(1, 0, 4000);
+    const drums = p.bus(1, 0.04);
+    // octave-bouncing triangle bass line (root, octave, fifth)
+    const BOUNCE = [0, 12, 0, 12, 7, 12, 0, 10];
+    return (s) => {
+      const { t, I, E, spb, s16 } = s;
+      const run = I > 0.5;
+      const rest = s.kind === 'rest';
+      const brk = s.kind === 'break';
+      const eighth = s.sub % 2 === 0;
+      const shape = s.chord.map((m) => m - s.chord[0]);
+      if (rest) {
+        // the attract screen: one slow chord arpeggio per bar, a ticking hat
+        if (s.step === 0) inst.chip(t, s.chord[0] + 12, 0.035, spb * 2.5, arpBus, 12, 0.2, 2, { arp: shape.concat([12]), arpRate: 0.06, decay: 0.5 });
+        if (s.sub === 0 && s.beat % 2 === 1) inst.chipDrum(t, 'hat', 0.012, drums, 0.3, 0);
+        return;
+      }
+      // triangle bass: bouncing 8ths when running, roots and fifths on the beat while building
+      if (run && !brk) {
+        if (eighth) {
+          const k = (s.step >> 1) % 8;
+          inst.bass(t, s.root + BOUNCE[k], k % 2 ? 0.1 : 0.13, s16 * 1.5, bass, 'chip', k === 0 ? 2 : 1);
+        }
+      } else if (s.sub === 0 && (s.beat % 2 === 0 || I > 0.25)) {
+        inst.bass(t, s.beat === 2 ? s.fifth : s.root, 0.12, spb * 0.7, bass, 'chip');
+      }
+      // the arpeggio channel: a chord spelled as a fast arpeggio, staccato on every beat when
+      // running, a longer shimmer per chord while building
+      if (run && !brk && s.sub === 0) {
+        inst.chip(t, s.chord[0] + 12, 0.03, spb * 0.42, arpBus, 12, 0.25, 1, { arp: shape, arpRate: 0.028, decay: 0.55 });
+      } else if (!run && (s.chordStart || (s.step === 8 && I > 0.25 && !brk))) {
+        inst.chip(t, s.chord[0] + 12, 0.028, spb * 1.6, arpBus, 12, 0.25, 2, { arp: shape, arpRate: 0.045, decay: 0.45 });
+      }
+      // B-section counter line: rippling 16th arpeggio up an octave
+      if (run && s.kind === 'B' && E > 0.8 && s.sub % 2 === 1) {
+        const tones = s.chord.map((m) => m + 24);
+        inst.chip(t, tones[(s.step >> 1) % tones.length], 0.018, s16 * 0.8, arpBus, 12, -0.35, 0, { decay: 0.5 });
+      }
+      // lead: 25 % pulse with vibrato on long notes and an echo channel when running; a mellow
+      // square while building
+      if (s.mel && !brk && (s.kind !== 'intro' || I > 0.5)) {
+        const len = Math.min(s.mel.len, 6) * s16 * 0.88;
+        if (run) {
+          inst.chip(t, s.mel.m, 0.05, len, lead, 25, 0, 1, { vib: 0.012, slideFrom: s.mel.accent && ch(0.3) ? s.mel.m - 2 : 0 });
+          inst.chip(t, s.mel.m, 0.022, len, echo, 50, 0, 0, { decay: 0.5 });
+        } else if (ch(0.55 + 0.4 * I)) {
+          inst.chip(t, s.mel.m, 0.045, len, lead, 50, 0.1, 1, { vib: 0.008, decay: 0.5 });
+        }
+      }
+      // noise-channel drums
+      if (s.step === 0 && I > 0.2) inst.chipDrum(t, 'kick', 0.16, drums);
+      if (s.step === 8 && I > 0.3 && !brk) inst.chipDrum(t, 'kick', 0.14, drums);
+      if (run && s.step === 10 && E > 0.7 && ch(0.5)) inst.chipDrum(t, 'kick', 0.1, drums, 0, 0);
+      if (run && (s.step === 4 || s.step === 12) && !brk) inst.chipDrum(t, 'snare', 0.07, drums, 0.05);
+      if (I > 0.3 && eighth && !(run && (s.step === 4 || s.step === 12))) inst.chipDrum(t, s.sub === 2 && s.beat === 3 && ch(0.3) ? 'open' : 'hat', s.sub === 2 ? 0.03 : 0.02, drums, 0.25, 0);
+      // fill: tom run down the last beat of a section
+      if (run && s.lastBar && s.beat === 3) inst.chipDrum(t, 'tom', 0.12, drums, (s.sub - 1.5) * 0.2, 1, s.root + 12 - s.sub * 3);
+    };
+  },
+};
+
+export const STYLES: Record<MusicTheme, StyleDef> = { modern, stone, steam, retro, comic, future, arcade };
