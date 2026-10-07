@@ -39,3 +39,27 @@ let the machine try first; whether that matters here is a question for playtests
 3. Snap the three "needs fine control" levels so a grid spot works.
 4. Playtest the tutorial and first two groups with 3 to 5 people using the playtest log, then
    compare against this audit and re-tune its thresholds.
+
+## After the first fix pass (same day)
+
+All the pixel-hunting, fine-control, dead-air and slow-start flags in the campaign were worked
+through group by group, mostly by widening catches (gaps a little wider than the bridge with a
+ledge below, landing steps, sensors turned 45° for a wider face), moving references onto the grid,
+and shortening long walks and conveyor runs. Every level still solves headlessly and in Chromium,
+with both its reference and ABSURD builds.
+
+| | Before | After |
+|---|---|---|
+| Median score | 75 | 84 |
+| Levels with pixel hunting | 29 | 2 (6-6, since redesigned; L2) |
+| Levels with dead air (over 6 s) | 9 | 1 (L2) |
+| Levels unsolvable with snapping near the intended spot | 3 | 0 |
+
+A second run with another random seed showed a few levels clearing the bar only narrowly. 6-5, 6-6
+and 6-7 were reworked to pass on both seeds; 6-6 Make A Wish now has three laser and candle pairs
+instead of four, because four beams through one lens could not be made forgiving. The Hot Air and
+Ridiculous Machines levels that were close to the line (4-2, 4-6, 4-7, 4-8, 4-9, 5-2) are being
+widened in a follow-up. fun-audit.md is the run after the first pass.
+
+Not touched yet: the all-or-nothing flags (best answered by a failure explainer in the UI), the
+Physics Lab lessons (L2's 7 s of rolling is the lesson itself) and "silent on RUN".
