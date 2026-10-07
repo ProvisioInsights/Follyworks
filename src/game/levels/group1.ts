@@ -657,4 +657,97 @@ const g1h: CampaignEntry = {
   ],
 };
 
-export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f, g1g, g1h];
+// ---------------------------------------------------------------- 9: seesaw slam dunk
+
+const g1i: CampaignEntry = {
+  chapter: 1,
+  level: {
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    id: 'g1-seesaw-slam',
+    name: 'Seesaw Slam Dunk',
+    description: 'Roll the bowling ball down onto the seesaw and the basketball takes off for a slam dunk. It lands on the toaster lever, the toast rings the bell, and Whiskers goes bowling.',
+    environment: 'garage',
+    world: world(),
+    fixedObjects: [
+      block('g1i-shelf', 345, 150, 190, 14),
+      block('g1i-roof', 390, 86, 110, 10, 'steel'),
+      slope('g1i-ramp-1', 440, 150, 560, 190),
+      slope('g1i-ramp-2', 620, 205, 700, 225),
+      o('g1i-seesaw', 'seesaw', 645, 594, { length: 220, tilt: -15 }),
+      slope('g1i-funnel-l', 770, 430, 840, 490, 'steel', 8),
+      slope('g1i-funnel-r', 960, 420, 888, 490, 'steel', 8),
+      block('g1i-chute-l', 840, 503, 8, 26, 'steel'),
+      block('g1i-chute-r', 888, 503, 8, 26, 'steel'),
+      o('g1i-hoop', 'basketball_hoop', 864, 535),
+      o('g1i-toaster', 'toaster', 1000, 606, { slices: 1, power: 900 }, 0, true),
+      o('g1i-bell', 'bell', 1000, 285),
+      block('g1i-lane-a', 860, 260, 130, 14),
+      block('g1i-lane-b', 1045, 260, 130, 14),
+      o('g1i-ball-bin', 'bucket', 60, FLOOR - 22),
+      o('g1i-crumb-bin', 'bucket', 1080, FLOOR - 22),
+    ],
+    startingObjects: [
+      o('g1i-bowl', 'bowling_ball', 434, 123),
+      o('g1i-bball', 'basketball', 550, 545),
+      o('g1i-cat', 'cat', 1085, 239, {}, 0, true),
+      o('g1i-pin-1', 'bowling_pin', 900, 225),
+      o('g1i-pin-2', 'bowling_pin', 876, 225),
+      o('g1i-pin-3', 'bowling_pin', 852, 225),
+      o('g1i-pin-4', 'bowling_pin', 828, 225),
+      o('g1i-chicken', 'rubber_chicken', 1080, FLOOR - 17),
+    ],
+    connections: [],
+    inventory: [
+      { type: 'ball', count: 1 },
+      { type: 'plank', count: 5 },
+      { type: 'domino', count: 1 },
+    ],
+    goals: [
+      { kind: 'containerCount', container: 'g1i-hoop', count: 1, filter: { id: 'g1i-bball' }, label: 'Slam dunk the basketball' },
+      { kind: 'activate', target: { type: 'bowling_pin' }, count: 3, label: 'Knock down three pins' },
+    ],
+    restrictions: { timeLimit: 25 },
+    bonus: { elegantParts: 6, elegantTime: 14, absurdStages: 19 },
+    hints: [
+      'Nudge the bowling ball with a rolling ball, bridge the hole in its ramp, and stand a plank at the bottom so it drops onto the seesaw.',
+      'The basketball comes out of the net just left of the toaster. A gently sloping plank rolls it onto the lever.',
+      'Whiskers runs left and does not jump holes.',
+    ],
+    metadata: meta(9, 'Heavy goes down, light goes up, toast goes DING.'),
+  },
+  solutions: [
+    {
+      objects: [
+        o('plank-a', 'plank', 170, 102, { length: 200 }, 20 * DEG),
+        o('ball-a', 'ball', 100, 20),
+        o('plank-b', 'plank', 590, 199, { length: 56 }, 15 * DEG),
+        o('plank-e', 'plank', 762, 215, { length: 110 }, 90 * DEG),
+        o('plank-c', 'plank', 900, 600, { length: 90 }, 10 * DEG),
+        o('plank-d', 'plank', 952, 260, { length: 54 }),
+      ],
+      connections: [],
+    },
+    // ABSURD: a domino dropped on the rubber chicken, just for the squawk.
+    {
+      objects: [
+        o('plank-a', 'plank', 170, 102, { length: 200 }, 20 * DEG),
+        o('ball-a', 'ball', 100, 20),
+        o('plank-b', 'plank', 590, 199, { length: 56 }, 15 * DEG),
+        o('plank-e', 'plank', 762, 215, { length: 110 }, 90 * DEG),
+        o('plank-c', 'plank', 900, 600, { length: 90 }, 10 * DEG),
+        o('plank-d', 'plank', 952, 260, { length: 54 }),
+        o('dom-a', 'domino', 1080, 520),
+      ],
+      connections: [],
+    },
+  ],
+  counterexamples: [
+    { why: 'the hole in the ramp is left open', build: { objects: [o('plank-a', 'plank', 170, 102, { length: 200 }, 20 * DEG), o('ball-a', 'ball', 100, 20), o('plank-e', 'plank', 762, 215, { length: 110 }, 90 * DEG), o('plank-c', 'plank', 900, 600, { length: 90 }, 10 * DEG), o('plank-d', 'plank', 952, 260, { length: 54 })], connections: [] } },
+    { why: 'nothing stops the bowling ball, so it sails past the seesaw', build: { objects: [o('plank-a', 'plank', 170, 102, { length: 200 }, 20 * DEG), o('ball-a', 'ball', 100, 20), o('plank-b', 'plank', 590, 199, { length: 56 }, 15 * DEG), o('plank-c', 'plank', 900, 600, { length: 90 }, 10 * DEG), o('plank-d', 'plank', 952, 260, { length: 54 })], connections: [] } },
+    { why: 'nothing rolls the basketball onto the toaster lever', build: { objects: [o('plank-a', 'plank', 170, 102, { length: 200 }, 20 * DEG), o('ball-a', 'ball', 100, 20), o('plank-b', 'plank', 590, 199, { length: 56 }, 15 * DEG), o('plank-e', 'plank', 762, 215, { length: 110 }, 90 * DEG), o('plank-d', 'plank', 952, 260, { length: 54 })], connections: [] } },
+    { why: 'nothing bridges the hole in the lane', build: { objects: [o('plank-a', 'plank', 170, 102, { length: 200 }, 20 * DEG), o('ball-a', 'ball', 100, 20), o('plank-b', 'plank', 590, 199, { length: 56 }, 15 * DEG), o('plank-e', 'plank', 762, 215, { length: 110 }, 90 * DEG), o('plank-c', 'plank', 900, 600, { length: 90 }, 10 * DEG)], connections: [] } },
+    { why: 'a rubber ball dropped on the seesaw is too light to launch the basketball', build: { objects: [o('ball-a', 'ball', 735, 300), o('plank-c', 'plank', 900, 600, { length: 90 }, 10 * DEG), o('plank-d', 'plank', 952, 260, { length: 54 })], connections: [] } },
+  ],
+};
+
+export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f, g1g, g1h, g1i];
