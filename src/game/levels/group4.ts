@@ -589,76 +589,100 @@ const vaultLights: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 4-7: leaf blower: breeze three balls into the bucket
+// ---------------------------------------------------------------- 4-7: balloon yanks the switch, conveyor feeds the air tube, three balls into the hoop
 
-const cleanSweep: CampaignEntry = {
+const M7_BUILD = {
+  candle: o('s-candle', 'candle', 52, 601),
+  fan: o('s-fan', 'fan', 715, 590, { strength: 6, range: 500 }, -90 * DEG),
+  battery: o('s-battery', 'battery', 640, 601),
+  gapA: o('s-gap-a', 'plank', 532, 487, { length: 60 }, 25 * DEG),
+  gapB: o('s-gap-b', 'plank', 658, 540, { length: 50 }, 15 * DEG),
+  cap: o('s-cap', 'plank', 740, 156, { length: 110 }, -30 * DEG),
+  backstop: o('s-backstop', 'plank', 887, 148, { length: 220 }, 115 * DEG),
+};
+
+const threePointer: CampaignEntry = {
   chapter: 4,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g4-clean-sweep',
-    name: 'Clean Sweep',
-    description: 'Tidy all three rubber balls into the bucket at the end of the room. No touching: this is a job for fans.',
+    id: 'g4-three-pointer',
+    name: 'Air Ball',
+    description: 'The greenhouse has a basketball hoop and a brand-new air tube. Free the balloon so it yanks the switch, the conveyor feeds the balls down to the tube, and a fan blasts each one up and over into the hoop.',
     environment: 'greenhouse',
     world: WORLD,
     fixedObjects: [
-      o('g4j-floor', 'wall', 410, 595, { w: 700, h: 70, material: 'concrete' }),
-      o('g4j-notch', 'wall', 775, 602, { w: 30, h: 56, material: 'concrete' }),
-      o('g4j-shelf', 'wall', 800, 300, { w: 220, h: 16, material: 'wood' }),
-      o('g4j-bucket', 'bucket', 900, 608, { anchored: true }),
-      o('g4j-backboard', 'wall', 948, 420, { w: 16, h: 300, material: 'wood' }),
+      o('g4g-hook', 'hook', 50, 612),
+      o('g4g-switch', 'toggle_switch', 80, 380, {}, -90 * DEG),
+      o('g4g-battery', 'battery', 150, 601),
+      o('g4g-conveyor', 'conveyor', 270, 420, { length: 260, speed: 90 }),
+      o('g4g-ramp-1', 'plank', 450, 450, { length: 110 }, 25 * DEG),
+      o('g4g-ramp-2', 'plank', 600, 515, { length: 70 }, 20 * DEG),
+      o('g4g-tube-l', 'wall', 690, 345, { w: 12, h: 310, material: 'steel' }),
+      o('g4g-tube-r', 'wall', 740, 400, { w: 12, h: 320, material: 'steel' }),
+      o('g4g-game-on', 'light_bulb', 200, 300),
+      o('g4g-scoreboard', 'light_bulb', 1000, 330),
+      o('g4g-cactus-1', 'cactus', 980, 601),
+      o('g4g-cactus-2', 'cactus', 1060, 601),
+      o('g4g-hoop', 'basketball_hoop', 800, 300, {}, 0, true),
     ],
-    startingObjects: [o('g4j-ball-a', 'ball', 420, 546), o('g4j-ball-b', 'ball', 600, 546), o('g4j-ball-c', 'ball', 760, 278)],
-    connections: [],
+    startingObjects: [
+      o('g4g-balloon', 'balloon', 50, 300, { lift: 1, color: 'yellow' }),
+      o('g4g-ball-1', 'ball', 180, 395),
+      o('g4g-ball-2', 'ball', 250, 395),
+      o('g4g-ball-3', 'ball', 320, 395),
+    ],
+    connections: [
+      rope('g4g-tether', 'g4g-hook', 'hook', 'g4g-balloon', 'string'),
+      { ...rope('g4g-yank', 'g4g-switch', 'lever', 'g4g-balloon', 'string'), props: { slack: 40 } },
+      wire('g4g-w1', 'g4g-battery', 'out', 'g4g-switch', 'in'),
+      wire('g4g-w2', 'g4g-switch', 'out', 'g4g-conveyor', 'in'),
+      wire('g4g-w3', 'g4g-switch', 'out', 'g4g-game-on', 'in'),
+      wire('g4g-w4', 'g4g-switch', 'out', 'g4g-scoreboard', 'in'),
+    ],
     inventory: [
-      { type: 'battery', count: 1 },
-      { type: 'fan', count: 2 },
-      { type: 'plank', count: 3 },
-      { type: 'ball', count: 1 },
       { type: 'candle', count: 1 },
+      { type: 'fan', count: 1 },
+      { type: 'battery', count: 1 },
+      { type: 'plank', count: 4 },
+      { type: 'magnet', count: 1 },
     ],
-    goals: [{ kind: 'containerCount', container: 'g4j-bucket', count: 3, filter: { type: 'ball' }, label: 'Blow all three balls into the bucket' }],
-    restrictions: { timeLimit: 25 },
-    bonus: { elegantParts: 4, elegantTime: 5, absurdStages: 7 },
+    goals: [{ kind: 'containerCount', container: 'g4g-hoop', count: 3, filter: { type: 'ball' }, label: 'Sink all three balls through the hoop' }],
+    restrictions: { timeLimit: 30 },
+    bonus: { elegantParts: 7, elegantTime: 14, absurdStages: 13 },
     hints: [
-      'A fan pushes rubber balls along just as happily as balloons. Its breeze is a narrow band, so one fan cannot reach both the floor and the shelf.',
-      'The floor stops short of the bucket. Lay a plank across the gap, resting on the little ledge and the bucket rim, and the balls can roll straight in. The backboard catches any that fly too far.',
-      'One fan on the floor behind the two low balls, a second, gentle fan beside the shelf, both wired to one battery, and a plank bridging the gap.',
+      'A candle under the tether frees the balloon, and the balloon yanks the switch that starts the conveyor.',
+      'The balls need a path from the end of the conveyor down to the opening at the bottom of the tube.',
+      'A fan under the tube, pointing up and wired to a battery, blasts each ball up the tube. A plank slanted over the top sends it across to the hoop, and a tall plank past the hoop stops it overshooting.',
     ],
-    metadata: { chapter: 4, order: 7, author: 'Follyworks', blurb: 'Leaf blower, minus the leaves.' },
+    metadata: { chapter: 4, order: 7, author: 'Follyworks', blurb: 'Nothing but net. And air.' },
   },
   solutions: [
     {
-      objects: [
-        o('s-battery', 'battery', 100, 531),
-        o('s-fan', 'fan', 300, 520, { strength: 4, range: 700 }),
-        o('s-fan-2', 'fan', 660, 254, { strength: 1, range: 300 }),
-        o('s-bridge', 'plank', 820, 567, { length: 100 }),
-      ],
-      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 's-fan-2', 'in')],
+      objects: [M7_BUILD.candle, M7_BUILD.fan, M7_BUILD.battery, M7_BUILD.gapA, M7_BUILD.gapB, M7_BUILD.cap, M7_BUILD.backstop],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
     },
-    // ABSURD: a spare ball on the shelf gets shoved off first and goes along for the ride.
+    // ABSURD: the same, plus an electromagnet humming over the cacti, because why not.
     {
-      objects: [
-        o('s-battery', 'battery', 100, 531),
-        o('s-fan', 'fan', 300, 520, { strength: 4, range: 700 }),
-        o('s-fan-2', 'fan', 660, 254, { strength: 1, range: 300 }),
-        o('s-bridge', 'plank', 820, 567, { length: 100 }),
-        o('s-ball', 'ball', 840, 278),
-      ],
-      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 's-fan-2', 'in')],
+      objects: [M7_BUILD.candle, M7_BUILD.fan, M7_BUILD.battery, M7_BUILD.gapA, M7_BUILD.gapB, M7_BUILD.cap, M7_BUILD.backstop, o('s-magnet', 'magnet', 1000, 200)],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 's-magnet', 'in')],
     },
   ],
   counterexamples: [
     {
-      why: 'without a bridge the floor balls drop into the gap in front of the bucket',
-      build: {
-        objects: [
-          o('s-battery', 'battery', 100, 531),
-          o('s-fan', 'fan', 300, 520, { strength: 4, range: 700 }),
-          o('s-fan-2', 'fan', 660, 254, { strength: 1, range: 300 }),
-        ],
-        connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 's-fan-2', 'in')],
-      },
+      why: 'no flame under the tether, so the balloon never yanks the switch',
+      build: { objects: [M7_BUILD.fan, M7_BUILD.battery, M7_BUILD.gapA, M7_BUILD.gapB, M7_BUILD.cap, M7_BUILD.backstop], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
+    },
+    {
+      why: 'the fan is not wired up',
+      build: { objects: [M7_BUILD.candle, M7_BUILD.fan, M7_BUILD.battery, M7_BUILD.gapA, M7_BUILD.gapB, M7_BUILD.cap, M7_BUILD.backstop], connections: [] },
+    },
+    {
+      why: 'the lower gap is left open, so the balls fall short of the tube',
+      build: { objects: [M7_BUILD.candle, M7_BUILD.fan, M7_BUILD.battery, M7_BUILD.gapA, M7_BUILD.cap, M7_BUILD.backstop], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
+    },
+    {
+      why: 'nothing over the top of the tube, so the balls shoot straight up and drop back in',
+      build: { objects: [M7_BUILD.candle, M7_BUILD.fan, M7_BUILD.battery, M7_BUILD.gapA, M7_BUILD.gapB, M7_BUILD.backstop], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
     },
   ],
 };
@@ -956,4 +980,4 @@ const grandOpening: CampaignEntry = {
   ],
 };
 
-export const GROUP_4: CampaignEntry[] = [upUpAndAway, toastDunk, strike, partyPooper, birthdaySurprise, vaultLights, cleanSweep, goingUp, specialDelivery, grandOpening];
+export const GROUP_4: CampaignEntry[] = [upUpAndAway, toastDunk, strike, partyPooper, birthdaySurprise, vaultLights, threePointer, goingUp, specialDelivery, grandOpening];
