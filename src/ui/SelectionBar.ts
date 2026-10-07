@@ -21,6 +21,8 @@ const BAR_TURN = Math.PI / 12;
 const GAP = 12;
 /** Height of the rotate knob above a part, in screen px (ROT_HANDLE_GAP + knob radius). */
 const KNOB_ROOM = 42;
+/** The same with a finger: the knob sits further out and draws a size up (see EditorController). */
+const KNOB_ROOM_TOUCH = 62;
 
 type Rect = { l: number; t: number; r: number; b: number };
 
@@ -102,7 +104,7 @@ export class SelectionBar {
     const free = this.freeRect();
     const cx = (sel.l + sel.r) / 2;
     const cy = (sel.t + sel.b) / 2;
-    const knob = ed.handles()?.rotate ? KNOB_ROOM : 0;
+    const knob = ed.handles()?.rotate ? (ed.touch ? KNOB_ROOM_TOUCH : KNOB_ROOM) : 0;
     const candidates = [
       { x: cx - bw / 2, y: sel.t - knob - GAP - bh },
       { x: cx - bw / 2, y: sel.b + GAP },

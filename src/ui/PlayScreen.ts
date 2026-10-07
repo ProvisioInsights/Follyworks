@@ -311,7 +311,7 @@ export class PlayScreen {
       { class: 'panel tools' },
       (this.els.undo = iconBtn('undo', 'Undo <kbd>Ctrl</kbd>+<kbd>Z</kbd>', () => this.session.undo())),
       (this.els.redo = iconBtn('redo', 'Redo <kbd>Ctrl</kbd>+<kbd>Y</kbd>', () => this.session.redo())),
-      h('div', { class: 'sep' }),
+      h('div', { class: 'sep sel-dupe' }),
       (this.els.rotL = iconBtn('rotateL', 'Rotate left <kbd>Q</kbd> (hold <kbd>Shift</kbd> for 1°)', (e) => this.editor.rotate(-1, e.shiftKey))),
       (this.els.rotR = iconBtn('rotate', 'Rotate right <kbd>E</kbd>', (e) => this.editor.rotate(1, e.shiftKey))),
       (this.els.flip = iconBtn('flip', 'Flip <kbd>F</kbd>', () => this.editor.flip())),
@@ -329,6 +329,8 @@ export class PlayScreen {
         this.render(true);
       })),
     );
+    // On small screens these five live only on the selection's own toolbar (see touch.css).
+    for (const b of [this.els.rotL, this.els.rotR, this.els.flip, this.els.dup, this.els.del]) b.classList.add('sel-dupe');
     this.root.append(this.els.tools);
 
     // dock
@@ -372,6 +374,9 @@ export class PlayScreen {
     this.els.tip = h('div', { class: 'panel tipbar', style: { display: 'none' } });
     this.root.append(this.els.tip);
 
+    // Phones held upright: the room is wide, so ask for landscape (shown by touch.css only).
+    this.root.append(h('div', { class: 'rotate-hint', 'aria-live': 'polite' }, h('div', { class: 'rh-phone' }), h('p', null, 'Turn your phone sideways to build.')));
+
     this.resizeObs = new ResizeObserver(() => this.applyInsets());
     this.resizeObs.observe(this.els.bin);
     this.resizeObs.observe(document.body);
@@ -383,7 +388,10 @@ export class PlayScreen {
     const right = this.cfg.kind === 'editor' ? 320 : 20;
     // the top bar's height depends on the interface style (a flush bar or floating pills)
     const top = Math.max(58, Math.round(this.els.topbar.getBoundingClientRect().bottom) + 2);
-    this.app.scene.setInsets({ top, left: bin.right + 6, right, bottom: 78 });
+    // the dock and tools float over the bottom edge; their height shrinks on small screens
+    const low = Math.min(this.els.dock.getBoundingClientRect().top, this.els.tools.style.display === 'none' ? Infinity : this.els.tools.getBoundingClientRect().top);
+    const bottom = Number.isFinite(low) && low > 0 ? Math.max(54, Math.min(78, Math.round(window.innerHeight - low) + 4)) : 78;
+    this.app.scene.setInsets({ top, left: bin.right + 6, right, bottom });
     this.placeDock();
   }
 
@@ -929,10 +937,26 @@ export class PlayScreen {
 
   private showControls() {
     const row = (k: string, d: string) => h('div', { style: { display: 'flex', justifyContent: 'space-between', gap: '16px', padding: '3px 0' } }, h('span', null, d), h('span', { html: k }));
+    // a tablet or phone has no keys to list: show the finger gestures instead
+    const touchRows = h(
+      'div',
+      { style: { fontSize: '14px' } },
+      row('drag from the bin', 'Place a part (it rides just above your finger)'),
+      row('tap the bin, then tap', 'Place a part exactly where you tap'),
+      row('tap / drag', 'Select / move a part'),
+      row('drag the round knob', 'Turn it'),
+      row('two fingers on it, twist', 'Turn the part you are holding'),
+      row('drag an end grip', 'Swing and stretch a plank or conveyor'),
+      row('double-tap the knob', 'Straighten'),
+      row('toolbar by the part', 'Turn 15°, flip, duplicate, delete'),
+      row('pinch / two-finger drag', 'Zoom / pan the room'),
+    );
+    const coarse = window.matchMedia?.('(pointer: coarse)').matches;
     modal(this.app.ui, {
       title: 'Controls',
       body: [
-        h(
+        coarse ? touchRows : null,
+        coarse ? null : h(
           'div',
           { style: { columns: '2', columnGap: '28px', fontSize: '14px' } },
           row('<kbd>Space</kbd>', 'Run / reset'),
@@ -956,8 +980,8 @@ export class PlayScreen {
           row('<kbd>H</kbd>', 'Hint'),
           row('<kbd>Esc</kbd>', 'Cancel / reset'),
         ),
-        h('p', { class: 'muted', style: { fontSize: '13px', marginBottom: '0' } }, 'Ropes, belts and wires live in the parts bin: pick one, then click the two things to connect. Ropes can be routed over pulleys by clicking them on the way.'),
-      ],
+        h('p', { class: 'muted', style: { fontSize: '13px', marginBottom: '0' } }, 'Ropes, belts and wires live in the parts bin: pick one, then click (or tap) the two things to connect. Ropes can be routed over pulleys by clicking them on the way.'),
+      ].filter(Boolean) as HTMLElement[],
       actions: [{ label: 'Got it', kind: 'primary', onClick: () => {} }],
       width: 620,
     });

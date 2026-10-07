@@ -62,6 +62,7 @@ node e2e/acceptance.mjs      # move/rotate/duplicate/delete, pan/zoom, slow moti
 node e2e/campaign.mjs        # plays every level with its reference solution in the real browser
 node e2e/transform.mjs       # knob, end swing, corner turn, R reset, selection toolbar by mouse; overlap refusal; goal tags
 node e2e/difficulty.mjs      # first-time chooser, Settings change + restart, badges, every hint tier, per-difficulty progress and map badges
+node e2e/touch.mjs           # real touch input on an emulated iPad and iPhone: drag from the bin, tap, move, knob, twist, pinch, tap-to-place, phone-upright prompt
 ```
 
 Each takes an optional URL argument and exits non-zero on failure. Set `SHOTS=<dir>` to save screenshots. Set `CHROMIUM=<path>` if Chromium is not at `/opt/pw-browsers/chromium`.
@@ -92,6 +93,21 @@ Each takes an optional URL argument and exits non-zero on failure. Set `SHOTS=<d
 | Mute | `M` |
 
 Ropes, belts and wires are tools in the parts bin: pick one, then click the two things to join. Glowing sockets show where a connection can go.
+
+### Touch (tablets and phones)
+
+Parts stay their normal size; fingers get a longer reach instead (handles and small parts respond from about twice as far as a mouse pointer, and handles draw a size up).
+
+| Action | Touch |
+| --- | --- |
+| Place a part | Drag it out of the parts bin (it rides just above your finger so you can see where it lands), or tap it in the bin and then tap the stage |
+| Select / move | Tap a part / drag it; tap empty floor to deselect |
+| Rotate | Drag the knob, or put a second finger down while holding the part and twist |
+| Swing / resize, straighten | Drag the end grips; double-tap the knob |
+| Turn 15°, flip, duplicate, delete | The toolbar that floats beside the selected part |
+| Zoom / pan | Pinch / two-finger drag anywhere off the part you hold |
+
+On a phone the HUD goes compact (narrower bin, smaller bars, the turn/flip/copy/delete buttons live only on the selection toolbar), and held upright it asks to be turned sideways.
 
 ## Debug URL parameters
 

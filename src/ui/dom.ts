@@ -106,7 +106,8 @@ export function installTooltips() {
   tipEl = h('div', { class: 'tooltip', style: { display: 'none' } });
   document.body.appendChild(tipEl);
   document.addEventListener('pointerover', (e) => {
-    const t = (e.target as HTMLElement).closest?.('[data-tip]') as HTMLElement | null;
+    // fingers have no hover: a tip would pop up on every tap and linger
+    const t = e.pointerType === 'mouse' ? ((e.target as HTMLElement).closest?.('[data-tip]') as HTMLElement | null) : null;
     clearTimeout(tipTimer);
     if (!t || !tipEl) {
       if (tipEl) tipEl.style.display = 'none';

@@ -24,6 +24,13 @@ const ROT_STEP = Math.PI / 12;
 const ROT_HANDLE_GAP = 30;
 /** Screen-pixel radius of the invisible turn zones just outside each corner of the selection. */
 const CORNER_ZONE = 14;
+/** Touch: the rotate knob sits further out so a fingertip on it never covers the part. */
+const ROT_HANDLE_GAP_TOUCH = 44;
+/** Touch: screen-pixel reach of a handle, and of the turn zones, for a fingertip. */
+const TOUCH_HANDLE_REACH = 24;
+const CORNER_ZONE_TOUCH = 22;
+/** Touch: a part dragged out of the bin rides this far (screen px) above the finger so it stays in view. */
+const TOUCH_LIFT = 44;
 /** Two presses on the knob within this many ms reset the angle. */
 const DOUBLE_PRESS_MS = 380;
 /** A curved-arrow cursor for the corner turn zones (CSS has no rotate cursor). */
@@ -67,9 +74,15 @@ export interface ManipReadout {
 
 type Drag =
   | { kind: 'move'; ids: string[]; start: Vec; moved: boolean; offset: Vec; valid: boolean; lastCheck: number }
-  | { kind: 'place'; obj: ObjectDef; sticky: boolean; offset: Vec; valid: boolean; lastCheck: number; overCanvas: boolean }
+  | { kind: 'place'; obj: ObjectDef; sticky: boolean; offset: Vec; valid: boolean; lastCheck: number; overCanvas: boolean; lift: boolean }
   | { kind: 'box'; start: Vec; now: Vec; additive: boolean }
   | { kind: 'pan'; last: Vec }
+  /**
+   * Two fingers down. Over a selected part that the first finger had grabbed, twisting turns it
+   * (`turn` holds the live rotate preview, committed like a knob drag); anywhere else the pair
+   * pinches to zoom and drags to pan the board.
+   */
+  | { kind: 'pinch'; ids: [number, number]; dist: number; angle: number; mid: Vec; turn: Extract<Drag, { kind: 'reshape' }> | null }
   | { kind: 'region'; goal: number; mode: 'move' | 'resize'; start: Vec; orig: { x: number; y: number; w: number; h: number } }
   | {
       kind: 'reshape';
@@ -113,6 +126,10 @@ export class EditorController {
   /** The corner turn zone under the pointer (for its hint arc), if any. */
   hoverCorner: Vec | null = null;
   enabled = true;
+  /** The last press came from a finger (or pen): handles draw larger and reach further. */
+  touch = false;
+  /** Fingers / pens currently down, by pointer id, in client coordinates (for two-finger gestures). */
+  private touches = new Map<number, Vec>();
   /** Marquee element for box select. */
   private marquee: HTMLDivElement;
 
@@ -134,6 +151,7 @@ export class EditorController {
     on(canvas, 'pointerdown', (e) => this.onDown(e));
     on(window, 'pointermove', (e) => this.onMove(e));
     on(window, 'pointerup', (e) => this.onUp(e));
+    on(window, 'pointercancel', (e) => this.onCancel(e));
     on(canvas, 'wheel', (e) => this.onWheel(e), { passive: false });
     on(canvas, 'contextmenu', (e) => e.preventDefault());
   }
@@ -179,11 +197,17 @@ export class EditorController {
     const r = this.canvas.getBoundingClientRect();
     return this.scene.screenToWorld(e.clientX - r.left, e.clientY - r.top);
   }
-  private overCanvas(e: { clientX: number; clientY: number; target: EventTarget | null }) {
-    return e.target === this.canvas;
+  /**
+   * Whether the pointer is over the stage itself (not a panel above it). Hit-tested rather than
+   * read from the event target: a finger's events stay with the element it first touched.
+   */
+  private overCanvas(e: { clientX: number; clientY: number }) {
+    return document.elementFromPoint(e.clientX, e.clientY) === this.canvas;
   }
+  /** World-space pick reach for a screen-space `base`; fingers get roughly twice the reach of a mouse. */
   private pickRadius(base: number) {
-    return Math.max(base, (base * 1.2) / Math.max(0.3, this.scene.zoom));
+    const b = this.touch ? Math.max(base * 2, 18) : base;
+    return Math.max(b, (b * 1.2) / Math.max(0.3, this.scene.zoom));
   }
   private snapV(v: number) {
     return this.snap ? Math.round(v / GRID) * GRID : Math.round(v);
@@ -246,6 +270,19 @@ export class EditorController {
 
   private onDown(ev: PointerEvent) {
     if (!this.enabled) return;
+    this.touch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+    if (ev.pointerType === 'touch') {
+      // the first finger of a new gesture: forget any finger whose lift we never saw
+      if (ev.isPrimary) this.touches.clear();
+      this.touches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (this.touches.size === 2 && this.drag?.kind !== 'place') {
+        this.beginPinch();
+        return;
+      }
+      // a third finger, or the second while a part is being placed, is ignored
+      if (this.touches.size > 1) return;
+    }
+    if (this.drag?.kind === 'pinch') return;
     this.canvas.focus?.();
     this.hoverCorner = null;
     const p = this.world(ev);
@@ -259,7 +296,10 @@ export class EditorController {
       return;
     }
     if (this.drag?.kind === 'place') {
-      // sticky placement: click to drop
+      // sticky placement: click (or tap) to drop. A finger never hovered, so put the part where
+      // it touched first.
+      this.drag.lift = false;
+      this.movePlace(this.drag, ev, p);
       this.finishPlace(this.drag);
       return;
     }
@@ -340,6 +380,16 @@ export class EditorController {
 
   private onMove(ev: PointerEvent) {
     if (!this.enabled) return;
+    if (ev.pointerType === 'touch' && this.touches.has(ev.pointerId)) {
+      this.touches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (this.drag?.kind === 'pinch') {
+        this.updatePinch(this.drag, ev);
+        this.changed();
+        return;
+      }
+      // the finger left over after a two-finger gesture does nothing until it lifts
+      if (this.touches.size > 1 || !this.drag) return;
+    }
     const p = this.world(ev);
     this.lastPointer = p;
     const d = this.drag;
@@ -369,20 +419,9 @@ export class EditorController {
         this.throttledCheck(d);
         break;
       }
-      case 'place': {
-        d.overCanvas = this.overCanvas(ev);
-        const v = this.scene.view(d.obj.id);
-        const tx = this.snapping(ev) ? this.snapV(p.x) : p.x;
-        const ty = this.snapping(ev) ? this.snapV(p.y) : p.y;
-        const s = this.gearSnap(d.obj, tx, ty) ?? { x: tx, y: ty };
-        d.offset = { x: s.x - d.obj.x, y: s.y - d.obj.y };
-        if (v) {
-          v.dragOffset = d.offset;
-          v.root.setAlpha(d.overCanvas ? 1 : 0);
-        }
-        this.throttledCheck(d);
+      case 'place':
+        this.movePlace(d, ev, p);
         break;
-      }
       case 'box':
         d.now = p;
         this.showMarquee(d);
@@ -403,7 +442,16 @@ export class EditorController {
   }
 
   private onUp(ev: PointerEvent) {
+    const had = this.touches.delete(ev.pointerId);
     if (!this.enabled) return;
+    if (ev.pointerType === 'touch') {
+      if (this.drag?.kind === 'pinch') {
+        if (had) this.endPinch(this.drag);
+        return;
+      }
+      // the leftover finger of a finished gesture lifting
+      if (had && this.touches.size && !this.drag) return;
+    }
     const d = this.drag;
     if (!d) return;
     switch (d.kind) {
@@ -432,10 +480,13 @@ export class EditorController {
       }
       case 'place':
         // A drag from the bin that ends on the canvas places; a click in the bin becomes sticky
-        // (the part follows the cursor until the next click on the canvas).
+        // (the part follows the cursor until the next click on the canvas, or waits for a tap).
         if (!d.sticky) {
-          if (ev.target === this.canvas) this.finishPlace(d);
-          else d.sticky = true;
+          if (this.overCanvas(ev)) this.finishPlace(d);
+          else {
+            d.sticky = true;
+            d.lift = false;
+          }
         }
         break;
       case 'box': {
@@ -454,31 +505,10 @@ export class EditorController {
         }
         break;
       }
-      case 'reshape': {
+      case 'reshape':
         this.drag = null;
-        this.manip = null;
-        const o = this.session.find(d.id);
-        if (!o) break;
-        const final: Shape = { x: o.x, y: o.y, angle: o.angle || 0, props: { ...(o.props ?? {}) } };
-        // put the live preview back so the commit records a proper undo step
-        this.applyShape(o, d.orig);
-        if (!d.changed) {
-          this.rebuild();
-          break;
-        }
-        this.checkReshape(d, final);
-        this.scene.view(d.id)?.setGhost(false, true);
-        this.invalid.clear();
-        if (!d.valid) {
-          this.rebuild();
-          this.fb.sfx('error');
-          this.fb.toast(d.mode === 'rotate' ? 'No room to rotate there.' : 'No room to make it that size.', 'warn');
-        } else {
-          this.session.reshapeObject(d.id, final);
-          this.fb.sfx(d.mode === 'rotate' ? 'rotate' : 'place');
-        }
+        this.commitReshape(d);
         break;
-      }
       case 'region': {
         this.drag = null;
         const goal = this.session.level.goals[d.goal] as any;
@@ -492,6 +522,139 @@ export class EditorController {
     }
     this.changed();
   }
+
+  /** Hand a finished knob / grip / twist drag to the Session as one undo step, or refuse it. */
+  private commitReshape(d: Extract<Drag, { kind: 'reshape' }>) {
+    this.manip = null;
+    const o = this.session.find(d.id);
+    if (!o) return;
+    const final: Shape = { x: o.x, y: o.y, angle: o.angle || 0, props: { ...(o.props ?? {}) } };
+    // put the live preview back so the commit records a proper undo step
+    this.applyShape(o, d.orig);
+    if (!d.changed) {
+      this.rebuild();
+      return;
+    }
+    this.checkReshape(d, final);
+    this.scene.view(d.id)?.setGhost(false, true);
+    this.invalid.clear();
+    if (!d.valid) {
+      this.rebuild();
+      this.fb.sfx('error');
+      this.fb.toast(d.mode === 'rotate' ? 'No room to rotate there.' : 'No room to make it that size.', 'warn');
+    } else {
+      this.session.reshapeObject(d.id, final);
+      this.fb.sfx(d.mode === 'rotate' ? 'rotate' : 'place');
+    }
+  }
+
+  /** The browser took the pointer away (a scroll, a system gesture): drop whatever it was doing. */
+  private onCancel(ev: PointerEvent) {
+    this.touches.delete(ev.pointerId);
+    if (!this.enabled) return;
+    const d = this.drag;
+    if (!d) return;
+    if (d.kind === 'pinch') this.endPinch(d);
+    else if (d.kind === 'place' && d.sticky) return;
+    else {
+      if (d.kind === 'move')
+        for (const id of d.ids) {
+          const v = this.scene.view(id);
+          if (v) v.dragOffset = { x: 0, y: 0 };
+        }
+      this.cancel();
+      this.rebuild();
+    }
+  }
+
+  // ------------------------------------------------------------------ two-finger gestures
+
+  private fingerPair(ids: [number, number]) {
+    const a = this.touches.get(ids[0])!;
+    const b = this.touches.get(ids[1])!;
+    return { a, b, dist: Math.hypot(b.x - a.x, b.y - a.y), angle: Math.atan2(b.y - a.y, b.x - a.x), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+  }
+
+  /**
+   * A second finger came down. If the first had grabbed the one selected part (to move it, or by
+   * a handle), the pair now twists that part; otherwise whatever the first finger started is
+   * undone and the pair zooms and pans the board.
+   */
+  private beginPinch() {
+    const ids = [...this.touches.keys()] as [number, number];
+    const prev = this.drag;
+    let turnId: string | null = null;
+    if (prev?.kind === 'move' && prev.ids.length === 1) turnId = prev.ids[0];
+    if (prev?.kind === 'reshape') turnId = prev.id;
+    // undo the first finger's live preview
+    if (prev?.kind === 'move') {
+      for (const id of prev.ids) {
+        const v = this.scene.view(id);
+        if (v) v.dragOffset = { x: 0, y: 0 };
+        v?.setGhost(false, true);
+      }
+      this.invalid.clear();
+    }
+    if (prev?.kind === 'reshape') {
+      const o = this.session.find(prev.id);
+      if (o) this.applyShape(o, prev.orig);
+      this.manip = null;
+      this.invalid.clear();
+      this.rebuild();
+    }
+    if (prev?.kind === 'box') this.marquee.style.display = 'none';
+    if (prev?.kind === 'region') (this.session.level.goals[prev.goal] as any).region = prev.orig;
+    const o = turnId ? this.session.find(turnId) : null;
+    const turnable = !!o && !!getComponent(o.type)?.rotatable && this.editable(o.id);
+    const f = this.fingerPair(ids);
+    const turn: Extract<Drag, { kind: 'reshape' }> | null = turnable
+      ? { kind: 'reshape', id: o!.id, mode: 'rotate', orig: { x: o!.x, y: o!.y, angle: o!.angle || 0, props: { ...(o!.props ?? {}) } }, grab: 0, grabOff: { x: 0, y: 0 }, valid: true, changed: false, lastCheck: 0 }
+      : null;
+    this.drag = { kind: 'pinch', ids, dist: f.dist, angle: f.angle, mid: f.mid, turn };
+    this.hoverCorner = null;
+    if (turn) this.fb.sfx('pickup', { vol: 0.5 });
+    this.changed();
+  }
+
+  private updatePinch(d: Extract<Drag, { kind: 'pinch' }>, ev: PointerEvent) {
+    if (!this.touches.has(d.ids[0]) || !this.touches.has(d.ids[1])) return;
+    const f = this.fingerPair(d.ids);
+    if (d.turn) {
+      const t = d.turn;
+      const o = this.session.find(t.id);
+      if (!o) return;
+      const step = this.dragStep(o.type, ev.altKey);
+      let twist = wrapAngle(f.angle - d.angle);
+      let angle = t.orig.angle + twist;
+      if (step) angle = Math.round(angle / step) * step;
+      twist = angle - t.orig.angle;
+      const next: Shape = { ...t.orig, props: { ...t.orig.props }, angle };
+      this.manip = {
+        deg: Math.round(((wrapAngle(angle) * 180) / Math.PI) * 10) / 10,
+        length: null,
+        pointer: this.world({ clientX: f.b.x, clientY: f.b.y }),
+        pivot: { x: t.orig.x, y: t.orig.y },
+        guide: step !== null && onGuideAngle(angle) ? { x: t.orig.x, y: t.orig.y, angle } : null,
+      };
+      this.previewShape(t, o, next);
+      return;
+    }
+    const r = this.canvas.getBoundingClientRect();
+    if (d.dist > 0 && f.dist > 0) this.scene.zoomAt(f.dist / d.dist, { x: f.mid.x - r.left, y: f.mid.y - r.top });
+    this.scene.panBy(f.mid.x - d.mid.x, f.mid.y - d.mid.y);
+    d.dist = f.dist;
+    d.mid = f.mid;
+  }
+
+  /** Either finger lifted: commit a twist; the other finger is ignored until it lifts too. */
+  private endPinch(d: Extract<Drag, { kind: 'pinch' }>) {
+    this.drag = null;
+    if (d.turn) this.commitReshape(d.turn);
+    this.manip = null;
+    this.changed();
+  }
+
+  // ------------------------------------------------------------------ wheel
 
   private onWheel(ev: WheelEvent) {
     ev.preventDefault();
@@ -660,7 +823,8 @@ export class EditorController {
     const resize: TransformHandles['resize'] = [];
     if (def.resize?.w) resize.push({ pos: at(w / 2, 0), axis: 'w', sign: 1, swing: turnEnds && long === 'w' }, { pos: at(-w / 2, 0), axis: 'w', sign: -1, swing: turnEnds && long === 'w' });
     if (def.resize?.h) resize.push({ pos: at(0, h / 2), axis: 'h', sign: 1, swing: turnEnds && long === 'h' }, { pos: at(0, -h / 2), axis: 'h', sign: -1, swing: turnEnds && long === 'h' });
-    const rotate = def.rotatable ? { pos: at(0, -h / 2 - ROT_HANDLE_GAP / z), base: at(0, -h / 2) } : null;
+    const gap = this.touch ? ROT_HANDLE_GAP_TOUCH : ROT_HANDLE_GAP;
+    const rotate = def.rotatable ? { pos: at(0, -h / 2 - gap / z), base: at(0, -h / 2) } : null;
     const corners = def.rotatable ? [at(-w / 2, -h / 2), at(w / 2, -h / 2), at(w / 2, h / 2), at(-w / 2, h / 2)] : [];
     return { center: { x: o.x, y: o.y }, rotate, resize, corners, u, v };
   }
@@ -673,13 +837,16 @@ export class EditorController {
     const hs = this.handles();
     if (!hs || this.drag) return null;
     const id = [...this.selected][0];
-    const r = this.pickRadius(11);
+    const z = Math.max(0.3, this.scene.zoom);
+    const r = this.touch ? TOUCH_HANDLE_REACH / z : this.pickRadius(11);
     if (hs.rotate && Math.hypot(p.x - hs.rotate.pos.x, p.y - hs.rotate.pos.y) < r) return { id, mode: 'rotate', knob: true };
     let best: TransformHandles['resize'][number] | null = null;
-    let bd = r;
+    let bd = Infinity;
     for (const q of hs.resize) {
       const dq = Math.hypot(p.x - q.pos.x, p.y - q.pos.y);
-      if (dq < bd) {
+      // a fingertip's reach never swallows the middle of a short part, so it can still be dragged
+      const reach = this.touch ? Math.max(this.pickRadius(11) / 2, Math.min(r, 0.35 * Math.hypot(q.pos.x - hs.center.x, q.pos.y - hs.center.y))) : r;
+      if (dq < reach && dq < bd) {
         bd = dq;
         best = q;
       }
@@ -703,8 +870,9 @@ export class EditorController {
     const lp = local(p);
     const half = local(hs.corners[2]);
     if (Math.abs(lp.x) <= Math.abs(half.x) && Math.abs(lp.y) <= Math.abs(half.y)) return null;
-    const zr = CORNER_ZONE / z;
-    const k = (CORNER_ZONE * 0.6) / z;
+    const zone = this.touch ? CORNER_ZONE_TOUCH : CORNER_ZONE;
+    const zr = zone / z;
+    const k = (zone * 0.6) / z;
     for (const c of hs.corners) {
       const lc = local(c);
       const sx = Math.sign(lc.x) || 1;
@@ -782,6 +950,11 @@ export class EditorController {
       pivot,
       guide: turns && step !== null && onGuideAngle(axisAngle) ? { x: pivot.x, y: pivot.y, angle: axisAngle } : null,
     };
+    this.previewShape(d, o, next);
+  }
+
+  /** Show a reshape candidate live: edit the document object in place and re-check it for overlaps. */
+  private previewShape(d: Extract<Drag, { kind: 'reshape' }>, o: ObjectDef, next: Shape) {
     const same = next.x === o.x && next.y === o.y && next.angle === (o.angle || 0) && JSON.stringify(next.props) === JSON.stringify(o.props ?? {});
     if (same) return;
     d.changed = next.x !== d.orig.x || next.y !== d.orig.y || next.angle !== d.orig.angle || JSON.stringify(next.props) !== JSON.stringify(d.orig.props);
@@ -807,7 +980,7 @@ export class EditorController {
 
   // ------------------------------------------------------------------ placing from the bin
 
-  beginPlace(type: string, ev: { clientX: number; clientY: number }) {
+  beginPlace(type: string, ev: { clientX: number; clientY: number; pointerType?: string }) {
     this.cancel();
     if (type === 'rope' || type === 'belt' || type === 'wire') {
       this.setTool(type);
@@ -822,13 +995,30 @@ export class EditorController {
     const p = this.world(ev);
     const obj = this.session.makeObject(type, this.snapV(p.x), this.snapV(p.y));
     this.rebuild([obj]);
-    this.drag = { kind: 'place', obj, sticky: false, offset: { x: 0, y: 0 }, valid: true, lastCheck: 0, overCanvas: false };
+    this.touch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+    this.drag = { kind: 'place', obj, sticky: false, offset: { x: 0, y: 0 }, valid: true, lastCheck: 0, overCanvas: false, lift: ev.pointerType === 'touch' };
     this.scene.view(obj.id)?.setGhost(true, true);
     const v = this.scene.view(obj.id);
     if (v) v.root.setAlpha(0);
     this.selected = new Set();
     this.fb.sfx('pickup', { vol: 0.7 });
     this.changed();
+  }
+
+  /** Follow the pointer with the part being placed (snapped, gear-meshed, hidden off the stage). */
+  private movePlace(d: Extract<Drag, { kind: 'place' }>, ev: PointerEvent, p: Vec) {
+    d.overCanvas = this.overCanvas(ev);
+    if (d.lift) p = { x: p.x, y: p.y - TOUCH_LIFT / Math.max(0.3, this.scene.zoom) };
+    const v = this.scene.view(d.obj.id);
+    const tx = this.snapping(ev) ? this.snapV(p.x) : p.x;
+    const ty = this.snapping(ev) ? this.snapV(p.y) : p.y;
+    const s = this.gearSnap(d.obj, tx, ty) ?? { x: tx, y: ty };
+    d.offset = { x: s.x - d.obj.x, y: s.y - d.obj.y };
+    if (v) {
+      v.dragOffset = d.offset;
+      v.root.setAlpha(d.overCanvas ? 1 : 0);
+    }
+    this.throttledCheck(d);
   }
 
   private finishPlace(d: Extract<Drag, { kind: 'place' }>) {

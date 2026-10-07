@@ -11,6 +11,7 @@ import '@fontsource/vt323/400.css';
 import './ui/styles.css';
 import './ui/modern.css';
 import './ui/arcade.css';
+import './ui/touch.css';
 import './components';
 import { App } from './app/App';
 
