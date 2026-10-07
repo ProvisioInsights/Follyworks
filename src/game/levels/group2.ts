@@ -175,7 +175,7 @@ const leverExpectations: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 2-3: trampolines as springs
+// ---------------------------------------------------------------- 2-3: mousetrap relay into the hoop
 
 const springFever: CampaignEntry = {
   chapter: 2,
@@ -184,45 +184,68 @@ const springFever: CampaignEntry = {
     id: 'g2-spring-fever',
     name: 'Spring Fever',
     description:
-      'Two rubber balls are about to drop down the chute, and the bolted-down trampoline will only bounce them into the corner. Bounce them over the wall into the planter instead.',
+      'Score a basket with the basketball on the top shelf. Mousetraps make great springs: anything that lands on one goes flying up and forward.',
     environment: 'greenhouse',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g2c-slope', 'wall', 130, 180, { w: 150, h: 12, material: 'wood' }, 0.2),
-      o('g2c-chute-r', 'wall', 258, 270, { w: 12, h: 220, material: 'wood' }),
-      o('g2c-chute-l', 'wall', 212, 300, { w: 12, h: 160, material: 'wood' }),
-      o('g2c-wall', 'wall', 480, 550, { w: 20, h: 160, material: 'brick' }),
-      o('g2c-planter', 'wall', 770, 590, { w: 16, h: 80, material: 'wood' }),
+      o('g2c-ramp', 'plank', 130, 150, { length: 220 }, 0.25),
+      o('g2c-stool', 'plank', 430, 500, { length: 160 }),
+      o('g2c-shelf', 'plank', 690, 300, { length: 200 }),
+      o('g2c-shelf-2', 'plank', 955, 280, { length: 170 }),
+      o('g2c-chute-l', 'plank', 1031, 405, { length: 150 }, Math.PI / 2),
+      o('g2c-chute-r', 'plank', 1093, 380, { length: 300 }, Math.PI / 2),
+      o('g2c-hoop', 'basketball_hoop', 630, 507),
     ],
-    startingObjects: [o('g2c-ball-a', 'ball', 80, 150), o('g2c-ball-b', 'ball', 130, 160), o('g2c-tramp', 'trampoline', 236, 600, {}, -0.35)],
+    startingObjects: [o('g2c-ball', 'ball', 40, 104), o('g2c-hoopball', 'basketball', 1020, 257), o('g2c-chicken', 'rubber_chicken', 640, 620)],
     connections: [],
     inventory: [
-      { type: 'trampoline', count: 2 },
+      { type: 'mousetrap', count: 2 },
       { type: 'plank', count: 2 },
-      { type: 'ball', count: 1 },
+      { type: 'trampoline', count: 1 },
     ],
-    goals: [
-      { kind: 'enterRegion', target: { id: 'g2c-ball-a' }, region: { x: 780, y: 500, w: 290, h: 130 }, hold: 0.5, label: 'Land the first ball in the planter' },
-      { kind: 'enterRegion', target: { id: 'g2c-ball-b' }, region: { x: 780, y: 500, w: 290, h: 130 }, hold: 0.5, label: 'Land the second ball in the planter' },
-    ],
+    goals: [{ kind: 'containerCount', container: 'g2c-hoop', count: 1, filter: { type: 'basketball' }, label: 'Swish the basketball through the hoop' }],
     restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 1, elegantTime: 5, absurdStages: 4 },
+    bonus: { elegantParts: 3, elegantTime: 7, absurdStages: 6 },
     hints: [
-      'A trampoline is a spring: whatever lands on it is thrown back out along the direction the mat faces.',
-      'You cannot turn the bolted-down trampoline, but you can catch the balls before they reach it.',
-      'Put your own trampoline under the chute, above the old one, and tilt it a little to the right.',
+      'A mousetrap throws whatever lands on it the same way every time: up and forward. Flip it to throw the other way.',
+      'Catch the rubber ball with a mousetrap on the stool to throw it up to the shelf, and bridge the gap so it can roll into the basketball.',
+      'Put a mousetrap on the stool, lay a plank across the gap in the shelf, and set a flipped mousetrap on the floor under the chute.',
     ],
     metadata: { chapter: 2, order: 3, author: 'Follyworks', blurb: 'Boing, with intent.' },
   },
   solutions: [
-    { objects: [o('s-tramp', 'trampoline', 236, 520, {}, 0.3)], connections: [] },
-    { objects: [o('s-tramp', 'trampoline', 236, 480, {}, 0.5)], connections: [] },
-    // ABSURD: a third ball joins the queue and everyone bumps into everyone on the way over.
-    { objects: [o('s-tramp', 'trampoline', 236, 480, {}, 0.3), o('s-ball', 'ball', 236, 100)], connections: [] },
+    {
+      objects: [
+        o('s-trap', 'mousetrap', 400, 488),
+        o('s-bridge', 'plank', 830, 287, { length: 76 }, -0.245),
+        o('s-trap-2', 'mousetrap', 1062, 620, {}, 0, true),
+      ],
+      connections: [],
+    },
+    // ABSURD: the rubber ball boings off a trampoline on the stool before it lands on the mousetrap.
+    {
+      objects: [
+        o('s-trap', 'mousetrap', 400, 488),
+        o('s-tramp', 'trampoline', 745, 278, { power: 0.5 }),
+        o('s-bridge', 'plank', 830, 287, { length: 76 }, -0.245),
+        o('s-trap-2', 'mousetrap', 1062, 620, {}, 0, true),
+      ],
+      connections: [],
+    },
+  ],
+  counterexamples: [
+    {
+      why: 'with no bridge the rubber ball drops through the gap in the shelf',
+      build: { objects: [o('s-trap', 'mousetrap', 400, 488), o('s-trap-2', 'mousetrap', 1062, 620, {}, 0, true)], connections: [] },
+    },
+    {
+      why: 'the basketball just lands on the floor without a mousetrap under the chute',
+      build: { objects: [o('s-trap', 'mousetrap', 400, 488), o('s-bridge', 'plank', 830, 287, { length: 76 }, -0.245)], connections: [] },
+    },
   ],
 };
 
-// ---------------------------------------------------------------- 2-4: redirected pull
+// ---------------------------------------------------------------- 2-4: sideways drag over two pulleys
 
 const pullTheOtherOne: CampaignEntry = {
   chapter: 2,
@@ -231,70 +254,99 @@ const pullTheOtherOne: CampaignEntry = {
     id: 'g2-pull-the-other-one',
     name: 'Pull the Other One',
     description:
-      'Drag the steel crate along the ledge to the loading dock. Nobody is going to push it, but something could fall down the shaft.',
-    environment: 'underground',
+      'Make toast! The mousetrap is about to throw the bowling ball. Catch it in a bucket roped to the steel crate, so the crate gets dragged along the shelf and shoves everything onto the toaster lever.',
+    environment: 'maintenance',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g2d-ledge', 'wall', 380, 445, { w: 760, h: 370, material: 'concrete' }),
-      o('g2d-pulley', 'pulley', 784, 240),
-      o('g2d-bracket', 'wall', 784, 210, { w: 14, h: 30, material: 'steel' }),
-      o('g2d-bracket-arm', 'wall', 770, 196, { w: 40, h: 10, material: 'steel' }),
-      o('g2d-dock-sign', 'wall', 620, 120, { w: 200, h: 16, material: 'wood' }),
+      o('g2d-shelf', 'plank', 110, 230, { length: 160 }),
+      o('g2d-ledge', 'plank', 800, 340, { length: 480 }),
+      o('g2d-cupboard', 'wall', 915, 225, { w: 150, h: 50, material: 'wood' }),
+      o('g2d-toaster', 'toaster', 1010, 309, {}, 0, true),
     ],
-    startingObjects: [o('g2d-crate', 'crate', 260, 238, { material: 'steel' }), o('g2d-ball', 'ball', 420, 246), o('g2d-hook', 'hook', 420, 70)],
+    startingObjects: [
+      o('g2d-trap', 'mousetrap', 110, 218),
+      o('g2d-bowl', 'bowling_ball', 110, 193),
+      o('g2d-crate', 'crate', 640, 311, { material: 'steel' }),
+      o('g2d-ball', 'ball', 880, 319),
+      o('g2d-chicken', 'rubber_chicken', 780, 324),
+    ],
     connections: [],
     inventory: [
-      { type: 'rope', count: 1 },
+      { type: 'pulley', count: 2 },
       { type: 'bucket', count: 1 },
-      { type: 'bowling_ball', count: 1 },
-      { type: 'ball', count: 2 },
+      { type: 'rope', count: 1 },
+      { type: 'plank', count: 1 },
+      { type: 'rubber_chicken', count: 1 },
     ],
-    goals: [
-      {
-        kind: 'enterRegion',
-        target: { id: 'g2d-crate' },
-        region: { x: 520, y: 180, w: 200, h: 80 },
-        hold: 0.5,
-        label: 'Park the crate on the loading dock',
-      },
-    ],
-    restrictions: { timeLimit: 20 },
-    bonus: { elegantParts: 3, elegantTime: 4, absurdStages: 5 },
+    goals: [{ kind: 'activate', target: { id: 'g2d-toaster' }, label: 'Pop the toast' }],
+    restrictions: { timeLimit: 15 },
+    bonus: { elegantParts: 4, elegantTime: 5, absurdStages: 10 },
     hints: [
-      'A pulley turns a downward pull into a sideways one.',
-      'Run a rope from the crate over the pulley at the edge, and hang a weight down the shaft. When the weight hits the floor, the crate stops.',
-      'An empty bucket is far too light to drag a steel crate. Unbolt it, hang it on the rope and drop the bowling ball in.',
+      'A rope over two pulleys turns a fall into a sideways pull.',
+      'Hang a pulley high up where the bowling ball lands, with an unbolted bucket under it. The second pulley goes past the toaster, level with the crate’s hook.',
+      'Put a pulley near the top above the bowling ball’s landing spot and another just right of the toaster, hang an unbolted bucket under the first, and rope the bucket over both pulleys to the crate.',
     ],
     metadata: { chapter: 2, order: 4, author: 'Follyworks', blurb: 'Falling sideways, technically.' },
   },
   solutions: [
     {
-      objects: [o('s-bucket', 'bucket', 850, 330, { anchored: false }), o('s-bowl', 'bowling_ball', 850, 320)],
-      connections: [rope('s-rope', 'g2d-crate', 'hook', 's-bucket', 'handle', ['g2d-pulley'])],
+      objects: [o('s-pulley', 'pulley', 340, 60), o('s-pulley-2', 'pulley', 1090, 284), o('s-bucket', 'bucket', 340, 360, { anchored: false })],
+      connections: [rope('s-rope', 's-bucket', 'handle', 'g2d-crate', 'hook', ['s-pulley', 's-pulley-2'])],
     },
-    // ABSURD: a rubber ball rides down in the bucket and another gets bulldozed off the ledge ahead of the crate.
+    // ABSURD: a second rubber chicken waits in the bucket and gets squashed by the bowling ball.
     {
       objects: [
-        o('s-bucket', 'bucket', 850, 330, { anchored: false }),
-        o('s-bowl', 'bowling_ball', 850, 320),
-        o('s-ball-a', 'ball', 340, 246),
-        o('s-ball-b', 'ball', 850, 250),
+        o('s-pulley', 'pulley', 340, 60),
+        o('s-pulley-2', 'pulley', 1090, 284),
+        o('s-bucket', 'bucket', 340, 360, { anchored: false }),
+        o('s-chicken', 'rubber_chicken', 340, 362),
       ],
-      connections: [rope('s-rope', 'g2d-crate', 'hook', 's-bucket', 'handle', ['g2d-pulley'])],
+      connections: [rope('s-rope', 's-bucket', 'handle', 'g2d-crate', 'hook', ['s-pulley', 's-pulley-2'])],
     },
   ],
   counterexamples: [
     {
-      why: 'the bucket only holds rubber balls',
+      why: 'a rubber chicken dropped on the other chicken just bounces',
+      build: { objects: [o('s-chicken', 'rubber_chicken', 815, 200)], connections: [] },
+    },
+    {
+      why: 'a rubber chicken dropped on the toaster bounces off the top',
+      build: { objects: [o('s-chicken', 'rubber_chicken', 1015, 150)], connections: [] },
+    },
+    {
+      why: 'a rubber chicken thrown down a plank does not shove the others far enough',
+      build: { objects: [o('s-ramp', 'plank', 700, 250, { length: 160 }, 0.5), o('s-chicken', 'rubber_chicken', 650, 200, {}, 0.5)], connections: [] },
+    },
+    {
+      why: 'over one pulley the rope lifts the crate up and back instead of dragging it along',
       build: {
-        objects: [o('s-bucket', 'bucket', 850, 330, { anchored: false }), o('s-ball-a', 'ball', 850, 320), o('s-ball-b', 'ball', 850, 280)],
-        connections: [rope('s-rope', 'g2d-crate', 'hook', 's-bucket', 'handle', ['g2d-pulley'])],
+        objects: [o('s-pulley', 'pulley', 340, 60), o('s-bucket', 'bucket', 340, 360, { anchored: false })],
+        connections: [rope('s-rope', 's-bucket', 'handle', 'g2d-crate', 'hook', ['s-pulley'])],
       },
+    },
+    {
+      why: 'the bowling ball misses a bucket hung from the toaster-side pulley alone',
+      build: {
+        objects: [o('s-pulley-2', 'pulley', 1090, 284), o('s-bucket', 'bucket', 1090, 520, { anchored: false })],
+        connections: [rope('s-rope', 's-bucket', 'handle', 'g2d-crate', 'hook', ['s-pulley-2'])],
+      },
+    },
+    {
+      why: 'a bucket dropped on the shelf does not shove the chicken far enough',
+      build: { objects: [o('s-bucket', 'bucket', 795, 200, { anchored: false })], connections: [] },
+    },
+    {
+      why: 'a bucket dropped on the toaster just sits on top of it',
+      build: { objects: [o('s-bucket', 'bucket', 1025, 200, { anchored: false })], connections: [] },
+    },
+    {
+      why: 'a bucket sliding down a plank does not shove the chicken far enough',
+      build: { objects: [o('s-ramp', 'plank', 820, 250, { length: 160 }, 0.5), o('s-bucket', 'bucket', 775, 190, { anchored: false })], connections: [] },
     },
   ],
 };
 
-// ---------------------------------------------------------------- 2-5: pendulum
+// ---------------------------------------------------------------- 2-5: pendulum strike
 
 const wreckingSwing: CampaignEntry = {
   chapter: 2,
@@ -303,67 +355,64 @@ const wreckingSwing: CampaignEntry = {
     id: 'g2-wrecking-swing',
     name: 'Wrecking Swing',
     description:
-      'The bowling ball on the shelf belongs in the bin on the right. Nothing in here can reach it, unless something swings.',
+      'Bowl a strike with a crate! The rubber ball will knock the crate off the shelf. Tie it to a hook so it swings down through the pins like a wrecking ball.',
     environment: 'research',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g2e-beam', 'wall', 480, 52, { w: 420, h: 20, material: 'steel' }),
-      o('g2e-shelf', 'wall', 440, 430, { w: 260, h: 20, material: 'steel' }),
-      o('g2e-shelf-leg', 'wall', 320, 530, { w: 16, h: 180, material: 'steel' }),
-      o('g2e-kerb', 'wall', 562, 416, { w: 8, h: 8, material: 'steel' }),
-      o('g2e-backboard', 'wall', 700, 470, { w: 16, h: 300, material: 'steel' }),
+      o('g2e-ramp', 'plank', 190, 200, { length: 300 }, 0.3),
+      o('g2e-shelf', 'plank', 565, 290, { length: 270 }),
+      o('g2e-beam', 'wall', 880, 120, { w: 360, h: 20, material: 'steel' }),
+      o('g2e-alley', 'plank', 935, 417, { length: 350 }),
     ],
     startingObjects: [
-      o('g2e-bowl', 'bowling_ball', 526, 400),
-      o('g2e-bin', 'bucket', 640, 598),
-      o('g2e-old-crate', 'crate', 150, 608),
-      o('g2e-pulley', 'pulley', 640, 90),
+      o('g2e-ball', 'ball', 60, 137),
+      o('g2e-crate', 'crate', 698, 261),
+      o('g2e-pin-1', 'bowling_pin', 860, 382),
+      o('g2e-pin-2', 'bowling_pin', 890, 382),
+      o('g2e-pin-3', 'bowling_pin', 920, 382),
+      o('g2e-pin-4', 'bowling_pin', 950, 382),
+      o('g2e-chicken', 'rubber_chicken', 1080, 401),
     ],
     connections: [],
     inventory: [
       { type: 'hook', count: 1 },
       { type: 'rope', count: 1 },
-      { type: 'crate', count: 1 },
-      { type: 'ball', count: 2 },
-      { type: 'plank', count: 2 },
+      { type: 'plank', count: 1 },
+      { type: 'trampoline', count: 1 },
     ],
-    goals: [{ kind: 'containerCount', container: 'g2e-bin', count: 1, filter: { type: 'bowling_ball' }, label: 'Knock the bowling ball into the bin' }],
+    goals: [{ kind: 'activate', target: { type: 'bowling_pin' }, count: 4, label: 'Knock down all 4 pins' }],
     restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 3, elegantTime: 4, absurdStages: 5 },
+    bonus: { elegantParts: 3, elegantTime: 6, absurdStages: 11 },
     hints: [
-      'A weight on a rope swings like a pendulum, and it is fastest at the very bottom of the swing.',
-      'Put a hook on the beam straight above the bowling ball, tie a crate to it, and hold the crate out to the side before you press RUN.',
-      'A steel crate hits much harder than a wooden one.',
+      'A weight on a rope swings like a pendulum, and it is fastest at the very bottom of its swing.',
+      'The rubber ball needs a way over the gap after the ramp. Then hang a hook under the steel beam, up and to the right of the crate, and tie the crate to it.',
+      'Lay a plank over the gap after the ramp, put the hook under the beam just left of the pins, and rope it to the crate.',
     ],
     metadata: { chapter: 2, order: 5, author: 'Follyworks', blurb: 'Tick, tock, bonk.' },
   },
   solutions: [
     {
-      objects: [o('s-hook', 'hook', 490, 74), o('s-crate', 'crate', 204, 112, { material: 'steel' })],
-      connections: [rope('s-rope', 's-hook', 'hook', 's-crate', 'hook')],
+      objects: [o('s-hook', 'hook', 870, 142), o('s-bridge', 'plank', 382, 270, { length: 100 }, 0.4)],
+      connections: [rope('s-rope', 's-hook', 'hook', 'g2e-crate', 'hook')],
     },
-    // ABSURD: a rubber ball bonks the bowling ball first, another waits in the bin to be squashed.
+    // ABSURD: a soft trampoline instead of the bridge: the rubber ball boings onto the shelf.
     {
-      objects: [
-        o('s-hook', 'hook', 490, 74),
-        o('s-crate', 'crate', 204, 112, { material: 'steel' }),
-        o('s-ball-a', 'ball', 526, 150),
-        o('s-ball-b', 'ball', 640, 300),
-      ],
-      connections: [rope('s-rope', 's-hook', 'hook', 's-crate', 'hook')],
+      objects: [o('s-hook', 'hook', 870, 142), o('s-tramp', 'trampoline', 370, 290, { power: 0.6 })],
+      connections: [rope('s-rope', 's-hook', 'hook', 'g2e-crate', 'hook')],
     },
   ],
   counterexamples: [
     {
-      why: 'the pendulum is a wooden crate',
-      build: {
-        objects: [o('s-hook', 'hook', 490, 74), o('s-crate', 'crate', 204, 112)],
-        connections: [rope('s-rope', 's-hook', 'hook', 's-crate', 'hook')],
-      },
+      why: 'with no hook the crate just drops to the floor',
+      build: { objects: [o('s-bridge', 'plank', 382, 270, { length: 100 }, 0.4)], connections: [] },
     },
     {
-      why: 'a rubber ball is rolled into the bowling ball',
-      build: { objects: [o('s-ramp', 'plank', 380, 330, { length: 200 }, 0.4), o('s-ball', 'ball', 300, 270)], connections: [] },
+      why: 'with no bridge the rubber ball never reaches the crate',
+      build: { objects: [o('s-hook', 'hook', 870, 142)], connections: [rope('s-rope', 's-hook', 'hook', 'g2e-crate', 'hook')] },
+    },
+    {
+      why: 'a trampoline under the falling crate bounces it nowhere useful',
+      build: { objects: [o('s-bridge', 'plank', 382, 270, { length: 100 }, 0.4), o('s-tramp', 'trampoline', 715, 615, {}, 0.2618)], connections: [] },
     },
   ],
 };
