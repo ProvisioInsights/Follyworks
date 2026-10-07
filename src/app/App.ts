@@ -4,7 +4,7 @@ import Phaser from 'phaser';
 import { AudioEngine, type SfxName } from '../audio/AudioEngine';
 import { blankLevel, parseBuild } from '../core/level';
 import { themeFor, type ThemeId, type ThemeSetting } from '../core/themes';
-import { deepClone } from '../core/util';
+import { deepClone, hashString } from '../core/util';
 import { emptyBuild, type BuildDef, type LevelDef } from '../core/types';
 import { CAMPAIGN, CHAPTERS, levelCode } from '../game/campaign';
 import { applyDifficulty, buildKey, type Difficulty } from '../game/difficulty';
@@ -227,7 +227,10 @@ export class App implements AppContext {
     const level = derived.level;
     const key = buildKey(level.id, d);
     const saved = this.store.data.builds[key];
-    const build = saved ? parseBuildSafe(saved, level) : emptyBuild();
+    // A build saved for an older layout of this mission (missions get redesigned) would sit in the
+    // wrong places, so it is dropped; progress is kept.
+    const layout = layoutPrint(level);
+    const build = saved && saved.layout === layout ? parseBuildSafe(saved, level) : emptyBuild();
     const chapter = CHAPTERS.find((c) => c.index === entry.chapter);
     const progress = this.store.progress(level.id);
     this.derived = derived;
@@ -245,7 +248,7 @@ export class App implements AppContext {
       exitLabel: 'Puzzles',
       onNext: index + 1 < CAMPAIGN.length ? () => this.playCampaign(index + 1) : undefined,
       onSolved: (r) => this.record(level.id, r, d),
-      onBuildChanged: (b) => this.store.setBuild(key, b),
+      onBuildChanged: (b) => this.store.setBuild(key, { ...b, layout }),
     });
   }
 
@@ -527,6 +530,10 @@ export class App implements AppContext {
     this.demo = null;
   }
 }
+
+/** Fingerprint of everything a player's build has to fit around. */
+const layoutPrint = (l: LevelDef) =>
+  hashString(JSON.stringify([l.fixedObjects, l.startingObjects, l.connections, l.inventory, l.world])).toString(36);
 
 const parseBuildSafe = (b: BuildDef, level: LevelDef): BuildDef => {
   try {

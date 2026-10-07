@@ -153,6 +153,8 @@ export interface LevelDef {
 export interface BuildDef {
   objects: ObjectDef[];
   connections: ConnectionDef[];
+  /** Campaign autosaves only: fingerprint of the level layout the build was made for. */
+  layout?: string;
 }
 
 export const emptyBuild = (): BuildDef => ({ objects: [], connections: [] });
