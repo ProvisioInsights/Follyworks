@@ -1,7 +1,7 @@
 // Generic goal primitives. The engine checks whether things happened; it never knows an
 // "intended solution".
 
-import type { GoalDef, Selector, Vec } from '../core/types';
+import type { GoalDef, LevelDef, Selector, Vec } from '../core/types';
 import { pointInRect } from '../core/util';
 import type { Entity } from './Entity';
 import type { Simulation } from './Simulation';
@@ -32,22 +32,84 @@ export const describeSelector = (sel: Selector, sim?: Simulation): string => {
   return `anything ${sel.tag}`;
 };
 
-export const goalLabel = (g: GoalDef): string => {
+/** The part type a selector names, when it can be told from the selector (and the level). */
+const selectorType = (sel: Selector, level?: LevelDef): string | null => {
+  if ('type' in sel) return sel.type;
+  if ('id' in sel) return [...(level?.fixedObjects ?? []), ...(level?.startingObjects ?? [])].find((o) => o.id === sel.id)?.type ?? null;
+  return null;
+};
+
+/**
+ * Plain wording for "make it active" goals on parts where "switch it on" would be odd:
+ * [one, many] where many takes the count ("Knock down 6 pins").
+ */
+const ACTIVATE_WORDS: Record<string, [string, (n: number) => string]> = {
+  bowling_pin: ['Knock down the pin', (n) => `Knock down ${n} pins`],
+  candle: ['Light the candle', (n) => `Light ${n} candles`],
+  cat: ['Wake the cat', (n) => `Wake ${n} cats`],
+  bell: ['Ring the bell', (n) => `Ring ${n} bells`],
+  rubber_chicken: ['Make the chicken squawk', (n) => `Make ${n} chickens squawk`],
+  teapot: ['Boil the teapot', (n) => `Boil ${n} teapots`],
+  toaster: ['Pop the toast', (n) => `Pop ${n} toasters`],
+  mousetrap: ['Spring the mousetrap', (n) => `Spring ${n} mousetraps`],
+};
+
+/** Plural noun for a live "2/3 …" count on goal tags and chips. */
+const COUNT_NOUN: Record<string, string> = {
+  bowling_pin: 'pins',
+  candle: 'candles',
+  cat: 'cats',
+  bell: 'bells',
+  light_bulb: 'bulbs',
+  rubber_chicken: 'chickens',
+  teapot: 'teapots',
+  toaster: 'toasters',
+  mousetrap: 'traps',
+};
+
+/** What a container counts: hoops count swishes, everything else what is inside. */
+const containerNoun = (type: string | null) => (type === 'basketball_hoop' ? 'swishes' : null);
+
+export const goalLabel = (g: GoalDef, level?: LevelDef): string => {
   if (g.label) return g.label;
   switch (g.kind) {
     case 'enterRegion':
       return 'Get it into the goal zone';
     case 'contact':
       return 'Make them touch';
-    case 'activate':
-      return g.duration ? `Keep it running for ${g.duration}s` : 'Switch it on';
-    case 'containerCount':
+    case 'activate': {
+      const n = g.count ?? 1;
+      const words = ACTIVATE_WORDS[selectorType(g.target, level) ?? ''];
+      if (g.duration) return `Keep ${n > 1 ? `${n} of them` : 'it'} running for ${g.duration}s`;
+      if (words) return n > 1 ? words[1](n) : words[0];
+      return n > 1 ? `Switch on ${n} at once` : 'Switch it on';
+    }
+    case 'containerCount': {
+      const type = level ? [...level.fixedObjects, ...level.startingObjects].find((o) => o.id === g.container)?.type ?? null : null;
+      if (containerNoun(type)) return g.count > 1 ? `Sink ${g.count} baskets` : 'Sink a basket';
       return `Put ${g.count} in the container`;
+    }
     case 'height':
       return 'Lift it high enough';
     case 'destroyed':
       return 'Get rid of it';
   }
+};
+
+/** How many things count for a containerCount goal right now (tally or contents), or null if `c` is no container. */
+export const containerTotal = (sim: Simulation, c: Entity | undefined, filter?: Selector): number | null => {
+  if (!c) return null;
+  if (c.def.tally) {
+    const ids = new Set(c.def.tally(c));
+    let n = 0;
+    for (const id of ids) {
+      const e = sim.entities.get(id);
+      if (e && (!filter || matches(e, filter))) n++;
+    }
+    return n;
+  }
+  if (!c.alive || !c.def.interior) return null;
+  return sim.countInside(c, filter);
 };
 
 export class GoalTracker {
@@ -104,14 +166,15 @@ export class GoalTracker {
         return { ok, hold: 0 };
       }
       case 'activate': {
-        const ok = sim.select(g.target).some((e) => e.isActive());
+        const need = g.count ?? 1;
+        const ok = need <= 1 ? sim.select(g.target).some((e) => e.isActive()) : sim.select(g.target).filter((e) => e.isActive()).length >= need;
         return { ok, hold: g.duration ?? 0 };
       }
       case 'containerCount': {
         const c = sim.entities.get(g.container);
-        if (!c || !c.alive || !c.def.interior) return { ok: false, hold: 0.5 };
-        const n = sim.countInside(c, g.filter);
-        return { ok: n >= g.count, hold: 0.5 };
+        const n = containerTotal(sim, c, g.filter);
+        // a tally (swishes scored) never goes down again, so it needs no settling time
+        return { ok: n !== null && n >= g.count, hold: c?.def.tally ? 0 : 0.5 };
       }
       case 'height': {
         const ok = sim.select(g.target).some((e) => e.body && e.body.position.y <= g.maxY);
@@ -170,16 +233,24 @@ export const describeMiss = (sim: Simulation): string | null => {
       const short = best - g.maxY;
       return short < 60 ? `${cap(describeSelector(g.target, sim))} nearly got high enough.` : `${cap(describeSelector(g.target, sim))} didn’t get high enough.`;
     }
-    case 'activate':
+    case 'activate': {
+      const need = g.count ?? 1;
+      if (need > 1) {
+        const on = sim.select(g.target).filter((e) => e.isActive()).length;
+        const type = selectorType(g.target, sim.level);
+        return `Only ${on} of the ${need} ${COUNT_NOUN[type ?? ''] ?? 'targets'} ${on === 1 ? 'was' : 'were'} on at the same time.`;
+      }
       return st.held > 0
         ? `${cap(describeSelector(g.target, sim))} switched on but didn’t stay on long enough.`
         : `${cap(describeSelector(g.target, sim))} never switched on.`;
+    }
     case 'contact':
       return `${cap(describeSelector(g.a, sim))} never touched ${describeSelector(g.b, sim)}.`;
     case 'containerCount': {
       const c = sim.entities.get(g.container);
-      if (!c || !c.alive || !c.def.interior) return 'The container didn’t make it.';
-      const n = sim.countInside(c, g.filter);
+      const n = containerTotal(sim, c, g.filter);
+      if (!c || n === null) return 'The container didn’t make it.';
+      if (c.def.tally) return n === 0 ? 'Nothing went through the hoop.' : `Only ${n} of the ${g.count} baskets went in.`;
       return `The ${c.def.name.toLowerCase()} holds ${n} of the ${g.count} needed.`;
     }
     case 'destroyed': {
@@ -228,8 +299,11 @@ const rawMarker = (g: GoalDef, sim: Simulation, st?: GoalStatus): GoalMarker => 
     }
     case 'containerCount': {
       const c = sim.entities.get(g.container);
-      const n = c?.alive && c.def.interior ? sim.countInside(c, g.filter) : 0;
-      return { at: topOf(c), text: g.filter ? `Fill with ${describeSelector(g.filter, sim).replace(/^an? /, '')}${'type' in g.filter && g.count > 1 ? 's' : ''}` : 'Fill this', detail: `${st?.met ? g.count : Math.min(n, g.count)}/${g.count}` };
+      const n = containerTotal(sim, c, g.filter) ?? 0;
+      const shown = `${st?.met ? g.count : Math.min(n, g.count)}/${g.count}`;
+      const noun = containerNoun(c?.type ?? null);
+      if (noun) return { at: topOf(c), text: g.filter ? `Sink ${describeSelector(g.filter, sim).replace(/^an? /, '')}${'type' in g.filter && g.count > 1 ? 's' : ''}` : 'Sink it here', detail: `${shown} ${noun}` };
+      return { at: topOf(c), text: g.filter ? `Fill with ${describeSelector(g.filter, sim).replace(/^an? /, '')}${'type' in g.filter && g.count > 1 ? 's' : ''}` : 'Fill this', detail: shown };
     }
     case 'height': {
       const e = first(g.target);
@@ -237,10 +311,24 @@ const rawMarker = (g: GoalDef, sim: Simulation, st?: GoalStatus): GoalMarker => 
       return { at: { x, y: g.maxY - 4 }, text: `Lift ${describeSelector(g.target, sim)} above this line` };
     }
     case 'activate': {
+      const need = g.count ?? 1;
+      const type = selectorType(g.target, sim.level);
+      const words = ACTIVATE_WORDS[type ?? ''];
+      if (need > 1) {
+        const all = sim.select(g.target).filter((e) => e.body);
+        const on = all.filter((e) => e.isActive()).length;
+        const tops = all.map(topOf).filter((p): p is Vec => !!p);
+        const at = tops.length ? { x: tops.reduce((a, p) => a + p.x, 0) / tops.length, y: Math.min(...tops.map((p) => p.y)) } : null;
+        return {
+          at,
+          text: g.duration ? `Keep ${need} on` : words ? words[1](need) : `Switch ${need} on`,
+          detail: g.duration && st && st.held > 0 ? secs(st.held, g.duration) : `${st?.met ? need : Math.min(on, need)}/${need}${COUNT_NOUN[type ?? ''] ? ` ${COUNT_NOUN[type ?? '']}` : ''}`,
+        };
+      }
       const e = first(g.target);
       return {
         at: topOf(e),
-        text: g.duration ? `Keep ${describeSelector(g.target, sim)} on` : `Switch ${describeSelector(g.target, sim)} on`,
+        text: g.duration ? `Keep ${describeSelector(g.target, sim)} on` : words ? words[0] : `Switch ${describeSelector(g.target, sim)} on`,
         detail: g.duration && st ? secs(st.held, g.duration) : undefined,
       };
     }

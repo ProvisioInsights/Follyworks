@@ -107,7 +107,8 @@ export const parseGoal = (raw: unknown, problems: string[]): GoalDef | null => {
     case 'activate': {
       const target = parseSelector(raw.target);
       if (!target) break;
-      return { kind: 'activate', target, duration: typeof raw.duration === 'number' ? raw.duration : undefined, label };
+      const count = typeof raw.count === 'number' && Number.isFinite(raw.count) ? Math.min(99, Math.max(1, Math.round(raw.count))) : undefined;
+      return { kind: 'activate', target, duration: typeof raw.duration === 'number' ? raw.duration : undefined, count: count && count > 1 ? count : undefined, label };
     }
     case 'containerCount': {
       if (typeof raw.container !== 'string') break;

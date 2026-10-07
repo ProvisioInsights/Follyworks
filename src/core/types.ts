@@ -49,7 +49,9 @@ export type Selector =
 export type GoalDef =
   | { kind: 'enterRegion'; target: Selector; region: Rect; hold?: number; label?: string }
   | { kind: 'contact'; a: Selector; b: Selector; label?: string }
-  | { kind: 'activate'; target: Selector; duration?: number; label?: string }
+  /** `count`: that many distinct matching things active at the same time (default 1). */
+  | { kind: 'activate'; target: Selector; duration?: number; count?: number; label?: string }
+  /** Counts what is inside the container, or what has scored in it when the part keeps a tally (hoop swishes). */
   | { kind: 'containerCount'; container: string; count: number; filter?: Selector; label?: string }
   | { kind: 'height'; target: Selector; maxY: number; label?: string }
   | { kind: 'destroyed'; target: Selector; label?: string };
