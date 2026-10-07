@@ -2,7 +2,7 @@
 // localStorage. Loading never throws: malformed data is quarantined and replaced by defaults.
 
 import { parseBuild, parseLevel } from '../core/level';
-import { THEMES, type ThemeSetting } from '../core/themes';
+import { THEMES, type ThemeSetting, type UiStyle } from '../core/themes';
 import type { BuildDef, LevelDef } from '../core/types';
 
 export const SAVE_KEY = 'follyworks.save';
@@ -34,6 +34,10 @@ export interface Settings {
   difficultyChosen: boolean;
   /** Visual theme: 'auto' follows each mission's era, or one fixed theme everywhere. */
   theme: ThemeSetting;
+  /** HUD look: one modern style everywhere, or chrome that matches each theme. */
+  uiStyle: UiStyle;
+  /** The secret arcade theme has been unlocked (Konami code). */
+  arcadeUnlocked: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -52,6 +56,8 @@ export const DEFAULT_SETTINGS: Settings = {
   difficulty: 'normal',
   difficultyChosen: false,
   theme: 'auto',
+  uiStyle: 'modern',
+  arcadeUnlocked: false,
 };
 
 export interface LevelProgress {
@@ -167,7 +173,10 @@ export const parseSettings = (raw: unknown): Settings => {
     difficulty: isDifficulty(r.difficulty) ? r.difficulty : d.difficulty,
     // Saves from before the flag remembered a difficulty picked in a briefing: that counts as chosen.
     difficultyChosen: typeof r.difficultyChosen === 'boolean' ? r.difficultyChosen : isDifficulty(r.difficulty),
-    theme: r.theme === 'auto' || THEMES.some((t) => t.id === r.theme) ? (r.theme as ThemeSetting) : d.theme,
+    theme:
+      r.theme === 'auto' || THEMES.some((t) => t.id === r.theme && (!t.secret || r.arcadeUnlocked === true)) ? (r.theme as ThemeSetting) : d.theme,
+    uiStyle: r.uiStyle === 'modern' || r.uiStyle === 'era' ? r.uiStyle : d.uiStyle,
+    arcadeUnlocked: bool(r.arcadeUnlocked, d.arcadeUnlocked),
   };
 };
 

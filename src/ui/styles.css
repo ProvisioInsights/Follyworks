@@ -589,6 +589,13 @@ input[type='checkbox'] {
   background: linear-gradient(180deg, rgba(14, 10, 8, 0.96), rgba(14, 10, 8, 0.82));
   border-bottom: 1px solid var(--edge);
 }
+.tb-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: none;
+}
 .topbar .title {
   display: flex;
   flex-direction: column;
@@ -789,6 +796,33 @@ input[type='checkbox'] {
   border: 5px solid transparent;
   border-top-color: rgba(124, 240, 160, 0.75);
   border-bottom: 0;
+}
+/* the arrow points back at the anchor from whichever side GoalMarkers placed the tag on */
+.goal-tag::after {
+  left: var(--ax, 50%);
+}
+.goal-tag[data-side='down']::after {
+  bottom: auto;
+  top: -6px;
+  transform: rotate(180deg);
+}
+.goal-tag[data-side='right']::after {
+  left: -9px;
+  margin-left: 0;
+  bottom: auto;
+  top: calc(var(--ay, 50%) - 2.5px);
+  transform: rotate(90deg);
+}
+.goal-tag[data-side='left']::after {
+  left: calc(100% - 1px);
+  margin-left: 0;
+  bottom: auto;
+  top: calc(var(--ay, 50%) - 2.5px);
+  transform: rotate(-90deg);
+}
+/* placing or dragging a part: tags step back so they never hide a drop spot */
+.goal-tags.busy .goal-tag {
+  opacity: 0.22;
 }
 .goal-tag .n {
   width: 18px;

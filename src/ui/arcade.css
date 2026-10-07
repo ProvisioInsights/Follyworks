@@ -1,0 +1,494 @@
+/* The secret "Insert Coin" arcade theme (Konami code, see src/app/konami.ts). An original homage
+   to 8- and 16-bit arcade cabinets: black screens, hard pixel borders, chunky drop shadows,
+   blocky type and a CRT scanline glass over everything. The arcade theme always brings this
+   chrome, whatever the interface style (see chromeFor in src/core/themes.ts). */
+
+[data-theme='arcade'] {
+  --radius: 0px;
+  --ink: #000;
+  --panel: #07071c;
+  --panel-2: #0c0c2c;
+  --panel-3: #16163e;
+  --edge: #2a2aa0;
+  --edge-hi: #fcfcfc;
+  --cream: #fcfcfc;
+  --cream-dim: #c8d0ff;
+  --muted: #8890d8;
+  --brass: #ffd800;
+  --brass-hi: #ffe84a;
+  --accent: #ff3cac;
+  --orange: #ff8c00;
+  --red: #ff3030;
+  --green: #3cff6c;
+  --green-deep: #00a83c;
+  --cyan: #3cf0ff;
+  --violet: #b05cff;
+  --shadow: 6px 6px 0 rgba(0, 0, 0, 0.7);
+  --font-ui: 'VT323', 'Courier New', monospace;
+  --font-head: 'Press Start 2P', 'VT323', monospace;
+  --font-logo: 'Press Start 2P', monospace;
+  /* both pixel fonts are scaled to a common x-height so every px size in the HUD stays readable */
+  font-size-adjust: 0.6;
+}
+/* font-size: 0 tricks (text kept for screen readers) must stay zero under font-size-adjust */
+[data-theme='arcade'] .diff-dot {
+  font-size-adjust: none;
+}
+[data-theme='arcade'] .era-chip {
+  font-size: calc(9px * var(--ts));
+  padding: 3px 6px;
+  font-size-adjust: none;
+}
+[data-theme='arcade'] body {
+  background: #000;
+  font-family: var(--font-ui);
+}
+[data-theme='arcade'] * {
+  text-shadow: none;
+}
+[data-theme='arcade'] h1,
+[data-theme='arcade'] h2,
+[data-theme='arcade'] h3,
+[data-theme='arcade'] .label,
+[data-theme='arcade'] .btn,
+[data-theme='arcade'] .pill,
+[data-theme='arcade'] .era-chip,
+[data-theme='arcade'] .seg button,
+[data-theme='arcade'] .tabs button,
+[data-theme='arcade'] .bin-cat {
+  font-family: var(--font-head);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-theme='arcade'] h1,
+[data-theme='arcade'] h2 {
+  color: var(--brass);
+  text-shadow: 3px 3px 0 #b0007a;
+}
+
+/* ------------------------------------------------------------------ surfaces */
+
+[data-theme='arcade'] .panel,
+[data-theme='arcade'] .tooltip,
+[data-theme='arcade'] .toast {
+  background: var(--panel);
+  border: 4px solid #fcfcfc;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 4px #2038ec, 6px 6px 0 rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+[data-theme='arcade'] .panel::before {
+  display: none;
+}
+[data-theme='arcade'] .topbar,
+[data-theme='arcade'] .screen-head {
+  background: #000;
+  border-bottom: 4px solid #2038ec;
+  box-shadow: 0 4px 0 #ff3cac;
+}
+[data-theme='arcade'] .screen {
+  background: rgba(0, 0, 12, 0.92);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+[data-theme='arcade'] .menu {
+  background: linear-gradient(90deg, rgba(0, 0, 10, 0.94) 0%, rgba(0, 0, 10, 0.78) 30%, rgba(0, 0, 10, 0) 60%);
+}
+[data-theme='arcade'] .toast {
+  border-left: 4px solid #fcfcfc;
+  font-size: calc(20px * var(--ts));
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+[data-theme='arcade'] .btn {
+  border-radius: 0;
+  border: 4px solid #000;
+  background: #2038ec;
+  color: #fcfcfc;
+  box-shadow: 4px 4px 0 #000, inset -4px -4px 0 rgba(0, 0, 0, 0.35), inset 4px 4px 0 rgba(255, 255, 255, 0.25);
+  font-size: calc(13px * var(--ts));
+  transition: none;
+}
+[data-theme='arcade'] .btn:hover:not(:disabled) {
+  background: #3c5cff;
+  border-color: #000;
+  color: #fff;
+  transform: none;
+}
+[data-theme='arcade'] .btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 #000, inset 4px 4px 0 rgba(0, 0, 0, 0.35);
+}
+[data-theme='arcade'] .btn.primary {
+  background: #ffd800;
+  color: #000;
+}
+[data-theme='arcade'] .btn.primary:hover:not(:disabled) {
+  background: #ffe84a;
+  color: #000;
+}
+[data-theme='arcade'] .btn.go {
+  background: #00c040;
+  color: #000;
+}
+[data-theme='arcade'] .btn.go:hover:not(:disabled) {
+  background: #3cff6c;
+  color: #000;
+}
+[data-theme='arcade'] .btn.stop {
+  background: #ff3030;
+  color: #fff;
+}
+[data-theme='arcade'] .btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-theme='arcade'] .btn.ghost:hover:not(:disabled) {
+  background: #2038ec;
+}
+[data-theme='arcade'] .btn.small {
+  font-size: calc(11px * var(--ts));
+}
+[data-theme='arcade'] .btn.big {
+  font-size: calc(17px * var(--ts));
+}
+[data-theme='arcade'] .btn:focus-visible,
+[data-theme='arcade'] .icon-btn:focus-visible,
+[data-theme='arcade'] .bin-item:focus-visible,
+[data-theme='arcade'] .level-tile:focus-visible {
+  outline: 4px solid #ff3cac;
+  outline-offset: 2px;
+}
+[data-theme='arcade'] .icon-btn {
+  border-radius: 0;
+  color: var(--cream-dim);
+}
+[data-theme='arcade'] .icon-btn:hover:not(:disabled) {
+  background: #2038ec;
+  border-color: #fcfcfc;
+  color: #fff;
+}
+[data-theme='arcade'] .icon-btn.on {
+  background: #ffd800;
+  border-color: #000;
+  color: #000;
+}
+[data-theme='arcade'] .menu-buttons {
+  width: 400px;
+}
+[data-theme='arcade'] .menu-buttons .btn {
+  min-height: 54px;
+  font-size: calc(15px * var(--ts));
+}
+[data-theme='arcade'] .menu-buttons .btn small {
+  font-family: var(--font-ui);
+  font-size: calc(15px * var(--ts));
+  text-transform: none;
+  padding-left: 10px;
+}
+
+/* ------------------------------------------------------------------ chips, tiles, inputs */
+
+[data-theme='arcade'] .bin-item,
+[data-theme='arcade'] .level-tile,
+[data-theme='arcade'] .goal-chip,
+[data-theme='arcade'] .seg,
+[data-theme='arcade'] .bin-cat,
+[data-theme='arcade'] .pill,
+[data-theme='arcade'] .era-chip,
+[data-theme='arcade'] .goal-card,
+[data-theme='arcade'] .stepper {
+  background: #000;
+  border: 2px solid #4a4ad8;
+  border-radius: 0;
+}
+[data-theme='arcade'] .bin-item:hover:not(.empty),
+[data-theme='arcade'] .level-tile:hover:not(.locked) {
+  background: #10104a;
+  border-color: #ffd800;
+}
+[data-theme='arcade'] .bin-item.active {
+  border-color: #ff3cac;
+  box-shadow: 0 0 0 2px #ff3cac;
+}
+[data-theme='arcade'] .bin-item .n,
+[data-theme='arcade'] .level-tile .name,
+[data-theme='arcade'] .level-tile .idx,
+[data-theme='arcade'] .topbar .title .t,
+[data-theme='arcade'] .custom-row .name {
+  font-family: var(--font-head);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+[data-theme='arcade'] .bin-item .n {
+  font-size: calc(10px * var(--ts));
+  line-height: 1.3;
+}
+[data-theme='arcade'] .level-tile .name {
+  font-size: calc(13px * var(--ts));
+  line-height: 1.35;
+}
+[data-theme='arcade'] .level-tile .idx {
+  color: var(--cyan);
+  font-size: calc(13px * var(--ts));
+  width: 46px;
+}
+[data-theme='arcade'] .topbar .title .t {
+  color: var(--brass);
+  font-size: calc(15px * var(--ts));
+}
+[data-theme='arcade'] .bin-item .count {
+  border-radius: 0;
+  background: #ff3cac;
+  color: #fff;
+  font-family: var(--font-head);
+  font-size: 10px;
+}
+[data-theme='arcade'] .seg button.on,
+[data-theme='arcade'] .bin-cat.on,
+[data-theme='arcade'] .tabs button.on {
+  background: #ffd800;
+  color: #000;
+}
+[data-theme='arcade'] .goal-chip.met {
+  background: #3a2c00;
+  border-color: #ffd800;
+}
+[data-theme='arcade'] .goal-chip .dot {
+  border-radius: 0;
+}
+[data-theme='arcade'] .goal-tag {
+  border-radius: 0;
+  background: #000;
+  border: 2px solid #3cff6c;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
+  font-family: var(--font-ui);
+  font-size: calc(17px * var(--ts));
+}
+[data-theme='arcade'] .goal-tag .n {
+  border-radius: 0;
+}
+[data-theme='arcade'] select,
+[data-theme='arcade'] input[type='text'],
+[data-theme='arcade'] input[type='number'],
+[data-theme='arcade'] input[type='search'],
+[data-theme='arcade'] textarea {
+  background: #000;
+  color: #fcfcfc;
+  border: 2px solid #4a4ad8;
+  border-radius: 0;
+  font-size: calc(19px * var(--ts));
+}
+[data-theme='arcade'] input[type='checkbox'],
+[data-theme='arcade'] input[type='range'] {
+  accent-color: #ff3cac;
+}
+[data-theme='arcade'] kbd {
+  font-family: var(--font-head);
+  font-size: 0.7em;
+  background: #000;
+  border: 2px solid #fcfcfc;
+  border-radius: 0;
+  color: #ffd800;
+}
+[data-theme='arcade'] .chain b,
+[data-theme='arcade'] .clock {
+  font-family: var(--font-head);
+  color: var(--brass);
+}
+[data-theme='arcade'] .medal {
+  border-radius: 0;
+  font-family: var(--font-head);
+  font-size: 9px;
+}
+[data-theme='arcade'] .stamp {
+  border-radius: 0;
+  border-style: solid;
+}
+[data-theme='arcade'] .stamp b {
+  font-family: var(--font-head);
+  font-size: calc(15px * var(--ts));
+}
+[data-theme='arcade'] .receipt {
+  background: #000;
+  color: #3cff6c;
+  border: 2px solid #3cff6c;
+  border-radius: 0;
+  font-family: var(--font-ui);
+  font-size: calc(18px * var(--ts));
+}
+[data-theme='arcade'] .modal-head {
+  background: #2038ec;
+  margin: 4px 4px 0;
+  padding: 10px 14px;
+}
+[data-theme='arcade'] .modal-head h2 {
+  font-size: calc(17px * var(--ts));
+  line-height: 1.4;
+}
+[data-theme='arcade'] .modal .strip {
+  display: none;
+}
+[data-theme='arcade'] .modal-back {
+  background: rgba(0, 0, 10, 0.72);
+}
+[data-theme='arcade'] .logo {
+  font-size: calc(46px * var(--ts));
+  line-height: 1.15;
+  color: #ffd800;
+  text-shadow: 4px 4px 0 #ff3cac, 8px 8px 0 #2038ec;
+}
+[data-theme='arcade'] .tagline {
+  font-family: var(--font-ui);
+  font-size: calc(26px * var(--ts));
+  color: var(--cyan);
+  margin-top: 12px;
+}
+[data-theme='arcade'] .menu-caption {
+  font-family: var(--font-head);
+  font-size: calc(10px * var(--ts));
+  background: #000;
+  border: 2px solid #fcfcfc;
+  border-radius: 0;
+  animation: arcadeBlink 1.1s steps(1) infinite;
+}
+
+/* ------------------------------------------------------------------ CRT glass
+   Scanlines and a vignette over the whole cabinet, scene included. */
+
+[data-scene='arcade'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 50%, transparent 62%, rgba(0, 0, 0, 0.42) 100%);
+  animation: crtFlicker 5s steps(1) infinite;
+}
+[data-scene='arcade'] body.reduced::after {
+  animation: none;
+}
+@keyframes crtFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  47% {
+    opacity: 0.86;
+  }
+  48% {
+    opacity: 1;
+  }
+}
+@keyframes arcadeBlink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ unlock splash (any interface style) */
+
+.secret-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: grid;
+  place-items: center;
+  background:
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at center, rgba(16, 16, 80, 0.88), rgba(0, 0, 0, 0.96) 70%);
+  cursor: pointer;
+  animation: splashIn 0.35s steps(5) both;
+  font-size-adjust: none;
+}
+.secret-splash.out {
+  animation: splashOut 0.25s steps(4) both;
+}
+.ss-box {
+  text-align: center;
+  font-family: 'Press Start 2P', monospace;
+  color: #fcfcfc;
+  padding: 32px;
+}
+.ss-kicker {
+  font-size: 14px;
+  color: #3cf0ff;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.ss-title {
+  margin: 22px 0 12px;
+  font-size: clamp(36px, 7vw, 76px);
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: #ffd800;
+  text-shadow: 5px 5px 0 #ff3cac, 10px 10px 0 #2038ec;
+  animation: ssHue 0.9s steps(6) infinite;
+}
+.ss-sub {
+  font-size: 16px;
+  color: #3cff6c;
+  text-transform: uppercase;
+}
+.ss-arrows {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin: 28px 0 22px;
+  font-size: 18px;
+  letter-spacing: 0.25em;
+  color: #c8d0ff;
+}
+.ss-arrows i {
+  font-style: normal;
+  font-family: system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+}
+.ss-blink {
+  font-size: 18px;
+  color: #fcfcfc;
+  text-transform: uppercase;
+  animation: arcadeBlink 0.8s steps(1) infinite;
+}
+.ss-foot {
+  margin-top: 30px;
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  color: #8890d8;
+}
+@keyframes ssHue {
+  50% {
+    color: #3cf0ff;
+    text-shadow: 5px 5px 0 #2038ec, 10px 10px 0 #ff3cac;
+  }
+}
+@keyframes splashIn {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+@keyframes splashOut {
+  to {
+    opacity: 0;
+  }
+}
+body.reduced .secret-splash,
+body.reduced .ss-title,
+body.reduced .ss-arrows i {
+  font-style: normal;
+  font-family: system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+}
+.ss-blink {
+  animation: none;
+}

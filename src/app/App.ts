@@ -3,7 +3,8 @@
 import Phaser from 'phaser';
 import { AudioEngine, type SfxName } from '../audio/AudioEngine';
 import { blankLevel, parseBuild } from '../core/level';
-import { themeFor, type ThemeId, type ThemeSetting } from '../core/themes';
+import { chromeFor, themeFor, type ThemeId, type ThemeSetting } from '../core/themes';
+import { KonamiDetector } from './konami';
 import { deepClone, hashString } from '../core/util';
 import { emptyBuild, type BuildDef, type LevelDef } from '../core/types';
 import { CAMPAIGN, CHAPTERS, levelCode } from '../game/campaign';
@@ -15,6 +16,7 @@ import { SaveStore, type Settings } from '../persistence/save';
 import { WorkshopScene } from '../render/WorkshopScene';
 import { difficultyChooser } from '../ui/difficulty';
 import { h, installTooltips, modal, toast } from '../ui/dom';
+import { secretBanner } from '../ui/secret';
 import { labIntro, labScreen } from '../ui/lab';
 import { PlayScreen } from '../ui/PlayScreen';
 import { campaignScreen, levelsScreen, mainMenu, settingsDialog, type Screen } from '../ui/screens';
@@ -41,6 +43,9 @@ export class App implements AppContext {
   /** Theme picked in the sandbox or editor for this visit only (overrides the setting there). */
   private sessionTheme: ThemeSetting = 'auto';
   private musicTheme: ThemeId | null = null;
+  private konami = new KonamiDetector();
+  /** Theme setting to return to when the code switches the arcade theme off again. */
+  private preArcadeTheme: ThemeSetting = 'auto';
 
   constructor() {
     this.ui = document.getElementById('ui')!;
@@ -78,6 +83,7 @@ export class App implements AppContext {
     };
     window.addEventListener('pointerdown', unlock, true);
     window.addEventListener('keydown', unlock, true);
+    window.addEventListener('keydown', (e) => this.onCheatKey(e), true);
     window.addEventListener('beforeunload', () => this.store.flush());
     document.addEventListener('visibilitychange', () => document.hidden && this.store.flush());
     if (this.store.recovered) toast('Your save data was damaged, so we started fresh. A backup of the old data was kept.', 'warn', 6000);
@@ -143,7 +149,13 @@ export class App implements AppContext {
 
   private refreshTheme(deferred = false) {
     const id = this.theme;
-    document.documentElement.dataset.theme = id;
+    // The HUD chrome: modern everywhere by default, or dressed for the era (see chromeFor).
+    const root = document.documentElement;
+    const chrome = chromeFor(id, this.settings.uiStyle);
+    root.dataset.ui = chrome ? 'era' : 'modern';
+    if (chrome) root.dataset.theme = chrome;
+    else delete root.dataset.theme;
+    root.dataset.scene = id;
     if (this.scene && this.scene.currentTheme !== id) {
       this.scene.setTheme(id, deferred);
       this.play?.refreshTheme();
@@ -152,6 +164,35 @@ export class App implements AppContext {
       this.musicTheme = id;
       this.audio.setMusicTheme(id);
     }
+  }
+
+  // ------------------------------------------------------------------ secret
+
+  private onCheatKey(e: KeyboardEvent) {
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT') && (t as HTMLInputElement).type !== 'range') return;
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (this.konami.push(e.key, e.code)) this.toggleArcade();
+  }
+
+  /** The Konami code: unlock the secret arcade theme, or toggle it on and off once unlocked. */
+  toggleArcade() {
+    const s = this.settings;
+    if (s.arcadeUnlocked && this.theme === 'arcade') {
+      const back = this.preArcadeTheme === 'arcade' ? 'auto' : this.preArcadeTheme;
+      this.sessionTheme = 'auto';
+      this.updateSettings({ theme: back });
+      this.sfx('click');
+      toast('Thanks for playing! Arcade theme off. It waits for you in Settings, under Theme.');
+      return;
+    }
+    const first = !s.arcadeUnlocked;
+    this.preArcadeTheme = s.theme;
+    this.sessionTheme = 'auto';
+    this.updateSettings({ arcadeUnlocked: true, theme: 'arcade' });
+    this.sfx('secret');
+    if (first) secretBanner(this.ui);
+    else toast('Insert coin! Arcade theme on.');
   }
 
   openSettings(focus?: 'difficulty') {
