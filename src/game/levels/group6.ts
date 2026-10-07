@@ -398,8 +398,8 @@ const partyBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
   o('s-m1', 'mirror', 400, 560, {}, UP),
   ...extra,
   o('s-split-1', 'beam_splitter', 390, 110, {}, UP),
-  o('s-m2', 'mirror', 390, 60, {}, UP),
-  o('s-m3', 'mirror', 700, 60, {}, DOWN),
+  o('s-m2', 'mirror', 390, 40, {}, UP),
+  o('s-m3', 'mirror', 700, 40, {}, DOWN),
   o('s-split-2', 'beam_splitter', 700, 280, {}, DOWN),
   o('s-m4', 'mirror', 690, 430, {}, DOWN),
 ];
@@ -423,12 +423,12 @@ const party: CampaignEntry = {
       o('g6e-floor-3', 'wall', 970, 486, { w: 300, h: 12, material: 'steel' }),
       o('g6e-basement', 'wall', 826, 561, { w: 12, h: 138, material: 'brick' }),
       // the sills reach just past each balloon's knot, so a beam anywhere across the balloon still pops it
-      o('g6e-sill-1', 'wall', 976, 148.5, { w: 8, h: 23, material: 'wood' }),
-      o('g6e-sill-2', 'wall', 976, 309, { w: 8, h: 22, material: 'wood' }),
-      o('g6e-sill-3', 'wall', 976, 468.5, { w: 8, h: 23, material: 'wood' }),
-      o('g6e-hook-1', 'hook', 1000, 154),
-      o('g6e-hook-2', 'hook', 1000, 315),
-      o('g6e-hook-3', 'hook', 1000, 474),
+      o('g6e-sill-1', 'wall', 976, 146, { w: 8, h: 28, material: 'wood' }),
+      o('g6e-sill-2', 'wall', 976, 306.5, { w: 8, h: 27, material: 'wood' }),
+      o('g6e-sill-3', 'wall', 976, 466, { w: 8, h: 28, material: 'wood' }),
+      o('g6e-hook-1', 'hook', 1000, 149),
+      o('g6e-hook-2', 'hook', 1000, 310),
+      o('g6e-hook-3', 'hook', 1000, 469),
     ],
     startingObjects: [
       o('g6e-timer', 'timer', 60, 150, { delay: 0.5 }),
@@ -436,9 +436,9 @@ const party: CampaignEntry = {
       o('g6e-chicken', 'rubber_chicken', 150, 234),
       o('g6e-plate', 'pressure_plate', 490, 621, { minMass: 0.3 }),
       o('g6e-laser', 'laser', 90, 559, { alwaysOn: false, color: 'red' }),
-      o('g6e-balloon-1', 'balloon', 1000, 114, { lift: 1.5, color: 'red' }),
-      o('g6e-balloon-2', 'balloon', 1000, 275, { lift: 1.5, color: 'yellow' }),
-      o('g6e-balloon-3', 'balloon', 1000, 434, { lift: 1.5, color: 'teal' }),
+      o('g6e-balloon-1', 'balloon', 1000, 109, { lift: 1.5, color: 'red' }),
+      o('g6e-balloon-2', 'balloon', 1000, 270, { lift: 1.5, color: 'yellow' }),
+      o('g6e-balloon-3', 'balloon', 1000, 429, { lift: 1.5, color: 'teal' }),
       o('g6e-cat', 'cat', 1000, 617, {}, 0, true),
     ],
     connections: [
@@ -493,12 +493,11 @@ const party: CampaignEntry = {
 
 const wishBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
   o('s-chicken', 'rubber_chicken', 240, 602),
-  o('s-ramp', 'plank', 384, 599, { length: 110 }, -25 * DEG),
+  o('s-ramp', 'plank', 420, 560, { length: 130 }, -30 * DEG),
   o('s-bat', 'battery', 40, 600),
-  o('s-m1', 'mirror', 120, 190, {}, UP),
-  o('s-m2', 'mirror', 170, 160, {}, UP),
-  o('s-m3', 'mirror', 220, 130, {}, UP),
-  o('s-m4', 'mirror', 270, 100, {}, UP),
+  o('s-m1', 'mirror', 110, 190, {}, UP),
+  o('s-m2', 'mirror', 170, 150, {}, UP),
+  o('s-m3', 'mirror', 230, 110, {}, UP),
   ...extra,
   o('s-lens', 'lens', 390, 160, { focal: 290 }),
 ];
@@ -509,7 +508,7 @@ const wish: CampaignEntry = {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g6-make-a-wish',
     name: 'Make A Wish',
-    description: 'Wake Whiskers so he scampers over the switch, and four lasers come on. Squeeze all four beams through the pinhole with a lens to light the birthday candles, and one of them boils the kettle for tea.',
+    description: 'Wake Whiskers so he scampers over the switch, and three lasers come on. Squeeze all three beams through the pinhole with a lens to light the birthday candles, and one of them boils the kettle for tea.',
     environment: 'research',
     world: WORLD(),
     fixedObjects: [
@@ -519,24 +518,27 @@ const wish: CampaignEntry = {
       o('g6f-pen', 'wall', 604, 608, { w: 8, h: 44, material: 'steel' }),
       o('g6f-wall-top', 'wall', 680, 70, { w: 20, h: 140, material: 'brick' }),
       o('g6f-wall-bottom', 'wall', 680, 405, { w: 20, h: 450, material: 'brick' }),
-      // the candles stand in a rising staircase, each one just above the next beam down, so a
-      // beam that lands a little high or low still finds its own wick and never a neighbour's
-      o('g6f-tier-4', 'wall', 1030, 242.8, { w: 40, h: 6, material: 'wood' }),
-      o('g6f-grill', 'wall', 1040, 193.8, { w: 80, h: 6, material: 'steel' }),
+      // the lens slides along this rail, so it always stands at the height of the pinhole
+      o('g6f-lens-rail', 'wall', 390, 226, { w: 140, h: 10, material: 'steel' }),
+      // Past the pinhole the beams fan out, and each candle fills the whole slice of the fan its
+      // own beam can land in (a mirror a grid step or two off, or the lens hung a notch low),
+      // stopping just short of its neighbours' slices. They step down and back so no flame
+      // warms another candle; the kettle sits over the top one.
+      o('g6f-tier', 'wall', 1010, 229.05, { w: 40, h: 6, material: 'wood' }),
+      o('g6f-grill', 'wall', 960, 95.2, { w: 80, h: 6, material: 'steel' }),
     ],
     startingObjects: [
       o('g6f-ball', 'ball', 40, 385),
       o('g6f-catch', 'bucket', 240, 598),
       o('g6f-cat', 'cat', 300, 617),
       o('g6f-switch', 'toggle_switch', 520, 555),
-      ...[110, 164, 212, 258].map((x, k) => o(`g6f-laser-${k + 1}`, 'laser', x, 296, { alwaysOn: false, color: 'red' }, -90 * DEG)),
-      o('g6f-candle-1', 'candle', 930, 114, { lit: false }),
-      o('g6f-candle-2', 'candle', 960, 141.1, { lit: false }),
-      o('g6f-candle-3', 'candle', 990, 169, { lit: false }),
-      o('g6f-candle-4', 'candle', 1030, 210.8, { lit: false }),
-      o('g6f-teapot', 'teapot', 1036, 169.8),
+      ...[110.66, 170.66, 230.66].map((x, k) => o(`g6f-laser-${k + 1}`, 'laser', x, 296, { alwaysOn: false, color: 'red' }, -90 * DEG)),
+      o('g6f-candle-1', 'candle', 950, 112.2, { lit: false }),
+      o('g6f-candle-2', 'candle', 980, 151.4, { lit: false }),
+      o('g6f-candle-3', 'candle', 1010, 197.05, { lit: false }),
+      o('g6f-teapot', 'teapot', 956, 71.2),
     ],
-    connections: [0, 1, 2, 3].map((k) => wire(`g6f-w${k + 1}`, 'g6f-switch', `g6f-laser-${k + 1}`, 'in', 'out')),
+    connections: [0, 1, 2].map((k) => wire(`g6f-w${k + 1}`, 'g6f-switch', `g6f-laser-${k + 1}`, 'in', 'out')),
     inventory: [
       { type: 'battery', count: 1 },
       { type: 'rubber_chicken', count: 1 },
@@ -546,22 +548,22 @@ const wish: CampaignEntry = {
       { type: 'beam_splitter', count: 1 },
     ],
     goals: [
-      { kind: 'activate', target: { type: 'candle' }, count: 4, label: 'Light all four birthday candles' },
+      { kind: 'activate', target: { type: 'candle' }, count: 3, label: 'Light all three birthday candles' },
       { kind: 'activate', target: { id: 'g6f-teapot' }, label: 'Boil the kettle for birthday tea' },
     ],
     restrictions: { timeLimit: 20 },
-    bonus: { elegantParts: 8, elegantTime: 4.5, absurdStages: 22 },
+    bonus: { elegantParts: 7, elegantTime: 4.5, absurdStages: 19 },
     hints: [
       'A squawk wakes a cat. Put the rubber chicken where the rolling ball will land on it, and give Whiskers a plank up to the switch shelf.',
-      'The switch is wired to all four lasers but has no power of its own: it needs a battery. Then turn each beam right with a mirror so the four run side by side.',
+      'The switch is wired to all three lasers but has no power of its own: it needs a battery. Then turn each beam right with a mirror so the three run side by side.',
       'A lens bends parallel beams so they all cross at its focal point. Put that point in the pinhole: the focal length is how far the point is from the lens.',
     ],
-    metadata: { chapter: 6, order: 6, author: 'Follyworks', blurb: 'Make a wish. Then make it four times.' },
+    metadata: { chapter: 6, order: 6, author: 'Follyworks', blurb: 'Make a wish. Then make it three times.' },
   },
   solutions: [
     { objects: wishBuild(), connections: wishWires },
     // ABSURD: a splitter skims half of one beam off underneath the lens, into a spare mirror and down onto the plank.
-    { objects: wishBuild([o('s-split', 'beam_splitter', 120, 240, {}, UP), o('s-m5', 'mirror', 400, 240, {}, DOWN)]), connections: wishWires },
+    { objects: wishBuild([o('s-split', 'beam_splitter', 120, 240, {}, UP), o('s-m5', 'mirror', 400, 270, {}, DOWN)]), connections: wishWires },
   ],
   counterexamples: [
     {
@@ -587,9 +589,9 @@ const dunkBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
   o('s-split', 'beam_splitter', 300, 300, {}, DOWN),
   o('s-red', 'color_filter', 400, 300, { color: 'red' }),
   o('s-r1', 'mirror', 500, 300, {}, UP),
-  o('s-r2', 'mirror', 500, 60, {}, UP),
+  o('s-r2', 'mirror', 490, 60, {}, UP),
   o('s-green', 'color_filter', 300, 420, { color: 'green' }, 90 * DEG),
-  o('s-g1', 'mirror', 300, 520, {}, DOWN),
+  o('s-g1', 'mirror', 290, 520, {}, DOWN),
   o('s-g2', 'mirror', 640, 520, {}, DOWN),
   ...extra,
 ];
@@ -615,8 +617,9 @@ const colourCoded: CampaignEntry = {
       o('g6g-bell', 'bell', 362, 112),
       o('g6g-latch', 'timer', 420, 200, { delay: 0 }),
       o('g6g-laser', 'laser', 90, 300, { alwaysOn: false, color: 'white' }),
-      o('g6g-red', 'light_sensor', 720, 60, { color: 'red' }, 90 * DEG),
-      o('g6g-green', 'light_sensor', 626, 610, { color: 'green' }),
+      // both photocells stand on a corner, so a beam a little high, low or wide still finds the cell
+      o('g6g-red', 'light_sensor', 720, 61.3, { color: 'red' }, 45 * DEG),
+      o('g6g-green', 'light_sensor', 634.6, 600, { color: 'green' }, 45 * DEG),
       o('g6g-and', 'logic_gate', 800, 200, { mode: 'and' }),
       o('g6g-conveyor', 'conveyor', 850, 330, { length: 300, speed: 120, dir: 'right' }),
       o('g6g-ball', 'basketball', 760, 303),
