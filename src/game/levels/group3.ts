@@ -518,81 +518,115 @@ const teaTime: CampaignEntry = {
 
 // ---------------------------------------------------------------- 3-7: one motor, two jobs
 
+const BOLT_SHELF = 220; // top of Bolt's shelf
 const doubleShift: CampaignEntry = {
   chapter: 3,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g3-double-shift',
     name: 'Double Shift',
-    description: 'One motor, two jobs. Hoist the left crate above the line with the winch, and run the conveyor (its own battery is flat) so the right crate rides left into the bay.',
+    description: 'One motor, two jobs: winch up the steel gate so Bolt can shove the bowling ball off his shelf, and run the conveyor that brings it back across the room. Breakfast is served at the far end, and the cat is a light sleeper.',
     environment: 'garage',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g3g-gantry', 'wall', 360, 80, { w: 200, h: 20, material: 'steel' }),
-      o('g3g-bay-l', 'wall', 452, 575, { w: 12, h: 110, material: 'brick' }),
-      o('g3g-bay-r', 'wall', 700, 575, { w: 12, h: 110, material: 'brick' }),
-      o('g3g-stop', 'wall', 948, 370, { w: 12, h: 60, material: 'steel' }),
+      o('g3g-shelf', 'wall', 855, BOLT_SHELF + 10, { w: 510, h: 20, material: 'wood' }),
+      o('g3g-backstop', 'wall', 1104, BOLT_SHELF - 20, { w: 12, h: 40, material: 'steel' }),
+      o('g3g-gantry', 'wall', 900, 30, { w: 120, h: 20, material: 'steel' }),
+      o('g3g-endstop', 'wall', 626, 372, { w: 12, h: 36, material: 'steel' }),
+      o('g3g-toast-shelf', 'wall', 50, 595, { w: 100, h: 70, material: 'brick' }),
     ],
     startingObjects: [
-      o('g3g-battery', 'battery', 80, BATTERY_Y),
-      o('g3g-motor', 'motor', 180, MOTOR_Y, { rpm: 60, dir: 'cw' }),
-      o('g3g-winch', 'pulley', 360, 120),
-      o('g3g-crate-b', 'crate', 360, BOX_Y),
-      o('g3g-conveyor', 'conveyor', 760, 400, { length: 360, speed: 110, dir: 'right' }),
-      o('g3g-flat', 'battery', 1040, BATTERY_Y, { on: false }),
-      o('g3g-crate-a', 'crate', 900, 367),
+      o('g3g-battery', 'battery', 1080, BATTERY_Y),
+      o('g3g-motor', 'motor', 990, MOTOR_Y, { rpm: 60, dir: 'cw' }),
+      o('g3g-winch', 'pulley', 900, 72),
+      o('g3g-gate', 'crate', 900, BOLT_SHELF - 22, { material: 'steel' }),
+      o('g3g-bolt', 'robot', 1050, BOLT_SHELF - 22, { speed: 80, awake: true }, 0, true),
+      o('g3g-ball', 'bowling_ball', 700, BOLT_SHELF - 20),
+      o('g3g-conveyor', 'conveyor', 410, 400, { length: 420, speed: 110, dir: 'right' }),
+      o('g3g-cat', 'cat', 225, FLOOR - 13),
+      ...[0, 1, 2, 3].map((i) => o(`g3g-pin${i + 1}`, 'bowling_pin', 640 + i * 36, FLOOR - 28)),
+      o('g3g-bell', 'bell', 840, 598),
     ],
-    connections: [wire('g3g-w1', 'g3g-battery', 'g3g-motor'), wire('g3g-w2', 'g3g-flat', 'g3g-conveyor')],
+    connections: [wire('g3g-w1', 'g3g-battery', 'g3g-motor')],
     inventory: [
+      { type: 'pulley', count: 1 },
       { type: 'belt', count: 3 },
-      { type: 'gear', count: 2 },
       { type: 'rope', count: 1 },
-      { type: 'plank', count: 1 },
+      { type: 'gear', count: 4 },
+      { type: 'toaster', count: 1 },
+      { type: 'plank', count: 2 },
     ],
     goals: [
-      { kind: 'height', target: { id: 'g3g-crate-b' }, maxY: 320, label: 'Hoist the left crate above the line' },
-      {
-        kind: 'enterRegion',
-        target: { id: 'g3g-crate-a' },
-        region: { x: 458, y: 520, w: 236, h: 110 },
-        hold: 0.5,
-        label: 'Bring the right crate into the bay',
-      },
+      { kind: 'enterRegion', target: { id: 'g3g-ball' }, region: { x: 0, y: 440, w: 110, h: 120 }, hold: 0.5, label: 'Deliver the bowling ball to the breakfast shelf' },
+      { kind: 'activate', target: { type: 'bowling_pin' }, count: 3, label: 'Whiskers bowls over 3 pins' },
+      { kind: 'activate', target: { id: 'g3g-bell' }, label: 'Ring the bell' },
     ],
-    restrictions: { timeLimit: 20 },
-    bonus: { elegantParts: 4, elegantTime: 5, absurdStages: 5 },
+    restrictions: { timeLimit: 25 },
+    bonus: { elegantParts: 6, elegantTime: 17, absurdStages: 22 },
     hints: [
-      'One motor can drive several belts at once, and a belt can come off a gear just as well as off the motor.',
-      'The winch must turn clockwise to reel in. The conveyor must turn anticlockwise to roll left.',
-      'Belt the motor to the winch and rope the left crate to its drum. Mesh a gear on the motor and belt it to the conveyor.',
+      'The winch reels in when it turns clockwise, like the motor. The conveyor has to roll left, so it needs the opposite way round: put a gear in between.',
+      'The ball leaves the conveyor too low and too soon for the brick shelf. Give it a ramp up there, and put the toaster on the shelf with its lever facing the ramp.',
+      'Belt motor to winch, rope gate hook to winch drum. Gear on the motor, belted to the conveyor. Plank sloping down from under the conveyor’s left end to the shelf, toaster on the shelf.',
     ],
     metadata: { chapter: 3, order: 7, author: 'Follyworks', blurb: 'Clockwise for one, anticlockwise for the other.' },
   },
   solutions: [
     {
-      objects: [o('s-gear', 'gear', 180, 554, { size: 'medium' })],
+      objects: [o('s-gear', 'gear', 990, 555, { size: 'medium' }), o('s-toaster', 'toaster', 45, 536), o('s-ramp', 'plank', 140, 510, { length: 120 }, -0.75)],
       connections: [
         belt('s-b1', 'g3g-motor', 'g3g-winch'),
-        link('s-rope', 'rope', 'g3g-crate-b', 'hook', 'g3g-winch', 'drum'),
+        link('s-rope', 'rope', 'g3g-gate', 'hook', 'g3g-winch', 'drum'),
         belt('s-b2', 's-gear', 'g3g-conveyor'),
       ],
     },
-    // ABSURD: a tower of gears sorts out who turns which way.
     {
-      objects: [o('s-gear', 'gear', 180, 554, { size: 'medium' }), o('s-gear2', 'gear', 180, 498, { size: 'small' })],
+      // ABSURD: an idler tower on the drive gear, all spinning for nobody
+      objects: [
+        o('s-gear', 'gear', 990, 555, { size: 'medium' }),
+        o('s-i1', 'gear', 934, 555, { size: 'small' }),
+        o('s-i2', 'gear', 890, 555, { size: 'small' }),
+        o('s-i3', 'gear', 990, 499, { size: 'small' }),
+        o('s-toaster', 'toaster', 45, 536), o('s-ramp', 'plank', 140, 510, { length: 120 }, -0.75),
+      ],
       connections: [
-        belt('s-b1', 's-gear2', 'g3g-winch'),
-        link('s-rope', 'rope', 'g3g-crate-b', 'hook', 'g3g-winch', 'drum'),
+        belt('s-b1', 'g3g-motor', 'g3g-winch'),
+        link('s-rope', 'rope', 'g3g-gate', 'hook', 'g3g-winch', 'drum'),
         belt('s-b2', 's-gear', 'g3g-conveyor'),
       ],
     },
   ],
   counterexamples: [
     {
-      why: 'both belts come straight off the motor, so the conveyor rolls the crate the wrong way',
+      why: 'both belts come straight off the motor, so the conveyor rolls the ball into the end stop',
       build: {
-        objects: [],
-        connections: [belt('s-b1', 'g3g-motor', 'g3g-winch'), link('s-rope', 'rope', 'g3g-crate-b', 'hook', 'g3g-winch', 'drum'), belt('s-b2', 'g3g-motor', 'g3g-conveyor')],
+        objects: [o('s-toaster', 'toaster', 45, 536), o('s-ramp', 'plank', 140, 510, { length: 120 }, -0.75)],
+        connections: [
+          belt('s-b1', 'g3g-motor', 'g3g-winch'),
+          link('s-rope', 'rope', 'g3g-gate', 'hook', 'g3g-winch', 'drum'),
+          belt('s-b2', 'g3g-motor', 'g3g-conveyor'),
+        ],
+      },
+    },
+    {
+      why: 'no ramp: the ball drops short of the toaster shelf',
+      build: {
+        objects: [o('s-gear', 'gear', 990, 555, { size: 'medium' }), o('s-toaster', 'toaster', 45, 536)],
+        connections: [
+          belt('s-b1', 'g3g-motor', 'g3g-winch'),
+          link('s-rope', 'rope', 'g3g-gate', 'hook', 'g3g-winch', 'drum'),
+          belt('s-b2', 's-gear', 'g3g-conveyor'),
+        ],
+      },
+    },
+    {
+      why: 'no toaster: nothing makes a noise and Whiskers sleeps on',
+      build: {
+        objects: [o('s-gear', 'gear', 990, 555, { size: 'medium' })],
+        connections: [
+          belt('s-b1', 'g3g-motor', 'g3g-winch'),
+          link('s-rope', 'rope', 'g3g-gate', 'hook', 'g3g-winch', 'drum'),
+          belt('s-b2', 's-gear', 'g3g-conveyor'),
+        ],
       },
     },
   ],
@@ -600,76 +634,98 @@ const doubleShift: CampaignEntry = {
 
 // ---------------------------------------------------------------- 3-8: timing: hit a moving bucket
 
+const SLAB = 606; // top of the conveyor and the loading bay slab
+const PERCH = 460; // top of Whiskers' perch
 const movingTarget: CampaignEntry = {
   chapter: 3,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g3-moving-target',
     name: 'Moving Target',
-    description: 'Bolt is about to stroll off the wrong end of his shelf. Turn him round so he nudges the ball over the edge, get the dead conveyor running, and land the ball in the bucket before it disappears through the hatch.',
+    description: 'Bolt is about to stroll off the wrong end of his shelf. Turn him round so he shoves the bowling ball over the edge, start the conveyor and the gate winch, and land the ball in the bucket on its way to the loading bay. The toaster in the bay is set to breakfast.',
     environment: 'underground',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
       o('g3h-shelf', 'wall', 290, 215, { w: 300, h: 30, material: 'wood' }),
-      o('g3h-bar', 'wall', 434, 150, { w: 12, h: 30, material: 'steel' }),
-      o('g3h-tunnel', 'wall', 900, 400, { w: 300, h: 280, material: 'brick' }),
+      // the gate stands in a pocket in the bay floor, so the bucket cannot just shove it along
+      o('g3h-slab-a', 'wall', 768, SLAB + 14, { w: 16, h: 24, material: 'brick' }),
+      o('g3h-pocket', 'wall', 800, SLAB + 20, { w: 48, h: 16, material: 'brick' }),
+      o('g3h-slab-b', 'wall', 972, SLAB + 14, { w: 296, h: 24, material: 'brick' }),
+      o('g3h-perch', 'wall', 1010, PERCH + 10, { w: 220, h: 20, material: 'wood' }),
     ],
     startingObjects: [
       o('g3h-bolt', 'robot', 240, 178, { speed: 80, awake: true }, 0, true),
-      o('g3h-ball', 'ball', 380, 186),
+      o('g3h-ball', 'bowling_ball', 380, 180),
       o('g3h-battery', 'battery', 70, BATTERY_Y),
       o('g3h-motor', 'motor', 180, MOTOR_Y, { rpm: 20, dir: 'ccw' }),
-      o('g3h-flat', 'battery', 1080, BATTERY_Y, { on: false }),
-      o('g3h-conveyor', 'conveyor', 600, 617, { length: 600, speed: 110, dir: 'left' }),
-      o('g3h-bucket', 'bucket', 340, 582, { anchored: false }),
+      o('g3h-conveyor', 'conveyor', 530, SLAB + 11, { length: 460, speed: 110, dir: 'left' }),
+      o('g3h-bucket', 'bucket', 340, SLAB - 32, { anchored: false }),
+      o('g3h-gate', 'crate', 800, SLAB - 10, { material: 'steel' }),
+      o('g3h-toaster', 'toaster', 870, SLAB - 24, { delay: 0.8 }, 0, true),
+      o('g3h-cat', 'cat', 925, PERCH - 13),
+      ...[0, 1, 2, 3].map((i) => o(`g3h-pin${i + 1}`, 'bowling_pin', 975 + i * 26, PERCH - 28)),
+      o('g3h-bell', 'bell', 1097, PERCH - 32),
     ],
-    connections: [wire('g3h-w1', 'g3h-battery', 'g3h-motor'), wire('g3h-w2', 'g3h-flat', 'g3h-conveyor')],
+    connections: [wire('g3h-w1', 'g3h-battery', 'g3h-motor')],
     inventory: [
       { type: 'plank', count: 3 },
-      { type: 'belt', count: 2 },
-      { type: 'gear', count: 2 },
+      { type: 'belt', count: 3 },
+      { type: 'gear', count: 4 },
+      { type: 'pulley', count: 1 },
+      { type: 'rope', count: 1 },
     ],
     goals: [
       { kind: 'containerCount', container: 'g3h-bucket', count: 1, filter: { id: 'g3h-ball' }, label: 'Land the ball in the bucket' },
-      { kind: 'enterRegion', target: { id: 'g3h-bucket' }, region: { x: 760, y: 540, w: 280, h: 90 }, hold: 0.5, label: 'Send the bucket through the hatch' },
+      { kind: 'enterRegion', target: { id: 'g3h-bucket' }, region: { x: 740, y: 520, w: 360, h: 90 }, hold: 0.5, label: 'Deliver the bucket to the loading bay' },
+      { kind: 'activate', target: { id: 'g3h-bell' }, label: 'Ring the bell' },
     ],
-    restrictions: { timeLimit: 20 },
-    bonus: { elegantParts: 4, elegantTime: 10, absurdStages: 7 },
+    restrictions: { timeLimit: 25 },
+    bonus: { elegantParts: 7, elegantTime: 11.5, absurdStages: 22 },
     hints: [
-      'Three jobs: an upright plank turns Bolt round, the conveyor needs a belt (its battery is flat), and the ball needs a ramp.',
-      'The motor turns anticlockwise, which would roll the bucket the wrong way. Turn it round with a gear first.',
-      'The ball drops just behind the moving bucket. A short ramp under the shelf edge, sloping down to the right, flicks it forward into the bucket.',
+      'Three jobs: turn Bolt round with an upright plank, belt the conveyor, and winch the steel gate out of the bucket’s way.',
+      'The motor turns anticlockwise. Both the conveyor and the winch want clockwise, so drive them both from a gear on the motor.',
+      'The ball drops just behind the moving bucket. A short plank at the shelf edge, tilted down to the right, gives it the lead it needs.',
     ],
     metadata: { chapter: 3, order: 8, author: 'Follyworks', blurb: 'Lead the target.' },
   },
   solutions: [
     {
-      objects: [
-        o('s-post', 'plank', 150, 160, { length: 80 }, Math.PI / 2),
-        o('s-gear', 'gear', 180, 554, { size: 'medium' }),
-        o('s-ramp', 'plank', 530, 320, { length: 220 }, 0.3),
-      ],
-      connections: [belt('s-b', 's-gear', 'g3h-conveyor')],
+      objects: [o('s-post', 'plank', 150, 160, { length: 80 }, Math.PI / 2), o('s-gear', 'gear', 180, 555, { size: 'medium' }), o('s-ramp', 'plank', 464, 220, { length: 40 }, 0.35), o('s-winch', 'pulley', 800, 330)],
+      connections: [belt('s-b1', 's-gear', 'g3h-conveyor'), belt('s-b2', 's-gear', 's-winch'), link('s-rope', 'rope', 'g3h-gate', 'hook', 's-winch', 'drum')],
     },
-    // ABSURD: a spare gear spins along on top of the reversing gear.
+    // ABSURD: three idler gears stacked on the reversing gear.
     {
       objects: [
         o('s-post', 'plank', 150, 160, { length: 80 }, Math.PI / 2),
-        o('s-gear', 'gear', 180, 554, { size: 'medium' }),
-        o('s-gear2', 'gear', 180, 498, { size: 'small' }),
-        o('s-ramp', 'plank', 530, 320, { length: 220 }, 0.3),
+        o('s-gear', 'gear', 180, 555, { size: 'medium' }),
+        o('s-i1', 'gear', 236, 555, { size: 'small' }),
+        o('s-i2', 'gear', 180, 499, { size: 'small' }),
+        o('s-i3', 'gear', 280, 555, { size: 'small' }),
+        o('s-ramp', 'plank', 464, 220, { length: 40 }, 0.35),
+        o('s-winch', 'pulley', 800, 330),
       ],
-      connections: [belt('s-b', 's-gear', 'g3h-conveyor')],
+      connections: [belt('s-b1', 's-gear', 'g3h-conveyor'), belt('s-b2', 's-gear', 's-winch'), link('s-rope', 'rope', 'g3h-gate', 'hook', 's-winch', 'drum')],
     },
   ],
   counterexamples: [
     {
-      why: 'the conveyor stays dead, so the bucket never leaves',
-      build: { objects: [o('s-post', 'plank', 150, 160, { length: 80 }, Math.PI / 2), o('s-ramp', 'plank', 530, 320, { length: 220 }, 0.3)], connections: [] },
+      why: 'no lip at the shelf edge, so the ball drops behind the bucket',
+      build: { objects: [o('s-post', 'plank', 150, 160, { length: 80 }, Math.PI / 2), o('s-gear', 'gear', 180, 555, { size: 'medium' }), o('s-winch', 'pulley', 800, 330)], connections: [belt('s-b1', 's-gear', 'g3h-conveyor'), belt('s-b2', 's-gear', 's-winch'), link('s-rope', 'rope', 'g3h-gate', 'hook', 's-winch', 'drum')] },
     },
     {
-      why: 'no ramp, so the ball lands behind the bucket',
-      build: { objects: [o('s-post', 'plank', 150, 160, { length: 80 }, Math.PI / 2), o('s-gear', 'gear', 180, 554, { size: 'medium' })], connections: [belt('s-b', 's-gear', 'g3h-conveyor')] },
+      why: 'nothing turns Bolt round, so the ball stays on the shelf',
+      build: { objects: [o('s-gear', 'gear', 180, 555, { size: 'medium' }), o('s-ramp', 'plank', 464, 220, { length: 40 }, 0.35), o('s-winch', 'pulley', 800, 330)], connections: [belt('s-b1', 's-gear', 'g3h-conveyor'), belt('s-b2', 's-gear', 's-winch'), link('s-rope', 'rope', 'g3h-gate', 'hook', 's-winch', 'drum')] },
+    },
+    {
+      why: 'belted straight off the motor, the conveyor runs backwards and the winch pays out',
+      build: {
+        objects: [o('s-post', 'plank', 150, 160, { length: 80 }, Math.PI / 2), o('s-ramp', 'plank', 464, 220, { length: 40 }, 0.35), o('s-winch', 'pulley', 800, 330)],
+        connections: [belt('s-b1', 'g3h-motor', 'g3h-conveyor'), belt('s-b2', 'g3h-motor', 's-winch'), link('s-rope', 'rope', 'g3h-gate', 'hook', 's-winch', 'drum')],
+      },
+    },
+    {
+      why: 'the gate stays down and stops the bucket short of the bay',
+      build: { objects: [o('s-post', 'plank', 150, 160, { length: 80 }, Math.PI / 2), o('s-gear', 'gear', 180, 555, { size: 'medium' }), o('s-ramp', 'plank', 464, 220, { length: 40 }, 0.35)], connections: [belt('s-b1', 's-gear', 'g3h-conveyor')] },
     },
   ],
 };
