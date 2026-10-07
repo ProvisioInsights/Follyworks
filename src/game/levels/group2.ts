@@ -22,7 +22,7 @@ const wire = (id: string, from: string, fromPort: string, to: string, toPort: st
   to: { obj: to, port: toPort },
 });
 
-// ---------------------------------------------------------------- 2-1: counterweight lift (first rope)
+// ---------------------------------------------------------------- 2-1: counterweight bell-ringer
 
 const counterCulture: CampaignEntry = {
   chapter: 2,
@@ -31,80 +31,71 @@ const counterCulture: CampaignEntry = {
     id: 'g2-counter-culture',
     name: 'Counter Culture',
     description:
-      'The crate wants to live up in the loft. Tie it to something heavier with a rope over the pulley, and let gravity do the lifting.',
+      'The bowling ball is about to bowl down the shelf and drop off the end. Catch it in a hanging bucket tied over the pulleys to the crate, so the crate shoots up and rings the bell.',
     environment: 'garage',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g2a-beam', 'wall', 560, 72, { w: 300, h: 20, material: 'steel' }),
-      o('g2a-pulley', 'pulley', 560, 118),
-      o('g2a-post', 'wall', 560, 95, { w: 12, h: 26, material: 'steel' }),
-      o('g2a-loft', 'wall', 170, 300, { w: 260, h: 20, material: 'wood' }),
-      o('g2a-loft-leg', 'wall', 290, 470, { w: 16, h: 320, material: 'wood' }),
+      o('g2a-ramp', 'plank', 160, 105, { length: 290 }, 0.31),
+      o('g2a-ledge', 'wall', 360, 173, { w: 120, h: 16, material: 'wood' }),
+      o('g2a-chute', 'plank', 560, 215, { length: 290 }, 0.26),
+      o('g2a-stop', 'wall', 800, 215, { w: 16, h: 130, material: 'brick' }),
+      o('g2a-beam', 'wall', 820, 30, { w: 560, h: 20, material: 'steel' }),
+      o('g2a-pulley', 'pulley', 960, 70),
+      o('g2a-bell', 'bell', 992, 300),
     ],
-    startingObjects: [o('g2a-crate', 'crate', 440, 608)],
+    startingObjects: [
+      o('g2a-ball', 'ball', 40, 32),
+      o('g2a-bowl', 'bowling_ball', 412, 145),
+      o('g2a-crate', 'crate', 960, 608),
+    ],
     connections: [],
     inventory: [
-      { type: 'rope', count: 1 },
-      { type: 'crate', count: 2 },
+      { type: 'pulley', count: 1 },
       { type: 'bucket', count: 1 },
-      { type: 'ball', count: 2 },
+      { type: 'rope', count: 1 },
+      { type: 'ball', count: 1 },
+      { type: 'plank', count: 1 },
     ],
-    goals: [{ kind: 'height', target: { id: 'g2a-crate' }, maxY: 310, label: 'Hoist the crate up to loft level' }],
+    goals: [{ kind: 'contact', a: { id: 'g2a-crate' }, b: { id: 'g2a-bell' }, label: 'Lift the crate up into the bell' }],
     restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 2, elegantTime: 3, absurdStages: 3 },
+    bonus: { elegantParts: 3, elegantTime: 6, absurdStages: 5 },
     hints: [
-      'A rope over a pulley is a see-saw made of string: when one end goes down, the other comes up.',
-      'The thing on the other end has to be heavier than the 3 kg crate. A wooden crate weighs exactly the same, so set yours to Steel.',
-      'Put a steel crate in the air to the right of the pulley, then tie a rope from the crate’s hook, over the pulley, to the steel crate’s hook.',
-    ],
-    guide: [
-      {
-        text: 'Drag a Crate from the parts bin into the air on the right of the pulley.',
-        point: { bin: 'crate' },
-        ghost: { type: 'crate', x: 700, y: 260, props: { material: 'steel' } },
-        until: { kind: 'place', type: 'crate', at: { x: 700, y: 300 }, radius: 220 },
-      },
-      {
-        text: 'In its properties, set Material to Steel. A steel crate is much heavier than the wooden one on the floor.',
-        until: { kind: 'ack' },
-      },
-      {
-        text: 'Pick the Rope, then click the floor crate’s hook, the pulley wheel, and your steel crate’s hook.',
-        point: { bin: 'rope' },
-        until: { kind: 'connect', connection: 'rope' },
-      },
-      { text: 'Press RUN and watch heavy go down so light can go up.', point: { hud: 'run' }, until: { kind: 'run' } },
+      'A rope over a pulley is a seesaw made of string: when one end goes down, the other comes up.',
+      'An empty bucket is lighter than the crate, so it just hangs there. Something heavy has to land in it.',
+      'Put a pulley on the beam right above where the bowling ball drops, hang an unbolted bucket high up under it, and rope the crate over both pulleys to the bucket.',
     ],
     metadata: { chapter: 2, order: 1, author: 'Follyworks', blurb: 'Heavy goes down so light can go up.' },
   },
   solutions: [
     {
-      objects: [o('s-steel', 'crate', 700, 260, { material: 'steel' })],
-      connections: [rope('s-rope', 'g2a-crate', 'hook', 's-steel', 'hook', ['g2a-pulley'])],
+      objects: [o('s-pulley', 'pulley', 760, 70), o('s-bucket', 'bucket', 760, 330, { anchored: false })],
+      connections: [rope('s-rope', 'g2a-crate', 'hook', 's-bucket', 'handle', ['g2a-pulley', 's-pulley'])],
     },
-    // ABSURD: two rubber balls chase the steel counterweight down onto a spare crate.
+    // ABSURD: a rubber ball races the bowling ball down the chute and into the bucket.
     {
-      objects: [
-        o('s-steel', 'crate', 700, 260, { material: 'steel' }),
-        o('s-ball-a', 'ball', 700, 160),
-        o('s-ball-b', 'ball', 700, 100),
-        o('s-wood', 'crate', 700, 608),
-      ],
-      connections: [rope('s-rope', 'g2a-crate', 'hook', 's-steel', 'hook', ['g2a-pulley'])],
+      objects: [o('s-pulley', 'pulley', 760, 70), o('s-bucket', 'bucket', 760, 330, { anchored: false }), o('s-ball', 'ball', 600, 200)],
+      connections: [rope('s-rope', 'g2a-crate', 'hook', 's-bucket', 'handle', ['g2a-pulley', 's-pulley'])],
     },
   ],
   counterexamples: [
     {
-      why: 'the counterweight is a wooden crate that weighs the same as the load',
+      why: 'the bucket hangs where the bowling ball misses it',
       build: {
-        objects: [o('s-wood', 'crate', 700, 260)],
-        connections: [rope('s-rope', 'g2a-crate', 'hook', 's-wood', 'hook', ['g2a-pulley'])],
+        objects: [o('s-pulley', 'pulley', 600, 70), o('s-bucket', 'bucket', 600, 380, { anchored: false })],
+        connections: [rope('s-rope', 'g2a-crate', 'hook', 's-bucket', 'handle', ['g2a-pulley', 's-pulley'])],
+      },
+    },
+    {
+      why: 'the bucket only has a rubber ball in it',
+      build: {
+        objects: [o('s-pulley', 'pulley', 600, 70), o('s-bucket', 'bucket', 600, 380, { anchored: false }), o('s-ball', 'ball', 600, 370)],
+        connections: [rope('s-rope', 'g2a-crate', 'hook', 's-bucket', 'handle', ['g2a-pulley', 's-pulley'])],
       },
     },
   ],
 };
 
-// ---------------------------------------------------------------- 2-2: seesaw fling
+// ---------------------------------------------------------------- 2-2: seesaw fling into the hoop
 
 const leverExpectations: CampaignEntry = {
   chapter: 2,
@@ -112,37 +103,75 @@ const leverExpectations: CampaignEntry = {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g2-lever-expectations',
     name: 'Lever Your Expectations',
-    description: 'A rubber ball naps on the low end of a seesaw. Fling it up past the shelf line by landing something heavy on the other end.',
+    description:
+      'Whiskers is napping by the bowling pins. Get the bowling ball onto the high end of the seesaw: the rubber chicken goes flying, squawks him awake, and he bowls a strike.',
     environment: 'basement',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g2b-stop', 'wall', 390, 610, { w: 20, h: 40, material: 'wood' }),
-      o('g2b-shelf', 'wall', 930, 330, { w: 300, h: 20, material: 'wood' }),
+      o('g2b-ramp', 'wall', 110, 100, { w: 220, h: 14, material: 'wood' }, 0.32),
+      o('g2b-ledge', 'wall', 270, 160, { w: 70, h: 16, material: 'wood' }),
+      o('g2b-track', 'wall', 340, 215, { w: 140, h: 14, material: 'wood' }, 0.3),
+      o('g2b-track-2', 'wall', 520, 320, { w: 160, h: 14, material: 'wood' }, 0.3),
+      o('g2b-chute', 'wall', 662, 335, { w: 14, h: 170, material: 'wood' }),
+      o('g2b-alley', 'wall', 955, 490, { w: 330, h: 16, material: 'wood' }),
+      o('g2b-roof', 'wall', 1000, 402, { w: 240, h: 16, material: 'wood' }),
+      o('g2b-toybox', 'wall', 1040, 585, { w: 50, h: 90, material: 'wood' }),
     ],
-    startingObjects: [o('g2b-seesaw', 'seesaw', 560, 590, { length: 300, tilt: -12 }), o('g2b-ball', 'ball', 434, 590)],
+    startingObjects: [
+      o('g2b-ball', 'ball', 30, 58),
+      o('g2b-bowl', 'bowling_ball', 299, 132),
+      o('g2b-seesaw', 'seesaw', 860, 594, { length: 260, tilt: 12 }),
+      o('g2b-chicken', 'rubber_chicken', 960, 604),
+      o('g2b-cat', 'cat', 818, 469),
+      o('g2b-pin-1', 'bowling_pin', 1000, 454),
+      o('g2b-pin-2', 'bowling_pin', 1030, 454),
+      o('g2b-pin-3', 'bowling_pin', 1060, 454),
+      o('g2b-pin-4', 'bowling_pin', 1090, 454),
+    ],
     connections: [],
     inventory: [
-      { type: 'bowling_ball', count: 1 },
-      { type: 'crate', count: 1 },
-      { type: 'ball', count: 2 },
       { type: 'plank', count: 2 },
+      { type: 'trampoline', count: 2 },
     ],
-    goals: [{ kind: 'height', target: { id: 'g2b-ball' }, maxY: 340, label: 'Fling the ball up above the shelf line' }],
+    goals: [{ kind: 'activate', target: { type: 'bowling_pin' }, count: 3, label: 'Knock down 3 bowling pins' }],
     restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 1, elegantTime: 2, absurdStages: 4 },
+    bonus: { elegantParts: 3, elegantTime: 8, absurdStages: 16 },
     hints: [
-      'A seesaw turns a push down on one end into a fling up on the other.',
-      'The heavier the thing you drop, the further from the middle it lands, and the higher you drop it from, the bigger the fling. A wooden crate is a bit feeble.',
+      'Follow the bowling ball: it needs a bridge over the gap, then a way out of the pit at the bottom of the chute.',
+      'A trampoline turns a fall into a jump. Tilt it one notch to the right, and stand a plank on end as a wall so the bowling ball drops onto the seesaw’s high end.',
+      'Bridge the gap with a plank, put a trampoline turned 15° right on the floor under the chute, and stand the other plank upright just left of the cat’s shelf.',
     ],
     metadata: { chapter: 2, order: 2, author: 'Follyworks', blurb: 'Archimedes would be proud. Or alarmed.' },
   },
   solutions: [
-    { objects: [o('s-bowl', 'bowling_ball', 680, 150)], connections: [] },
-    // ABSURD: a rubber ball parked on the far end gets flattened by the bowling ball on its way to the seesaw.
-    { objects: [o('s-bowl', 'bowling_ball', 680, 150), o('s-ball-a', 'ball', 680, 530)], connections: [] },
+    {
+      objects: [
+        o('s-bridge', 'plank', 440, 268, { length: 90 }, 0.3),
+        o('s-tramp', 'trampoline', 625, 600, {}, Math.PI / 12),
+        o('s-stop', 'plank', 795, 385, { length: 120 }, Math.PI / 2),
+      ],
+      connections: [],
+    },
+    // ABSURD: the rubber ball follows the bowling ball down and boings about on a spare trampoline.
+    {
+      objects: [
+        o('s-bridge', 'plank', 440, 268, { length: 90 }, 0.3),
+        o('s-tramp', 'trampoline', 625, 600, {}, Math.PI / 12),
+        o('s-stop', 'plank', 795, 385, { length: 120 }, Math.PI / 2),
+        o('s-tramp-2', 'trampoline', 330, 612),
+      ],
+      connections: [],
+    },
   ],
   counterexamples: [
-    { why: 'a wooden crate is dropped instead of the bowling ball', build: { objects: [o('s-crate', 'crate', 680, 120)], connections: [] } },
+    {
+      why: 'the trampoline throws the bowling ball clean over the seesaw with no wall to stop it',
+      build: { objects: [o('s-bridge', 'plank', 440, 268, { length: 90 }, 0.3), o('s-tramp', 'trampoline', 625, 600, {}, Math.PI / 12)], connections: [] },
+    },
+    {
+      why: 'there is no trampoline to get the bowling ball out of the pit',
+      build: { objects: [o('s-bridge', 'plank', 440, 268, { length: 90 }, 0.3), o('s-stop', 'plank', 795, 385, { length: 120 }, Math.PI / 2)], connections: [] },
+    },
   ],
 };
 
