@@ -12,6 +12,7 @@ import type { BuildDef, LevelDef, ObjectDef } from '../core/types';
 import { countUsed } from '../editor/inventory';
 import type { Entity } from '../sim/Entity';
 import { Simulation } from '../sim/Simulation';
+import { playtest } from '../telemetry/playtest';
 import { angleGap } from './guide';
 
 /** Tier at which ELEGANT is withheld (a ghost showed a part's exact spot). */
@@ -108,7 +109,10 @@ export class HintLadder {
     } else if (this.hints.length) {
       v = { tier: 1, kind: 'nudge', text: this.hints[this.nudge], index: this.nudge, of: this.hints.length };
     }
-    if (v && !auto) this.tierUsed = Math.max(this.tierUsed, v.tier);
+    if (v && !auto) {
+      this.tierUsed = Math.max(this.tierUsed, v.tier);
+      playtest.hint(v.tier);
+    }
     this.current = v;
     return v;
   }

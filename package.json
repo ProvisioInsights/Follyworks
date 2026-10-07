@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "node e2e/smoke.mjs"
+    "e2e": "node e2e/smoke.mjs",
+    "fun:audit": "vitest run --config vitest.fun.config.ts tools/fun/audit",
+    "fun:playtests": "vitest run --config vitest.fun.config.ts tools/fun/playtests"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

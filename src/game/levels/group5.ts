@@ -234,7 +234,7 @@ const surpriseParty: CampaignEntry = {
     environment: 'greenhouse',
     world: WORLD(),
     fixedObjects: [
-      o('g5c-ramp', 'plank', 90, 95, { length: 120 }, 25 * DEG),
+      o('g5c-ramp', 'plank', 140, 95, { length: 120 }, 25 * DEG),
       o('g5c-start-shelf', 'wall', 300, 160, { w: 520, h: 20, material: 'wood' }),
       o('g5c-candle', 'candle', 580, 250),
       o('g5c-table', 'wall', 650, 420, { w: 130, h: 16, material: 'wood' }),
@@ -243,7 +243,7 @@ const surpriseParty: CampaignEntry = {
       o('g5c-bowl-r', 'wall', 940, 600, { w: 12, h: 60, material: 'steel' }),
     ],
     startingObjects: [
-      o('g5c-bowling', 'bowling_ball', 45, 52),
+      o('g5c-bowling', 'bowling_ball', 95, 52),
       o('g5c-tnt-a', 'dynamite', 548, 139, { power: 6, fuse: 1.5 }),
       o('g5c-boulder', 'bowling_ball', 695, 392),
       o('g5c-balloon-a', 'balloon', 540, 191, { color: 'red' }),
@@ -347,9 +347,11 @@ const latchOn: CampaignEntry = {
     world: WORLD(),
     fixedObjects: [
       // the starter on the top right: a bowling ball, a gap in the shelf, three dominoes and a bell
-      o('g5d-ramp', 'plank', 1030, 95, { length: 120 }, -25 * DEG),
-      o('g5d-shelf-r', 'wall', 995, 160, { w: 170, h: 20, material: 'wood' }),
-      o('g5d-shelf-l', 'wall', 745, 160, { w: 210, h: 20, material: 'wood' }),
+      o('g5d-ramp', 'plank', 1030, 75, { length: 120 }, -25 * DEG),
+      o('g5d-shelf-r', 'wall', 1000, 140, { w: 160, h: 20, material: 'wood' }),
+      o('g5d-gap-ledge-r', 'wall', 912.5, 182, { w: 15, h: 20, material: 'wood' }),
+      o('g5d-gap-ledge-l', 'wall', 847.5, 182, { w: 15, h: 20, material: 'wood' }),
+      o('g5d-shelf-l', 'wall', 740, 160, { w: 200, h: 20, material: 'wood' }),
       o('g5d-bell', 'bell', 680, 130),
       // two tunnels feed one drop pipe
       o('g5d-upper-shelf', 'wall', 390, 180, { w: 370, h: 20, material: 'wood' }),
@@ -364,7 +366,7 @@ const latchOn: CampaignEntry = {
       o('g5d-score-bell', 'bell', 1094, 578),
     ],
     startingObjects: [
-      o('g5d-bowling', 'bowling_ball', 1075, 52),
+      o('g5d-bowling', 'bowling_ball', 1075, 32),
       o('g5d-domino-1', 'domino', 800, 121),
       o('g5d-domino-2', 'domino', 765, 121),
       o('g5d-domino-3', 'domino', 730, 121),
@@ -397,7 +399,7 @@ const latchOn: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('s-bridge', 'plank', 880, 157, { length: 56 }),
+        o('s-bridge', 'plank', 880, 150, { length: 60 }),
         o('s-latch', 'logic_gate', 760, 400, { mode: 'toggle' }),
         o('s-glove-a', 'boxing_glove', 270, 284),
         o('s-glove-b', 'boxing_glove', 270, 154),
@@ -415,7 +417,7 @@ const latchOn: CampaignEntry = {
     // ABSURD: the switch also lights a lamp in the control room, just so everyone knows.
     {
       objects: [
-        o('s-bridge', 'plank', 880, 157, { length: 56 }),
+        o('s-bridge', 'plank', 880, 150, { length: 60 }),
         o('s-latch', 'logic_gate', 760, 400, { mode: 'toggle' }),
         o('s-glove-a', 'boxing_glove', 270, 284),
         o('s-glove-b', 'boxing_glove', 270, 154),
@@ -438,7 +440,7 @@ const latchOn: CampaignEntry = {
       why: 'the bell only rings for a moment, so the conveyors barely twitch',
       build: {
         objects: [
-          o('s-bridge', 'plank', 880, 157, { length: 56 }),
+          o('s-bridge', 'plank', 880, 150, { length: 60 }),
           o('s-glove-a', 'boxing_glove', 270, 284),
           o('s-glove-b', 'boxing_glove', 270, 154),
           o('s-switch', 'toggle_switch', 645, 580),
@@ -456,7 +458,7 @@ const latchOn: CampaignEntry = {
       why: 'a NOT box powers the conveyors from the start, so the traps are long gone when the first ball drops',
       build: {
         objects: [
-          o('s-bridge', 'plank', 880, 157, { length: 56 }),
+          o('s-bridge', 'plank', 880, 150, { length: 60 }),
           o('s-latch', 'logic_gate', 760, 400, { mode: 'not' }),
           o('s-glove-a', 'boxing_glove', 270, 284),
           o('s-glove-b', 'boxing_glove', 270, 154),
@@ -475,7 +477,7 @@ const latchOn: CampaignEntry = {
       why: 'the second glove waits for the score bell, but by then its trap has rolled past the pipe',
       build: {
         objects: [
-          o('s-bridge', 'plank', 880, 157, { length: 56 }),
+          o('s-bridge', 'plank', 880, 150, { length: 60 }),
           o('s-latch', 'logic_gate', 760, 400, { mode: 'toggle' }),
           o('s-glove-a', 'boxing_glove', 270, 284),
           o('s-glove-b', 'boxing_glove', 270, 154),
@@ -493,7 +495,7 @@ const latchOn: CampaignEntry = {
       why: 'both gloves punch on the bell, so both balls land on the first trap',
       build: {
         objects: [
-          o('s-bridge', 'plank', 880, 157, { length: 56 }),
+          o('s-bridge', 'plank', 880, 150, { length: 60 }),
           o('s-latch', 'logic_gate', 760, 400, { mode: 'toggle' }),
           o('s-glove-a', 'boxing_glove', 270, 284),
           o('s-glove-b', 'boxing_glove', 270, 154),
@@ -1052,18 +1054,18 @@ const fireInTheHole: CampaignEntry = {
     bonus: { elegantParts: 5, elegantTime: 6, absurdStages: 21 },
     hints: [
       'The pressure plate is the only power you get. Something heavy has to land on it, and its output can fire a cannon.',
-      'A candle under the crane rope drops the ore crate. Steel walls stop things, not shock waves: light a stick at the candle and a second stick within its blast relays the bang to the bunker.',
+      'A candle under the crane rope drops the ore crate. Steel walls stop things, not shock waves: lay a stick on a plank just over the flame, and a second stick within its blast relays the bang to the bunker.',
       'Wire the plate to a cannon aimed up and to the right at the hoop, and to a small stick behind the boulder: the gentlest bang is enough to roll it down the alley.',
     ],
     metadata: { chapter: 5, order: 8, author: 'Follyworks', blurb: 'One match, three jobs, zero batteries.' },
   },
   solutions: [
     {
-      // One flame drops the crate and starts the relay; the plate fires the cannon and nudges the boulder.
+      // One flame under a plank drops the crate and lights the stick on top, starting the relay; the plate fires the cannon and nudges the boulder.
       objects: [
-        o('s-candle-shelf', 'plank', 680, 236, { length: 70 }),
+        o('s-candle-shelf', 'plank', 680, 160, { length: 70 }),
         o('s-candle', 'candle', 680, 200),
-        o('s-tnt-1', 'dynamite', 680, 176, { power: 7 }),
+        o('s-tnt-1', 'dynamite', 670, 140, { power: 7 }),
         o('s-shelf', 'plank', 420, 168, { length: 70 }),
         o('s-tnt-2', 'dynamite', 420, 150, { power: 7 }),
         o('s-cannon', 'cannon', 560, 590, { power: 1400, shots: 1 }, -55 * DEG),
@@ -1074,9 +1076,9 @@ const fireInTheHole: CampaignEntry = {
     // ABSURD: the relay as before, and a kitchen timer counts the cannon in for dramatic effect.
     {
       objects: [
-        o('s-candle-shelf', 'plank', 680, 236, { length: 70 }),
+        o('s-candle-shelf', 'plank', 680, 160, { length: 70 }),
         o('s-candle', 'candle', 680, 200),
-        o('s-tnt-1', 'dynamite', 680, 176, { power: 7 }),
+        o('s-tnt-1', 'dynamite', 670, 140, { power: 7 }),
         o('s-shelf', 'plank', 420, 168, { length: 70 }),
         o('s-tnt-2', 'dynamite', 420, 150, { power: 7 }),
         o('s-cannon', 'cannon', 560, 590, { power: 1400, shots: 1 }, -55 * DEG),

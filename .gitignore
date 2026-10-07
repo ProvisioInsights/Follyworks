@@ -5,3 +5,4 @@ test-results
 *.log
 tests/scratch/
 .claude/worktrees/
+docs/fun/fun-audit.partial.*
