@@ -689,7 +689,7 @@ const foundry: EnvDef = {
     bunting(g, 60, 62, 1060, 62, 12, [0xc8402e, 0xf4ead0, 0x2e5a8a, 0xe0b040]);
     flowerPot(g, rng, 300, 414, 24, 0xb06a40);
     doodle(g, rng, 676, 236, 66, 80, 'machine', 0.05, 0xf4e8cc);
-    bigPlant(g, rng, 700, G.by1, 120, 0xb88a44);
+    bigPlant(g, rng, 1036, G.by1, 120, 0xb88a44);
   },
   lights(P) {
     const { far: g, light, G, amb } = P;
@@ -1397,7 +1397,7 @@ const neonlab: EnvDef = {
   },
   cheer(P) {
     const { far: g, rng, G } = P;
-    // a big round window on a friendly blue planet, a ringed moon and the sun
+    // a big round window on a friendly blue planet and a ringed moon (no sun: it would read as a lit bulb)
     const cx = 560, cy = 168, r = 92;
     const port = new Path2D();
     port.arc(cx, cy, r, 0, Math.PI * 2);
@@ -1409,7 +1409,6 @@ const neonlab: EnvDef = {
       g.fillStyle = css(0xffffff, rng.range(0.4, 0.9));
       g.fillRect(rng.range(cx - r, cx + r), rng.range(cy - r, cy + r), 1.6, 1.6);
     }
-    sun(g, cx + r * 0.55, cy - r * 0.5, 14, false);
     const pr = r * 0.9, px = cx - r * 0.35, py = cy + r * 0.6;
     const pg = g.createRadialGradient(px - pr * 0.3, py - pr * 0.4, pr * 0.1, px, py, pr);
     pg.addColorStop(0, css(0x9ae0ff));
@@ -1424,7 +1423,7 @@ const neonlab: EnvDef = {
       g.ellipse(px + ox, py + oy, rr * 1.4, rr, 0.3, 0, Math.PI * 2);
       g.fill();
     }
-    cloud(g, rng, px + 10, py - 52, 40, 0.85);
+    cloud(g, rng, px + 10, py - 52, 40, 0.5);
     // a little pink ringed moon
     g.fillStyle = css(0xf2a6d8);
     g.beginPath();
@@ -1442,7 +1441,7 @@ const neonlab: EnvDef = {
     g.lineWidth = 2;
     g.strokeStyle = css(0x9a94c8);
     g.stroke(port);
-    blob(P.light, cx, cy, r * 1.4, r * 1.4, 0xd8e8ff, 0.2, 0.4);
+    blob(P.light, cx, cy, r * 1.4, r * 1.4, 0xd8e8ff, 0.08, 0.4);
     bunting(g, 60, 64, 1060, 64, 12, PASTEL, 20, 'square');
     flowerPot(g, rng, 104, G.by1 - 300, 22, 0xf2a6d8);
     doodle(g, rng, 730, 300, 64, 78, 'rocket', -0.05, 0xfdfcff);
