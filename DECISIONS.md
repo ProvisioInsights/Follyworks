@@ -56,6 +56,7 @@ Material design and architecture decisions, with the reason for each. Newest las
 - **The mousetrap sets the launch velocity, scaled by mass^-0.25.** Adding to the current velocity made the arc depend on how things landed; dividing by mass made a crate barely hop. A quarter power keeps a crate and a chicken both clearing a low wall, the same way every time.
 - **Basket counts come from a `tally`, with no hold time.** A swish is the instant a centre crosses the rim line downward between the posts, so the ball is long gone by the time a held count would finish. The hoop keeps the ids it has counted in `e.state.swished` (each thing counts once), and `containerCount` reads that instead of `interior`.
 - **Keyed chain stages (`pot:boil`, `hoop>ball`) caption at the part they name.** Dynamic parts become a stage on their first bump ("Cat hit the floor"), so the goofy parts use their own keys for their real moment; the floating label now finds the entity before the `:`/`>` instead of appearing at the top-left corner (which also fixed the magnet and KABOOM captions).
+- **Lasers & Light tripwires arm themselves.** Only always-on lasers light sensors before RUN, so a battery-powered tripwire leaves its NOT gate on for the first tick and would fire at once. Tripwire Toast latches the sensor's first light (a timer with delay 0) and ANDs it with the NOT, so the alarm goes off only when a lit beam is broken, and an unfiltered beam never arms it, which keeps the filter load-bearing.
 
 ## Rendering
 
