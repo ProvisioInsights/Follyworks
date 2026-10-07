@@ -237,7 +237,7 @@ export const describeMiss = (sim: Simulation): string | null => {
       const need = g.count ?? 1;
       if (need > 1) {
         const on = sim.select(g.target).filter((e) => e.isActive()).length;
-        const type = selectorType(g.target, sim.level);
+        const type = (('id' in g.target ? sim.entities.get(g.target.id)?.type : null) ?? selectorType(g.target, sim.level));
         return `Only ${on} of the ${need} ${COUNT_NOUN[type ?? ''] ?? 'targets'} ${on === 1 ? 'was' : 'were'} on at the same time.`;
       }
       return st.held > 0
@@ -312,7 +312,7 @@ const rawMarker = (g: GoalDef, sim: Simulation, st?: GoalStatus): GoalMarker => 
     }
     case 'activate': {
       const need = g.count ?? 1;
-      const type = selectorType(g.target, sim.level);
+      const type = (('id' in g.target ? sim.entities.get(g.target.id)?.type : null) ?? selectorType(g.target, sim.level));
       const words = ACTIVATE_WORDS[type ?? ''];
       if (need > 1) {
         const all = sim.select(g.target).filter((e) => e.body);

@@ -327,7 +327,9 @@ export class Simulation {
     } else if (this.chain.some((c) => c.key === key)) return false;
     const dom = domain ?? (typeof e === 'string' ? 'mechanical' : e.def.domain);
     this.chain.push({ key, label, domain: dom, time: this.time });
-    const pos = typeof e === 'string' ? { x: 0, y: 0 } : e.body?.position ?? { x: e.x, y: e.y };
+    // a keyed stage ("pot:boil", "hoop>ball") shows its caption at the part it names
+    const subj = typeof e === 'string' ? this.entities.get(e.split(/[>:]/)[0]) : e;
+    const pos = subj ? subj.body?.position ?? { x: subj.x, y: subj.y } : { x: 0, y: 0 };
     this.emit({ t: 'activate', key, label, domain: dom, x: pos.x, y: pos.y });
     return true;
   }
