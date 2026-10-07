@@ -417,7 +417,7 @@ const wreckingSwing: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 2-6: pull-cord light switch
+// ---------------------------------------------------------------- 2-6: pull-cord switch, toaster alarm clock
 
 const pullTheCord: CampaignEntry = {
   chapter: 2,
@@ -426,66 +426,97 @@ const pullTheCord: CampaignEntry = {
     id: 'g2-pull-the-cord',
     name: 'Pull the Cord',
     description:
-      'The lamp is wired up and ready; somebody just has to tug the switch lever upwards. Nobody is around, so rig a cord that does the tugging.',
-    environment: 'maintenance',
+      'Put Whiskers to bed in his basket. Tie the falling crate to the switch so it pulls the cord, the toaster DINGs, and Whiskers wakes up and runs. He always runs the wrong way first.',
+    environment: 'basement',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g2f-pillar', 'wall', 360, 470, { w: 60, h: 320, material: 'brick' }),
-      o('g2f-shelf', 'wall', 820, 300, { w: 300, h: 20, material: 'steel' }),
-      o('g2f-beam', 'wall', 300, 52, { w: 260, h: 20, material: 'steel' }),
+      o('g2f-ramp', 'wall', 110, 100, { w: 220, h: 14, material: 'wood' }, 0.32),
+      o('g2f-ledge', 'wall', 270, 160, { w: 70, h: 16, material: 'wood' }),
+      o('g2f-track', 'wall', 460, 200, { w: 320, h: 14, material: 'wood' }, 0.15),
+      o('g2f-track-2', 'wall', 810, 268, { w: 140, h: 14, material: 'wood' }, 0.15),
+      o('g2f-shelf', 'plank', 935, 292, { length: 110 }),
+      o('g2f-walk', 'plank', 500, 500, { length: 300 }),
+      o('g2f-roof', 'plank', 445, 432, { length: 230 }),
     ],
     startingObjects: [
-      o('g2f-battery', 'battery', 120, 601),
-      o('g2f-switch', 'toggle_switch', 302, 420, {}, -Math.PI / 2),
-      o('g2f-lamp', 'light_bulb', 560, 140),
-      o('g2f-hook', 'hook', 300, 74),
-      o('g2f-crate', 'crate', 860, 268),
+      o('g2f-ball', 'ball', 30, 58),
+      o('g2f-bowl', 'bowling_ball', 299, 132),
+      o('g2f-crate', 'crate', 975, 263),
+      o('g2f-switch', 'toggle_switch', 1080, 330, {}, -Math.PI / 2),
+      o('g2f-battery', 'battery', 280, 601),
+      o('g2f-toaster', 'toaster', 580, 606),
+      o('g2f-cat', 'cat', 450, 480, {}, 0, true),
+      o('g2f-basket', 'bucket', 720, 598),
     ],
-    connections: [wire('g2f-w1', 'g2f-battery', 'out', 'g2f-switch', 'in'), wire('g2f-w2', 'g2f-switch', 'out', 'g2f-lamp', 'in')],
+    connections: [wire('g2f-w1', 'g2f-battery', 'out', 'g2f-switch', 'in'), wire('g2f-w2', 'g2f-switch', 'out', 'g2f-toaster', 'in')],
     inventory: [
-      { type: 'rope', count: 1 },
       { type: 'pulley', count: 1 },
+      { type: 'rope', count: 1 },
+      { type: 'plank', count: 2 },
       { type: 'bucket', count: 1 },
-      { type: 'ball', count: 2 },
-      { type: 'plank', count: 1 },
     ],
-    goals: [{ kind: 'activate', target: { id: 'g2f-lamp' }, duration: 1, label: 'Keep the lamp lit for a second' }],
-    restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 3, elegantTime: 2, absurdStages: 4 },
+    goals: [{ kind: 'containerCount', container: 'g2f-basket', count: 1, filter: { type: 'cat' }, label: 'Get Whiskers into his basket' }],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 4, elegantTime: 12, absurdStages: 9 },
     hints: [
-      'A rope only pulls when something pulls on its other end. Tying the switch to the ceiling hook just holds it still.',
-      'The switch flips ON when its lever is tugged upwards. Falling weights only pull down, so turn the pull around with a pulley above the lever.',
-      'Put a pulley above the switch lever, then rope the lever up over it and down to a hanging, unbolted bucket.',
+      'The switch turns ON when its lever is pulled to the right. A rope over a pulley can turn the crate’s fall into that pull.',
+      'Whiskers runs the way he faces until he bumps into a wall. Stand a plank on end to turn him round.',
+      'Bridge the gap in the track, put a pulley right of the switch level with its lever, rope the lever over it to the crate, and stand a plank upright left of Whiskers.',
     ],
-    metadata: { chapter: 2, order: 6, author: 'Follyworks', blurb: 'One small tug for a bucket.' },
+    metadata: { chapter: 2, order: 6, author: 'Follyworks', blurb: 'One small tug for a crate.' },
   },
   solutions: [
     {
-      objects: [o('s-pulley', 'pulley', 270, 220), o('s-bucket', 'bucket', 160, 330, { anchored: false })],
-      connections: [rope('s-rope', 'g2f-switch', 'lever', 's-bucket', 'handle', ['s-pulley'])],
+      objects: [
+        o('s-bridge', 'plank', 680, 244, { length: 124 }, 0.24),
+        o('s-pulley', 'pulley', 1050, 200),
+        o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2),
+      ],
+      connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook', ['s-pulley'])],
     },
-    // ABSURD: two rubber balls chase the falling bucket down and pelt it.
+    // ABSURD: the bowling ball bulldozes a bucket into the crate.
     {
       objects: [
-        o('s-pulley', 'pulley', 270, 220),
-        o('s-bucket', 'bucket', 160, 330, { anchored: false }),
-        o('s-ball-a', 'ball', 160, 200),
-        o('s-ball-b', 'ball', 160, 120),
+        o('s-bridge', 'plank', 680, 244, { length: 124 }, 0.24),
+        o('s-pulley', 'pulley', 1050, 200),
+        o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2),
+        o('s-bucket', 'bucket', 917, 253, { anchored: false }),
       ],
-      connections: [rope('s-rope', 'g2f-switch', 'lever', 's-bucket', 'handle', ['s-pulley'])],
+      connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook', ['s-pulley'])],
     },
   ],
   counterexamples: [
     {
-      why: 'the bucket hangs straight from the lever without a pulley',
+      why: 'a bucket dropped on the roof cannot reach Whiskers',
+      build: { objects: [o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2), o('s-bucket', 'bucket', 450, 350, { anchored: false })], connections: [] },
+    },
+    {
+      why: 'a bucket sliding down a plank is too tall to get under the roof',
       build: {
-        objects: [o('s-bucket', 'bucket', 160, 470, { anchored: false })],
-        connections: [rope('s-rope', 'g2f-switch', 'lever', 's-bucket', 'handle')],
+        objects: [o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2), o('s-ramp', 'plank', 640, 440, { length: 120 }, -0.5), o('s-bucket', 'bucket', 680, 380, { anchored: false })],
+        connections: [],
       },
     },
     {
-      why: 'the switch is only tied to the ceiling hook',
-      build: { objects: [], connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-hook', 'hook')] },
+      why: 'roped straight to the crate, the lever is pulled down, not up',
+      build: {
+        objects: [o('s-bridge', 'plank', 680, 244, { length: 124 }, 0.24), o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2)],
+        connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook')],
+      },
+    },
+    {
+      why: 'with nothing to turn him round, Whiskers runs off the wrong end',
+      build: {
+        objects: [o('s-bridge', 'plank', 680, 244, { length: 124 }, 0.24), o('s-pulley', 'pulley', 1050, 200)],
+        connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook', ['s-pulley'])],
+      },
+    },
+    {
+      why: 'with no bridge the bowling ball never reaches the crate',
+      build: {
+        objects: [o('s-pulley', 'pulley', 1050, 200), o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2)],
+        connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook', ['s-pulley'])],
+      },
     },
   ],
 };
