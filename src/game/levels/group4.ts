@@ -804,7 +804,23 @@ const launchDay: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 4-9: free the lunch pail and fly it up to the mezzanine
+// ---------------------------------------------------------------- 4-9: Bolt, ball, plate, toast, bell, rocket burns the tether: balloon air-mails the lunch pail
+
+const M9_BUILD = {
+  battery: o('s-battery', 'battery', 40, 601),
+  bridgeA: o('s-bridge-a', 'plank', 140, 220, { length: 58 }),
+  bridgeB: o('s-bridge-b', 'plank', 250, 220, { length: 58 }),
+  trap: o('s-trap', 'mousetrap', 245, 625),
+  balloon: o('s-balloon', 'balloon', 650, 351, { lift: 2.5 }),
+  fan: o('s-fan', 'fan', 120, 120, { strength: 6, range: 700 }),
+  windbreak: o('s-windbreak', 'plank', 930, 178, { length: 220 }, 90 * DEG),
+};
+const M9_WIRES = [
+  wire('s-w1', 's-battery', 'out', 'g4i-bolt', 'in'),
+  wire('s-w2', 's-battery', 'out', 'g4i-plate', 'in'),
+  wire('s-w3', 's-battery', 'out', 's-fan', 'in'),
+];
+const M9_ROPE = rope('s-rope', 's-balloon', 'string', 'g4i-pail', 'handle');
 
 const specialDelivery: CampaignEntry = {
   chapter: 4,
@@ -812,91 +828,106 @@ const specialDelivery: CampaignEntry = {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g4-special-delivery',
     name: 'Special Delivery',
-    description: 'Fly the lunch pail up to the mezzanine. It is tied to the floor, and someone left a candle burning on the high shelf, right where a balloon would want to go.',
+    description: 'Fly the lunch pail up to the mezzanine. It is tied to the floor, and the only thing allowed to cut the tether is the toy rocket, which needs Bolt, a ball, a slice of toast and a bell to get going.',
     environment: 'garage',
     world: WORLD,
     fixedObjects: [
-      o('g4g-ceiling', 'wall', 560, 50, { w: 1120, h: 20, material: 'concrete' }),
-      o('g4g-mezzanine', 'wall', 885, 300, { w: 370, h: 20, material: 'wood' }),
-      o('g4g-shelf', 'wall', 450, 175, { w: 60, h: 12, material: 'wood' }),
-      o('g4g-hazard', 'candle', 450, 140),
-      o('g4g-vent', 'fan', 1010, 100, { strength: 10, range: 700 }, 0, true),
-      o('g4g-vent-battery', 'battery', 1050, 262),
-      o('g4g-stand', 'wall', 300, 580, { w: 80, h: 100, material: 'wood' }),
-      o('g4g-hook', 'hook', 200, 610),
+      o('g4i-ceiling', 'wall', 560, 50, { w: 1120, h: 20, material: 'concrete' }),
+      o('g4i-mezzanine', 'wall', 885, 300, { w: 370, h: 20, material: 'wood' }),
+      o('g4i-hazard-shelf', 'wall', 780, 175, { w: 60, h: 12, material: 'wood' }),
+      o('g4i-hazard', 'candle', 780, 140),
+      o('g4i-vent', 'fan', 1010, 100, { strength: 10, range: 700 }, 0, true),
+      o('g4i-shelf-a', 'wall', 55, 220, { w: 110, h: 14, material: 'wood' }),
+      o('g4i-shelf-m', 'wall', 195, 220, { w: 50, h: 14, material: 'wood' }),
+      o('g4i-shelf-b', 'wall', 305, 220, { w: 50, h: 14, material: 'wood' }),
+      o('g4i-track', 'plank', 400, 283, { length: 140 }, 10 * DEG),
+      o('g4i-ledge', 'wall', 505, 344, { w: 120, h: 14, material: 'wood' }),
+      o('g4i-ledge-stop', 'wall', 559, 314, { w: 12, h: 46, material: 'wood' }),
+      o('g4i-plate', 'pressure_plate', 500, 330, { minMass: 0.8 }),
+      o('g4i-toaster', 'toaster', 100, 606, { delay: 0.5, slices: 1 }, 15 * DEG),
+      o('g4i-bell', 'bell', 522, 416),
+      o('g4i-stand', 'wall', 650, 580, { w: 80, h: 100, material: 'wood' }),
+      o('g4i-hook', 'hook', 585, 606),
+      o('g4i-open-sign', 'light_bulb', 980, 200),
+      o('g4i-lunch-lamp', 'light_bulb', 860, 400),
+      o('g4i-work-lamp', 'light_bulb', 940, 400),
+      o('g4i-ding-lamp', 'light_bulb', 440, 420),
+      o('g4i-exit-sign', 'light_bulb', 1060, 360),
     ],
-    startingObjects: [o('g4g-pail', 'bucket', 300, 508, { anchored: false })],
-    connections: [rope('g4g-tether', 'g4g-hook', 'hook', 'g4g-pail', 'handle'), wire('g4g-vent-wire', 'g4g-vent-battery', 'out', 'g4g-vent', 'in')],
+    startingObjects: [
+      o('g4i-bolt', 'robot', 60, 191, { awake: false }),
+      o('g4i-ball', 'ball', 305, 199),
+      o('g4i-pail', 'bucket', 650, 508, { anchored: false }),
+      o('g4i-rocket', 'rocket', 585, 595, { thrust: 3, burn: 0.8 }, -90 * DEG),
+      o('g4i-crate-1', 'crate', 1045, 268),
+      o('g4i-crate-2', 'crate', 1045, 224),
+      o('g4i-crate-3', 'crate', 1090, 608),
+    ],
+    connections: [
+      rope('g4i-tether', 'g4i-hook', 'hook', 'g4i-pail', 'handle'),
+      wire('g4i-w1', 'g4i-plate', 'out', 'g4i-toaster', 'in'),
+      wire('g4i-w2', 'g4i-plate', 'out', 'g4i-vent', 'in'),
+      wire('g4i-w3', 'g4i-bell', 'out', 'g4i-rocket', 'in'),
+      wire('g4i-w4', 'g4i-plate', 'out', 'g4i-open-sign', 'in'),
+      wire('g4i-w5', 'g4i-plate', 'out', 'g4i-lunch-lamp', 'in'),
+      wire('g4i-w6', 'g4i-plate', 'out', 'g4i-work-lamp', 'in'),
+      wire('g4i-w7', 'g4i-bell', 'out', 'g4i-ding-lamp', 'in'),
+      wire('g4i-w8', 'g4i-plate', 'out', 'g4i-exit-sign', 'in'),
+    ],
     inventory: [
+      { type: 'battery', count: 1 },
+      { type: 'plank', count: 3 },
+      { type: 'mousetrap', count: 1 },
       { type: 'balloon', count: 2 },
       { type: 'rope', count: 2 },
-      { type: 'candle', count: 1 },
       { type: 'fan', count: 1 },
-      { type: 'battery', count: 1 },
-      { type: 'plank', count: 2 },
+      { type: 'magnet', count: 1 },
     ],
-    goals: [{ kind: 'enterRegion', target: { id: 'g4g-pail' }, region: { x: 710, y: 170, w: 350, h: 120 }, hold: 1, label: 'Land the lunch pail on the mezzanine' }],
-    restrictions: { timeLimit: 25 },
-    bonus: { elegantParts: 6, elegantTime: 9, absurdStages: 6 },
+    goals: [{ kind: 'enterRegion', target: { id: 'g4i-pail' }, region: { x: 710, y: 170, w: 350, h: 120 }, hold: 1, label: 'Fly the lunch pail up onto the mezzanine' }],
+    restrictions: { timeLimit: 30 },
+    bonus: { elegantParts: 8, elegantTime: 14, absurdStages: 19 },
     hints: [
-      'A balloon at full Lift can carry the empty pail. Tie it to the handle, then burn through the floor tether with a candle.',
-      'Once it reaches the ceiling, a fan can push it right, and the same breeze can snuff the candle on the shelf before the balloon gets there. Aim the fan low enough to catch both.',
-      'The vent fan on the mezzanine blows back at you. Solid things block a breeze: stand a plank up on the mezzanine in front of it, and it will stop the pail over the landing too.',
+      'One battery can run everything: Bolt, the pressure plate and a fan. Bridge the gaps in Bolt’s shelf so he can shove the ball down to the plate.',
+      'The plate starts the toaster. Catch the toast on a mousetrap and it rings the bell, and the bell fires the rocket right past the pail’s tether.',
+      'Tie a full-Lift balloon to the pail. A fan along the ceiling snuffs the candle and blows the balloon right, but the vent fan blows back: stand a tall plank on the mezzanine to block it and stop the pail.',
     ],
     metadata: { chapter: 4, order: 9, author: 'Follyworks', blurb: 'Air mail, with complications.' },
   },
   solutions: [
     {
-      objects: [
-        o('s-balloon', 'balloon', 300, 351, { lift: 2.5 }),
-        o('s-candle', 'candle', 229, 601),
-        o('s-fan', 'fan', 120, 120, { strength: 6, range: 700 }),
-        o('s-battery', 'battery', 60, 601),
-        o('s-windbreak', 'plank', 930, 178, { length: 220 }, 90 * DEG),
-      ],
-      connections: [rope('s-rope', 's-balloon', 'string', 'g4g-pail', 'handle'), wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
+      objects: [M9_BUILD.battery, M9_BUILD.bridgeA, M9_BUILD.bridgeB, M9_BUILD.trap, M9_BUILD.balloon, M9_BUILD.fan, M9_BUILD.windbreak],
+      connections: [...M9_WIRES, M9_ROPE],
     },
-    // ABSURD: a loose spare balloon goes first and gets jostled all the way to the windbreak.
+    // ABSURD: the same, plus an electromagnet humming on the battery for no reason whatsoever.
     {
-      objects: [
-        o('s-balloon', 'balloon', 300, 351, { lift: 2.5 }),
-        o('s-balloon-2', 'balloon', 200, 250, { lift: 1 }),
-        o('s-candle', 'candle', 229, 601),
-        o('s-fan', 'fan', 120, 120, { strength: 6, range: 700 }),
-        o('s-battery', 'battery', 60, 601),
-        o('s-windbreak', 'plank', 930, 178, { length: 220 }, 90 * DEG),
-      ],
-      connections: [
-        rope('s-rope', 's-balloon', 'string', 'g4g-pail', 'handle'),
-        wire('s-w1', 's-battery', 'out', 's-fan', 'in'),
-      ],
+      objects: [M9_BUILD.battery, M9_BUILD.bridgeA, M9_BUILD.bridgeB, M9_BUILD.trap, M9_BUILD.balloon, M9_BUILD.fan, M9_BUILD.windbreak, o('s-magnet', 'magnet', 900, 560, { strength: 1, reach: 100 })],
+      connections: [...M9_WIRES, M9_ROPE, wire('s-w4', 's-battery', 'out', 's-magnet', 'in')],
     },
   ],
   counterexamples: [
     {
-      why: 'nothing blocks the vent fan’s headwind',
-      build: {
-        objects: [
-          o('s-balloon', 'balloon', 300, 351, { lift: 2.5 }),
-          o('s-candle', 'candle', 229, 601),
-          o('s-fan', 'fan', 120, 120, { strength: 10, range: 700 }),
-          o('s-battery', 'battery', 60, 601),
-        ],
-        connections: [rope('s-rope', 's-balloon', 'string', 'g4g-pail', 'handle'), wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
-      },
+      why: 'Bolt is not wired up, so he never moves',
+      build: { objects: [M9_BUILD.battery, M9_BUILD.bridgeA, M9_BUILD.bridgeB, M9_BUILD.trap, M9_BUILD.balloon, M9_BUILD.fan, M9_BUILD.windbreak], connections: [M9_WIRES[1], M9_WIRES[2], M9_ROPE] },
     },
     {
-      why: 'the fan blows above the shelf candle and the balloon flies into its flame',
-      build: {
-        objects: [
-          o('s-balloon', 'balloon', 300, 351, { lift: 2.5 }),
-          o('s-candle', 'candle', 229, 601),
-          o('s-fan', 'fan', 120, 98, { strength: 6, range: 700 }),
-          o('s-battery', 'battery', 60, 601),
-          o('s-windbreak', 'plank', 930, 178, { length: 220 }, 90 * DEG),
-        ],
-        connections: [rope('s-rope', 's-balloon', 'string', 'g4g-pail', 'handle'), wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
-      },
+      why: 'the pressure plate has no power, so the toaster never starts',
+      build: { objects: [M9_BUILD.battery, M9_BUILD.bridgeA, M9_BUILD.bridgeB, M9_BUILD.trap, M9_BUILD.balloon, M9_BUILD.fan, M9_BUILD.windbreak], connections: [M9_WIRES[0], M9_WIRES[2], M9_ROPE] },
+    },
+    {
+      why: 'there is no mousetrap, so the toast never reaches the bell',
+      build: { objects: [M9_BUILD.battery, M9_BUILD.bridgeA, M9_BUILD.bridgeB, M9_BUILD.balloon, M9_BUILD.fan, M9_BUILD.windbreak], connections: [...M9_WIRES, M9_ROPE] },
+    },
+    {
+      why: 'one gap in Bolt’s shelf is left open',
+      build: { objects: [M9_BUILD.battery, M9_BUILD.bridgeA, M9_BUILD.trap, M9_BUILD.balloon, M9_BUILD.fan, M9_BUILD.windbreak], connections: [...M9_WIRES, M9_ROPE] },
+    },
+    {
+      why: 'nothing blocks the vent fan’s headwind',
+      build: { objects: [M9_BUILD.battery, M9_BUILD.bridgeA, M9_BUILD.bridgeB, M9_BUILD.trap, M9_BUILD.balloon, M9_BUILD.fan], connections: [...M9_WIRES, M9_ROPE] },
+    },
+    {
+      why: 'the only fan nudges the ball off the shelf, so nothing blows the balloon across',
+      build: { objects: [M9_BUILD.battery, M9_BUILD.trap, M9_BUILD.balloon, M9_BUILD.windbreak, o('s-fan', 'fan', 230, 199, { strength: 2, range: 160 })], connections: [M9_WIRES[1], M9_WIRES[2], M9_ROPE] },
     },
   ],
 };
