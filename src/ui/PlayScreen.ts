@@ -7,6 +7,7 @@ import type { SfxName } from '../audio/AudioEngine';
 import { CONNECTION_TOOLS, isToolType } from '../components';
 import { CATEGORY_LABELS, getComponent, paletteComponents, type Category, type PropSpec } from '../components/registry';
 import type { BuildDef, GoalDef, LevelDef } from '../core/types';
+import { ENVIRONMENT_IDS } from '../core/level';
 import type { SessionKind } from '../editor/Session';
 import { PlayController } from '../game/PlayController';
 import { invalidPlacements } from '../game/placement';
@@ -227,7 +228,7 @@ export class PlayScreen {
       const sel = h(
         'select',
         { 'aria-label': 'Environment', onChange: (e: Event) => cfg.sandbox!.onEnv((e.target as HTMLSelectElement).value) },
-        ...['garage', 'underground', 'greenhouse', 'maintenance', 'basement', 'research'].map((id) =>
+        ...ENVIRONMENT_IDS.map((id) =>
           h('option', { value: id, selected: cfg.level.environment === id }, id[0].toUpperCase() + id.slice(1)),
         ),
       );

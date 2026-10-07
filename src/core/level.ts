@@ -24,7 +24,7 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const str = (v: unknown, d: string) => (typeof v === 'string' ? v : d);
 
-export const ENVIRONMENT_IDS = ['garage', 'underground', 'greenhouse', 'maintenance', 'basement', 'research'];
+export const ENVIRONMENT_IDS = ['garage', 'underground', 'greenhouse', 'maintenance', 'basement', 'research', 'backyard', 'playroom'];
 const TOOL_TYPES = ['rope', 'belt', 'wire'];
 
 export const parseObject = (raw: unknown, problems: string[]): ObjectDef | null => {
