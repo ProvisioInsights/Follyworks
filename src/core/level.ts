@@ -24,7 +24,7 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const str = (v: unknown, d: string) => (typeof v === 'string' ? v : d);
 
-export const ENVIRONMENT_IDS = ['garage', 'underground', 'greenhouse', 'maintenance', 'basement', 'research'];
+export const ENVIRONMENT_IDS = ['garage', 'underground', 'greenhouse', 'maintenance', 'basement', 'research', 'backyard', 'playroom'];
 const TOOL_TYPES = ['rope', 'belt', 'wire'];
 
 export const parseObject = (raw: unknown, problems: string[]): ObjectDef | null => {
@@ -107,7 +107,8 @@ export const parseGoal = (raw: unknown, problems: string[]): GoalDef | null => {
     case 'activate': {
       const target = parseSelector(raw.target);
       if (!target) break;
-      return { kind: 'activate', target, duration: typeof raw.duration === 'number' ? raw.duration : undefined, label };
+      const count = typeof raw.count === 'number' && Number.isFinite(raw.count) ? Math.min(99, Math.max(1, Math.round(raw.count))) : undefined;
+      return { kind: 'activate', target, duration: typeof raw.duration === 'number' ? raw.duration : undefined, count: count && count > 1 ? count : undefined, label };
     }
     case 'containerCount': {
       if (typeof raw.container !== 'string') break;

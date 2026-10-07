@@ -41,6 +41,7 @@ await ready();
 await page.evaluate(() => localStorage.clear());
 await page.reload();
 await ready();
+await app(() => window.__follyworks.updateSettings({ difficultyChosen: true })); // skip the one-time difficulty chooser
 await wait(600);
 
 // ---- build interaction in the sandbox
@@ -94,14 +95,17 @@ await wait(300);
 const startPose = await app(() => JSON.stringify(window.__follyworks.play.ctl.session.build.objects.map((q) => [q.x, q.y, q.angle ?? 0])));
 await page.locator('canvas').first().focus();
 await page.keyboard.press('Space');
+// Measured against the 1× rate on this machine, so a slow software renderer can't fail it.
+const f0 = await app(() => window.__follyworks.play.ctl.run.sim.tick);
 await wait(1000);
+const f1 = await app(() => window.__follyworks.play.ctl.run.sim.tick);
 await page.keyboard.press('2');
 const t0 = await app(() => window.__follyworks.play.ctl.run.sim.tick);
 await wait(1000);
 const t1 = await app(() => window.__follyworks.play.ctl.run.sim.tick);
 await page.keyboard.press('1');
-const slowRate = (t1 - t0) / 60;
-check(slowRate > 0.25 && slowRate < 0.75, `slow motion runs at about half speed (${slowRate.toFixed(2)}x of real time)`);
+const slowRate = (t1 - t0) / Math.max(1, f1 - f0);
+check(slowRate > 0.3 && slowRate < 0.7, `slow motion runs at about half speed (${slowRate.toFixed(2)}x of the 1× rate, which is ${((f1 - f0) / 60).toFixed(2)}x real time)`);
 await page.keyboard.press('p');
 await wait(200);
 const s0 = await app(() => window.__follyworks.play.ctl.run.sim.tick);

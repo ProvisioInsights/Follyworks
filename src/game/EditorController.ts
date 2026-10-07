@@ -10,6 +10,7 @@ import { M, type MBody } from '../sim/matter';
 import { Simulation } from '../sim/Simulation';
 import type { PendingConnection, ToolKind } from '../render/Overlays';
 import type { WorkshopScene } from '../render/WorkshopScene';
+import { DRAG_ROT_STEP, endDrag, onGuideAngle, rotateAbout, wrapAngle } from './manipulation';
 import { invalidPlacements, withExtras } from './placement';
 
 export interface EditorFeedback {
@@ -21,19 +22,48 @@ const GRID = 10;
 const ROT_STEP = Math.PI / 12;
 /** Screen-pixel gap between a part's top edge and its rotate handle. */
 const ROT_HANDLE_GAP = 30;
+/** Screen-pixel radius of the invisible turn zones just outside each corner of the selection. */
+const CORNER_ZONE = 14;
+/** Two presses on the knob within this many ms reset the angle. */
+const DOUBLE_PRESS_MS = 380;
+/** A curved-arrow cursor for the corner turn zones (CSS has no rotate cursor). */
+const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15a8 8 0 0 1 10-10" stroke="#0b0806" stroke-width="5"/><path d="M5 15a8 8 0 0 1 10-10" stroke="#fff" stroke-width="2.2"/><path d="M12.5 2.5 16 5l-3 3.2M2.4 12 5 15.5l3.4-2.8" stroke="#0b0806" stroke-width="4.6"/><path d="M12.5 2.5 16 5l-3 3.2M2.4 12 5 15.5l3.4-2.8" stroke="#fff" stroke-width="2"/></g></svg>',
+)}") 10 10, grab`;
 
 /** On-canvas transform handles for the single selected part, in world coordinates. */
 export interface TransformHandles {
   center: Vec;
   /** Where the rotate knob sits, and the point on the part its stem starts from. */
   rotate: { pos: Vec; base: Vec } | null;
-  resize: { pos: Vec; axis: 'w' | 'h'; sign: 1 | -1 }[];
+  /**
+   * End and edge grips. `swing` grips sit on the ends of a long part: dragging one moves that
+   * end freely (the part turns about the other end and stretches to follow).
+   */
+  resize: { pos: Vec; axis: 'w' | 'h'; sign: 1 | -1; swing: boolean }[];
+  /** Corners of the part's box; just outside them the pointer turns the part about its centre. */
+  corners: Vec[];
   /** Local axes of the part (unit vectors along its width and height). */
   u: Vec;
   v: Vec;
 }
 
 type Shape = { x: number; y: number; angle: number; props: Props };
+type HandleMode = 'rotate' | { axis: 'w' | 'h'; sign: 1 | -1; swing: boolean };
+
+/** Live readout of a rotate / stretch drag, for the angle badge and snap guide. */
+export interface ManipReadout {
+  /** Part angle in degrees, (-180, 180], or null when the drag only stretches. */
+  deg: number | null;
+  /** Current length and its unit while an end or edge is being dragged. */
+  length: { value: number; unit: string } | null;
+  /** Pointer in world coordinates (the badge sits next to it). */
+  pointer: Vec;
+  /** The point the part turns about (centre or the fixed end). */
+  pivot: Vec;
+  /** A faint guide line through the pivot when the angle has snapped onto a 0/45/90° line. */
+  guide: { x: number; y: number; angle: number } | null;
+}
 
 type Drag =
   | { kind: 'move'; ids: string[]; start: Vec; moved: boolean; offset: Vec; valid: boolean; lastCheck: number }
@@ -44,9 +74,12 @@ type Drag =
   | {
       kind: 'reshape';
       id: string;
-      mode: 'rotate' | { axis: 'w' | 'h'; sign: 1 | -1 };
+      mode: HandleMode;
       orig: Shape;
+      /** Rotate: angle between the pointer and the part's axis at grab time. */
       grab: number;
+      /** End grips: where the pointer grabbed the grip, relative to the grip's centre. */
+      grabOff: Vec;
       valid: boolean;
       changed: boolean;
       lastCheck: number;
@@ -73,6 +106,12 @@ export class EditorController {
   private listeners = new Set<() => void>();
   private detach: (() => void)[] = [];
   private lastPointer: Vec = { x: 0, y: 0 };
+  /** Last press on the rotate knob, for double-press reset. */
+  private lastKnobPress: { id: string; t: number } | null = null;
+  /** Rotate / stretch readout while a handle is being dragged. */
+  manip: ManipReadout | null = null;
+  /** The corner turn zone under the pointer (for its hint arc), if any. */
+  hoverCorner: Vec | null = null;
   enabled = true;
   /** Marquee element for box select. */
   private marquee: HTMLDivElement;
@@ -208,6 +247,7 @@ export class EditorController {
   private onDown(ev: PointerEvent) {
     if (!this.enabled) return;
     this.canvas.focus?.();
+    this.hoverCorner = null;
     const p = this.world(ev);
     this.lastPointer = p;
     if (ev.button === 1 || ev.button === 2) {
@@ -231,9 +271,22 @@ export class EditorController {
     const hd = this.handleAt(p);
     if (hd) {
       const o = this.session.find(hd.id)!;
+      if (hd.knob) {
+        // a second press on the knob straightens the part
+        const last = this.lastKnobPress;
+        const now = performance.now();
+        this.lastKnobPress = { id: hd.id, t: now };
+        if (last && last.id === hd.id && now - last.t < DOUBLE_PRESS_MS) {
+          this.lastKnobPress = null;
+          this.resetAngle();
+          return;
+        }
+      }
       const orig: Shape = { x: o.x, y: o.y, angle: o.angle || 0, props: { ...(o.props ?? {}) } };
       const grab = hd.mode === 'rotate' ? Math.atan2(p.y - o.y, p.x - o.x) - orig.angle : 0;
-      this.drag = { kind: 'reshape', id: hd.id, mode: hd.mode, orig, grab, valid: true, changed: false, lastCheck: 0 };
+      const grabOff = hd.grip ? { x: p.x - hd.grip.x, y: p.y - hd.grip.y } : { x: 0, y: 0 };
+      this.drag = { kind: 'reshape', id: hd.id, mode: hd.mode, orig, grab, grabOff, valid: true, changed: false, lastCheck: 0 };
+      this.hoverCorner = null;
       this.fb.sfx('pickup', { vol: 0.5 });
       this.changed();
       return;
@@ -335,7 +388,7 @@ export class EditorController {
         this.showMarquee(d);
         break;
       case 'reshape':
-        this.reshapeTo(d, p, ev.altKey);
+        this.reshapeTo(d, p, ev.altKey, ev.shiftKey);
         break;
       case 'region': {
         const goal = this.session.level.goals[d.goal] as any;
@@ -403,6 +456,7 @@ export class EditorController {
       }
       case 'reshape': {
         this.drag = null;
+        this.manip = null;
         const o = this.session.find(d.id);
         if (!o) break;
         const final: Shape = { x: o.x, y: o.y, angle: o.angle || 0, props: { ...(o.props ?? {}) } };
@@ -537,10 +591,11 @@ export class EditorController {
       return;
     }
     const hd = this.handleAt(p);
+    this.hoverCorner = hd?.corner ?? null;
     if (hd) {
       this.hover = null;
       this.hoverConn = null;
-      this.canvas.style.cursor = hd.mode === 'rotate' ? 'grab' : this.resizeCursor(hd.id, hd.mode.axis);
+      this.canvas.style.cursor = hd.mode === 'rotate' ? (hd.knob ? 'grab' : ROTATE_CURSOR) : hd.mode.swing ? 'crosshair' : this.resizeCursor(hd.id, hd.mode.axis);
       return;
     }
     const e = this.pick(p);
@@ -599,20 +654,64 @@ export class EditorController {
     const v = { x: -Math.sin(a), y: Math.cos(a) };
     const at = (lx: number, ly: number): Vec => ({ x: o.x + u.x * lx + v.x * ly, y: o.y + u.y * lx + v.y * ly });
     const z = Math.max(0.3, this.scene.zoom);
+    // the ends of a turnable part's long axis swing; a wall's short edges (and a seesaw) only stretch
+    const turnEnds = def.rotatable;
+    const long: 'w' | 'h' = h > w ? 'h' : 'w';
     const resize: TransformHandles['resize'] = [];
-    if (def.resize?.w) resize.push({ pos: at(w / 2, 0), axis: 'w', sign: 1 }, { pos: at(-w / 2, 0), axis: 'w', sign: -1 });
-    if (def.resize?.h) resize.push({ pos: at(0, h / 2), axis: 'h', sign: 1 }, { pos: at(0, -h / 2), axis: 'h', sign: -1 });
+    if (def.resize?.w) resize.push({ pos: at(w / 2, 0), axis: 'w', sign: 1, swing: turnEnds && long === 'w' }, { pos: at(-w / 2, 0), axis: 'w', sign: -1, swing: turnEnds && long === 'w' });
+    if (def.resize?.h) resize.push({ pos: at(0, h / 2), axis: 'h', sign: 1, swing: turnEnds && long === 'h' }, { pos: at(0, -h / 2), axis: 'h', sign: -1, swing: turnEnds && long === 'h' });
     const rotate = def.rotatable ? { pos: at(0, -h / 2 - ROT_HANDLE_GAP / z), base: at(0, -h / 2) } : null;
-    return { center: { x: o.x, y: o.y }, rotate, resize, u, v };
+    const corners = def.rotatable ? [at(-w / 2, -h / 2), at(w / 2, -h / 2), at(w / 2, h / 2), at(-w / 2, h / 2)] : [];
+    return { center: { x: o.x, y: o.y }, rotate, resize, corners, u, v };
   }
 
-  private handleAt(p: Vec): { id: string; mode: 'rotate' | { axis: 'w' | 'h'; sign: 1 | -1 } } | null {
+  /**
+   * The handle under a world point. Order: knob, end/edge grips, then the turn zones just
+   * outside the corners (never on a part, so grabbing a part still moves it).
+   */
+  private handleAt(p: Vec): { id: string; mode: HandleMode; knob?: boolean; grip?: Vec; corner?: Vec } | null {
     const hs = this.handles();
     if (!hs || this.drag) return null;
     const id = [...this.selected][0];
     const r = this.pickRadius(11);
-    if (hs.rotate && Math.hypot(p.x - hs.rotate.pos.x, p.y - hs.rotate.pos.y) < r) return { id, mode: 'rotate' };
-    for (const q of hs.resize) if (Math.hypot(p.x - q.pos.x, p.y - q.pos.y) < r) return { id, mode: { axis: q.axis, sign: q.sign } };
+    if (hs.rotate && Math.hypot(p.x - hs.rotate.pos.x, p.y - hs.rotate.pos.y) < r) return { id, mode: 'rotate', knob: true };
+    let best: TransformHandles['resize'][number] | null = null;
+    let bd = r;
+    for (const q of hs.resize) {
+      const dq = Math.hypot(p.x - q.pos.x, p.y - q.pos.y);
+      if (dq < bd) {
+        bd = dq;
+        best = q;
+      }
+    }
+    if (best) return { id, mode: { axis: best.axis, sign: best.sign, swing: best.swing }, grip: best.pos };
+    if (hs.corners.length) {
+      const c = this.cornerAt(hs, p);
+      const under = c && this.pick(p);
+      if (c && (!under || under.id === id)) return { id, mode: 'rotate', corner: c };
+    }
+    return null;
+  }
+
+  /** The corner whose turn zone (a disc just outside it, along its diagonal) holds `p`. */
+  private cornerAt(hs: TransformHandles, p: Vec): Vec | null {
+    const z = Math.max(0.3, this.scene.zoom);
+    const local = (q: Vec) => ({
+      x: (q.x - hs.center.x) * hs.u.x + (q.y - hs.center.y) * hs.u.y,
+      y: (q.x - hs.center.x) * hs.v.x + (q.y - hs.center.y) * hs.v.y,
+    });
+    const lp = local(p);
+    const half = local(hs.corners[2]);
+    if (Math.abs(lp.x) <= Math.abs(half.x) && Math.abs(lp.y) <= Math.abs(half.y)) return null;
+    const zr = CORNER_ZONE / z;
+    const k = (CORNER_ZONE * 0.6) / z;
+    for (const c of hs.corners) {
+      const lc = local(c);
+      const sx = Math.sign(lc.x) || 1;
+      const sy = Math.sign(lc.y) || 1;
+      const zc = { x: c.x + (hs.u.x * sx + hs.v.x * sy) * k, y: c.y + (hs.u.y * sx + hs.v.y * sy) * k };
+      if (Math.hypot(p.x - zc.x, p.y - zc.y) < zr) return c;
+    }
     return null;
   }
 
@@ -630,39 +729,63 @@ export class EditorController {
     o.props = { ...s.props };
   }
 
+  /** Angle snap step for drag rotation: the part's own step, else 5°; null (whole degrees) with Alt or snap off. */
+  private dragStep(type: string, noSnap: boolean): number | null {
+    if (!this.snap || noSnap) return null;
+    return getComponent(type)?.rotationStep ?? DRAG_ROT_STEP;
+  }
+
   /** Live preview of a handle drag: edits the document object in place (restored on release). */
-  private reshapeTo(d: Extract<Drag, { kind: 'reshape' }>, p: Vec, noSnap: boolean) {
+  private reshapeTo(d: Extract<Drag, { kind: 'reshape' }>, p: Vec, noSnap: boolean, lockLength = false) {
     const o = this.session.find(d.id);
     const def = o && getComponent(o.type);
     if (!o || !def) return;
-    const snap = this.snap && !noSnap;
+    const step = this.dragStep(o.type, noSnap);
     const next: Shape = { ...d.orig, props: { ...d.orig.props } };
+    let length: ManipReadout['length'] = null;
+    let pivot: Vec = { x: d.orig.x, y: d.orig.y };
+    let turns = true;
+    let axisAngle = 0;
     if (d.mode === 'rotate') {
-      let a = Math.atan2(p.y - d.orig.y, p.x - d.orig.x) - d.grab;
-      const step = def.rotationStep ?? ROT_STEP;
-      if (snap) a = Math.round(a / step) * step;
-      else a = Math.round((a * 180) / Math.PI) * (Math.PI / 180);
-      next.angle = Math.atan2(Math.sin(a), Math.cos(a));
+      next.angle = rotateAbout(d.orig, p, d.grab, step);
+      axisAngle = next.angle;
     } else {
       const key = def.resize?.[d.mode.axis];
       const spec = def.props.find((q) => q.key === key);
       if (!key || !spec || spec.type !== 'number') return;
-      const L0 = Number(d.orig.props[key] ?? spec.default);
-      const a = d.orig.angle;
-      const axis = d.mode.axis === 'w' ? { x: Math.cos(a), y: Math.sin(a) } : { x: -Math.sin(a), y: Math.cos(a) };
-      // distance from the fixed (opposite) edge to the pointer, along the part's own axis
-      const along = ((p.x - d.orig.x) * axis.x + (p.y - d.orig.y) * axis.y) * d.mode.sign + L0 / 2;
-      const step = snap ? spec.step : 1;
-      const L = Math.min(spec.max, Math.max(spec.min, Math.round(along / step) * step));
-      const shift = ((L - L0) / 2) * d.mode.sign;
-      next.x = d.orig.x + axis.x * shift;
-      next.y = d.orig.y + axis.y * shift;
-      next.props[key] = L;
+      turns = def.rotatable && d.mode.swing;
+      const r = endDrag({
+        x: d.orig.x,
+        y: d.orig.y,
+        angle: d.orig.angle,
+        length: Number(d.orig.props[key] ?? spec.default),
+        axis: d.mode.axis,
+        sign: d.mode.sign,
+        pointer: { x: p.x - d.grabOff.x, y: p.y - d.grabOff.y },
+        rotatable: turns,
+        step,
+        range: { min: spec.min, max: spec.max, step: this.snap && !noSnap ? spec.step : 1 },
+        lockLength,
+      });
+      next.x = r.x;
+      next.y = r.y;
+      next.angle = r.angle;
+      next.props[key] = r.length;
+      pivot = r.pivot;
+      length = { value: r.length, unit: spec.unit ?? '' };
+      axisAngle = r.angle + (d.mode.axis === 'h' ? Math.PI / 2 : 0);
     }
+    this.manip = {
+      deg: turns ? Math.round(((wrapAngle(next.angle) * 180) / Math.PI) * 10) / 10 : null,
+      length,
+      pointer: p,
+      pivot,
+      guide: turns && step !== null && onGuideAngle(axisAngle) ? { x: pivot.x, y: pivot.y, angle: axisAngle } : null,
+    };
     const same = next.x === o.x && next.y === o.y && next.angle === (o.angle || 0) && JSON.stringify(next.props) === JSON.stringify(o.props ?? {});
     if (same) return;
     d.changed = next.x !== d.orig.x || next.y !== d.orig.y || next.angle !== d.orig.angle || JSON.stringify(next.props) !== JSON.stringify(d.orig.props);
-    if (d.mode === 'rotate' && next.angle !== (o.angle || 0)) this.fb.sfx('uiHover', { vol: 0.35, pitch: 1.4 });
+    if (next.angle !== (o.angle || 0)) this.fb.sfx('uiHover', { vol: 0.35, pitch: 1.4 });
     this.applyShape(o, next);
     this.rebuild();
     const now = performance.now();
@@ -840,6 +963,7 @@ export class EditorController {
   // ------------------------------------------------------------------ commands
 
   cancel() {
+    this.manip = null;
     if (this.drag?.kind === 'reshape') {
       const o = this.session.find(this.drag.id);
       if (o) this.applyShape(o, this.drag.orig);
@@ -868,7 +992,11 @@ export class EditorController {
     this.changed();
   }
 
-  rotate(dir: number, fine = false) {
+  /**
+   * Rotate the selection one step: the part's own step (15° if it has none), 1° when fine.
+   * `minStep` raises the step for coarse buttons (the selection bar turns by at least 15°).
+   */
+  rotate(dir: number, fine = false, minStep = 0) {
     const step = fine || !this.snap ? Math.PI / 180 : ROT_STEP;
     if (this.drag?.kind === 'place') {
       const d = this.drag;
@@ -890,7 +1018,7 @@ export class EditorController {
     let any = false;
     for (const id of ids) {
       const def = getComponent(this.session.find(id)!.type);
-      const st = def?.rotationStep && !fine ? def.rotationStep : step;
+      const st = Math.max(minStep, def?.rotationStep && !fine ? def.rotationStep : step);
       if (this.session.rotateObjects([id], dir * st)) any = true;
     }
     if (any) {
@@ -903,6 +1031,20 @@ export class EditorController {
       }
       this.fb.sfx('rotate');
     }
+  }
+
+  /** Straighten the selected parts (angle 0) in one undo step; refused if that would overlap. */
+  resetAngle() {
+    const ids = [...this.selected].filter((id) => this.editable(id) && (this.session.find(id)?.angle || 0) !== 0);
+    if (!ids.length || !this.session.resetAngles(ids)) return;
+    const bad = invalidPlacements(this.buildSim, ids.map((id) => this.session.find(id)!).filter(Boolean), new Set(ids));
+    if (bad.length) {
+      this.session.undo();
+      this.fb.sfx('error');
+      this.fb.toast('No room to straighten it there.', 'warn');
+      return;
+    }
+    this.fb.sfx('rotate');
   }
 
   flip() {

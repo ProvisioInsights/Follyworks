@@ -403,6 +403,42 @@ describe('difficulty progress and setting', () => {
     expect(parseSettings({ difficulty: 3 }).difficulty).toBe('normal');
   });
 
+  it('a fresh save has not chosen a difficulty yet', () => {
+    expect(DEFAULT_SETTINGS.difficultyChosen).toBe(false);
+    expect(defaultSave().settings.difficultyChosen).toBe(false);
+    expect(parseSave(null).data.settings.difficultyChosen).toBe(false);
+    expect(parseSettings({}).difficultyChosen).toBe(false);
+    expect(parseSettings(null).difficultyChosen).toBe(false);
+  });
+
+  it('old saves that remembered a difficulty count as chosen; junk never throws', () => {
+    expect(parseSettings({ difficulty: 'hard' })).toMatchObject({ difficulty: 'hard', difficultyChosen: true });
+    expect(parseSettings({ difficulty: 'normal' }).difficultyChosen).toBe(true);
+    expect(parseSettings({ difficulty: 'nightmare' })).toMatchObject({ difficulty: 'normal', difficultyChosen: false });
+    // an explicit flag wins over the migration
+    expect(parseSettings({ difficulty: 'easy', difficultyChosen: false }).difficultyChosen).toBe(false);
+    expect(parseSettings({ difficultyChosen: true }).difficultyChosen).toBe(true);
+    for (const junk of ['yes', 1, null, {}, []]) expect(() => parseSettings({ difficulty: 'easy', difficultyChosen: junk })).not.toThrow();
+    expect(parseSettings({ difficulty: 'easy', difficultyChosen: 'yes' }).difficultyChosen).toBe(true);
+    expect(parseSettings({ difficultyChosen: 'yes' }).difficultyChosen).toBe(false);
+    const { data, recovered } = parseSave(JSON.stringify({ version: 2, settings: { difficulty: 'easy' } }));
+    expect(recovered).toBe(false);
+    expect(data.settings).toMatchObject({ difficulty: 'easy', difficultyChosen: true });
+  });
+
+  it('the chosen difficulty and the flag survive a save/reload', () => {
+    const kv = new MemKV();
+    const s = new SaveStore(kv);
+    s.data.settings.difficulty = 'hard';
+    s.data.settings.difficultyChosen = true;
+    s.flush();
+    expect(new SaveStore(kv).data.settings).toMatchObject({ difficulty: 'hard', difficultyChosen: true });
+    // a fresh save that never chose keeps asking after a reload, even though `difficulty` is stored
+    const kv2 = new MemKV();
+    new SaveStore(kv2).flush();
+    expect(new SaveStore(kv2).data.settings.difficultyChosen).toBe(false);
+  });
+
   it('existing saves without per-difficulty records count as Normal', () => {
     const { data, recovered } = parseSave(
       JSON.stringify({ version: 2, progress: { a: { solved: true, elegant: true, absurd: false, bestTime: 4.5, attempts: 2 }, b: { solved: false, attempts: 1 } } }),

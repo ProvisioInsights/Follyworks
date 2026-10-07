@@ -213,6 +213,19 @@ export class Session {
     });
   }
 
+  /** Set the angle of the given rotatable parts back to 0, as one undo step. */
+  resetAngles(ids: string[]) {
+    return this.commit('rotate', () => {
+      let any = false;
+      for (const o of this.editableObjects()) {
+        if (!ids.includes(o.id) || !getComponent(o.type)?.rotatable || !o.angle) continue;
+        o.angle = 0;
+        any = true;
+      }
+      return any;
+    });
+  }
+
   flipObjects(ids: string[]) {
     return this.commit('flip', () => {
       let any = false;

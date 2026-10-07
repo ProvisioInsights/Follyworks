@@ -138,6 +138,8 @@ export class PlayController {
       guide: this.hintGhosts.length ? { ghosts: [...(this.guideOverlay?.ghosts ?? []), ...this.hintGhosts], point: this.guideOverlay?.point ?? null } : this.guideOverlay,
       handles: this.mode === 'build' ? ed.handles() : null,
       zoom: this.scene.zoom,
+      manip: this.mode === 'build' ? ed.manip : null,
+      hoverCorner: this.mode === 'build' ? ed.hoverCorner : null,
       focusGoal: this.focusGoal,
     };
   }

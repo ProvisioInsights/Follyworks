@@ -1,5 +1,18 @@
 # Final report
 
+## Update, 7 October 2026: bigger, goofier machines
+
+This round answers John's "more fun and less basic" brief. The sections further down describe the original build and are kept for history; where they disagree with this section, this section wins.
+
+- **Every mission rebuilt as a Rube Goldberg contraption.** All 66 missions (tutorial plus six groups) are now a big, mostly built chain with gaps for the player, ending in a goofy goal. Pre-built machinery ramps from 5 to 24 parts across the campaign and parts the player places from 2 to 12 (tests/levels/campaign.test.ts enforces the ramp). Old autosaved builds made for an older layout of a mission are dropped on load; progress is kept.
+- **Nine goofy parts with real behaviour:** rubber chicken (squawks, its noise wakes cats), mousetrap (one-shot catapult), toaster (pops toast, pulses its output), teapot (heat it and it whistles and blows a steam jet), bowling pins, Whiskers the cat (wakes on bumps, noise or heat and runs), bell (rings, pulses its output), basketball and basketball hoop (counts swishes). Goals can count ("knock down 5 pins") and the hoop tallies swishes.
+- **Difficulty is picked once** on the first campaign mission and kept until changed in Settings; the per-mission picker is gone.
+- **Modern manipulation:** drag a plank's end to swing it around the other end, turn any part from its corners, live angle/length readout with snap guides, R to straighten, and a floating toolbar (turn, flip, duplicate, delete).
+- **Happier look:** sunny rooms in every theme, two new rooms (Sunny Backyard, Birthday Playroom), confetti and part cheers when a machine solves, sparkles per goal.
+- **Fixes:** a missing CSS brace had silently disabled every theme skin, the results-card physics chips and the Lab intro styles; Whiskers now turns at walls instead of climbing them.
+
+Verified: typecheck; `npx vitest run` (1978 passed, 2 expected fails); every mission's reference build and its ABSURD build solved in Chromium with `e2e/campaign.mjs`; `smoke`, `transform`, `difficulty` and `acceptance` e2e scripts pass. Known rough edges: long chains with seesaws, trampolines and mousetraps are tuned with wide catches, but a layout change to them should be rechecked in the browser; a balloon that floats out of the room counts as destroyed.
+
 ## Summary
 
 Follyworks is playable from first launch to the last campaign puzzle:

@@ -6,6 +6,7 @@ import type { AudioEngine, LoopName, SfxName } from '../audio/AudioEngine';
 import type { BuildDef, LevelDef, Vec } from '../core/types';
 import { History } from '../sim/history';
 import { STEP_MS } from '../sim/matter';
+import { goalMarker } from '../sim/goals';
 import { Simulation } from '../sim/Simulation';
 import type { WorkshopScene } from '../render/WorkshopScene';
 import { scoreAttempt, type AttemptResult } from './scoring';
@@ -21,6 +22,7 @@ const LOOP_FOR: Record<string, LoopName> = {
   candle: 'flame',
   magnet: 'magnet',
   laser: 'laserHum',
+  teapot: 'steam',
 };
 
 export interface RunCallbacks {
@@ -134,8 +136,7 @@ export class RunController {
       this.solvedResult = scoreAttempt(this.sim.level, this.sim.goals.solvedAt, this.sim.placedParts, this.sim.chain);
       this.solvedWallClock = performance.now();
       this.audio?.play('goal');
-      const c = this.goalRegionCenter ?? { x: this.sim.bounds.w / 2, y: this.sim.bounds.h * 0.4 };
-      this.scene.fx.burst('confetti', c.x, c.y, 0, 0, 1);
+      this.celebrate();
     }
     if (!this.solvedResult && !this.timedOut && !this.settledReported && this.sim.level.goals.length) {
       this.stillTicks = this.sim.isStill() ? this.stillTicks + 1 : 0;
@@ -156,13 +157,18 @@ export class RunController {
     const audio = withAudio ? this.audio : null;
     for (const ev of sim.events) {
       this.scene.handleEvent(ev);
+      // a goal met mid-run gets a sparkle where its tag sits (the last one is part of the big cheer)
+      if (ev.t === 'goal' && !sim.goals.solved) {
+        const s = this.goalSpot(ev.index);
+        if (s) this.scene.fx.burst('sparkle', s.x, s.y, 0, 0, 1);
+      }
       if (!audio) continue;
       switch (ev.t) {
         case 'impact':
           audio.impact(ev.matA, ev.matB, ev.speed, this.pan(ev.x), ev.kindA, ev.kindB);
           break;
         case 'sfx':
-          audio.play(ev.name as SfxName, { vol: ev.vol, pan: this.pan(ev.x) });
+          audio.play(ev.name as SfxName, { vol: ev.vol, pan: this.pan(ev.x), pitch: ev.pitch });
           break;
         case 'goal':
           audio.play('ding');
@@ -175,6 +181,23 @@ export class RunController {
       }
     }
     sim.events.length = 0;
+  }
+
+  private goalSpot(i: number): Vec | null {
+    const g = this.sim.level.goals[i];
+    if (!g) return null;
+    if (g.kind === 'enterRegion') return { x: g.region.x + g.region.w / 2, y: g.region.y + g.region.h / 2 };
+    const at = goalMarker(g, this.sim, this.sim.goals.status[i]).at;
+    return at ? { x: at.x, y: at.y + 18 } : null;
+  }
+
+  /** Solved: confetti, streamers, goal sparkles and a hop from every part that took part (visual only). */
+  private celebrate() {
+    const sim = this.sim;
+    const spots = sim.level.goals.map((_, i) => this.goalSpot(i)).filter((s): s is Vec => !!s);
+    if (!spots.length) spots.push(this.goalRegionCenter ?? { x: sim.bounds.w / 2, y: sim.bounds.h * 0.4 });
+    const parts = sim.list.filter((e) => e.alive && e.activated && e.type !== 'wall').map((e) => e.id);
+    this.scene.celebrate(spots, parts);
   }
 
   private pan(x: number) {
@@ -262,6 +285,7 @@ export class RunController {
     this.needsResync = true;
     this.sim.capturePrev();
     this.sim.events.length = 0;
+    this.scene.cancelCelebration();
     this.scrubIndex = i;
     this.lastScrubTick = snap.tick;
     this.audio?.setScrub(dir * 1.5);
@@ -293,6 +317,7 @@ export class RunController {
     this.needsResync = true;
     this.sim.capturePrev();
     this.sim.events.length = 0;
+    this.scene.cancelCelebration();
     this.timedOut = false;
     this.audio?.setScrub(-2);
     this.cb.onTick();
@@ -315,6 +340,7 @@ export class RunController {
   }
 
   dispose() {
+    this.scene.cancelCelebration();
     this.audio?.stopAllLoops();
     this.audio?.setScrub(0);
     this.scene.running = false;

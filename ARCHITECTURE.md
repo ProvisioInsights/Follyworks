@@ -61,8 +61,10 @@ Each part is one `ComponentDef` (`src/components/registry.ts`):
   - `logic` is pure signal pass-through, run to a fixed point.
   - `step` runs before physics; `afterStep` runs after it.
   - `rotorSource` / `onRotor` belong to the rotation network.
-  - `onCollide`, `onHeat`, `onBlast` and `onRopePull` react to events.
-  - `interior` is used by container goals; `isActive` feeds visuals and activate goals.
+  - `onCollide`, `onHeat`, `onBlast`, `onNoise` and `onRopePull` react to events. Loud parts call `sim.noise(x, y, r, source)` (chicken, bell, explosions, pops, cannon, toaster, teapot, mousetrap); after heat spreads each tick, every other live part within `r` gets `onNoise` (the cat wakes). Noises live one tick and are never snapshotted.
+  - `interior` is used by container goals; `tally` (a list of entity ids in `e.state`, e.g. the hoop's swishes) counts for `containerCount` goals instead; `isActive` feeds visuals and activate goals, which can ask for `count` parts on at once ("knock down 5 pins").
+
+The goofy parts live in `components/defs/goofy.ts`, their art in `render/art/goofyParts.ts` and views in `render/goofyViews.ts` (spread into `DEFS` and `VIEW_SPECS`). A view part can set `front` to draw over other parts (the hoop's rim and net go in front of the ball).
 
 Adding a part means adding one definition plus its art in `render/art/parts.ts` and a view in `render/views.ts`. Nothing else switches on part type.
 
@@ -103,7 +105,8 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - Themes (`core/themes.ts`): `App.theme` resolves the session pick (sandbox/editor), then `settings.theme`, then the era of the chapter (`CHAPTER_THEME`). `App.refreshTheme` sets `<html data-theme>` for the HUD CSS, calls `WorkshopScene.setTheme` and the audio engine's optional `setMusicTheme`.
 - Part skins (`render/skin.ts`) are applied by `TextureBank` at paint time: the painted canvas is graded per theme (posterize and ink lines, halftone, earthy grain, brass and rivets, neon rim) with alpha left untouched, and cached under `key@theme`. The rim halo style is per theme too. On a theme change the bank removes every texture it painted, so only one theme's art is in GPU memory. Glow overlays and `fx_` sprites are left raw. Bin icons use the same `skinCanvas`.
 - Theme rooms (`render/art/envThemes.ts`: cave, foundry, toolbox, rooftop, neonlab) are ordinary `EnvDef`s. `roomFor(theme, levelEnv)` picks the room; Modern keeps the level's own environment. On a screen change the repaint is deferred to the next `setSim` / `setEnvironment`.
-- Particles and labels (`Fx.ts`) are pooled and hard-capped.
+- Particles and labels (`Fx.ts`) are pooled and hard-capped. `Fx.celebrate` schedules the solve burst (paper cannons, streamers) on the stinger beat; `RunController` cancels it on scrub, step back and dispose, and `WorkshopScene.celebrate` adds a short hop and glow on the parts involved. All of it is visual only and reads nothing back into the simulation.
+- Cheerful dressing lives in `render/art/envCheer.ts` (sky panes, sunny windows, bunting, doodles, plants and the per-room `DAYLIGHT` grade) and is painted by an optional `EnvDef.cheer` layer, composited after props with a gentler knock-back. `render/art/envHappy.ts` holds the Backyard and Playroom rooms.
 - Phaser runs with `maxTextures: 1` (see DECISIONS.md).
 
 ## Interface
@@ -111,15 +114,18 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - The HUD is DOM layered over the canvas, so text is crisp and accessible, and the canvas never has to lay out UI.
 - `PlayScreen` is shared by campaign, sandbox, level editor and test play; `cfg.kind` switches features on and off.
 - `GoalMarkers` keeps a numbered tag in the room for each goal, positioned every frame from `goalMarker` (`sim/goals.ts`); the matching chips in the top bar highlight their goal on hover through `PlayController.focusGoal`.
-- `EditorController.handles()` gives the rotate knob and resize grips of the selected part; `Overlays` draws them and the controller's `reshape` drag edits them, committing once through `Session.reshapeObject`.
+- `EditorController.handles()` gives the rotate knob, end/edge grips and corner turn zones of the selected part; `Overlays` draws them (plus the pivot and the 0/45/90° snap guide from `EditorController.manip`), and the controller's `reshape` drag edits them with the pure geometry in `game/manipulation.ts` (`endDrag`, `rotateAbout`), committing once through `Session.reshapeObject`. `ui/SelectionBar.ts` is the floating toolbar by the selection and the angle/length badge by the pointer, both DOM placed every frame inside the HUD insets.
 - `GuideCoach` draws tutorial guidance: a DOM card and arrow, plus the ghost outline through `PlayController.guideOverlay`.
 - `ui/science.ts` builds the "How it works" section in the properties panel and the "Physics in your machine" chips on the results card; `ui/lab.ts` has the lab list and lesson intro (passed to `PlayScreen` as `briefIntro`). Their styles are in `ui/science.css`.
+- `ui/difficulty.ts` has the one-time difficulty chooser (`App.playCampaign` shows it while `settings.difficultyChosen` is false), the Settings picker and the read-only badge used in the briefing, HUD and results. The badge opens Settings at the Difficulty control (`openSettings('difficulty')`); a change applies when a mission is next opened, or at once through Settings' "Restart it on …" (`App.restartMission`).
+- `tests/css.test.ts` checks every UI stylesheet's braces balance: browsers parse CSS nesting, so one unclosed rule silently nests (and kills) every later rule in the bundle.
 - The level editor adds `EditorPanel` with three tabs: level settings, parts bin (inventory) and goals.
 
 ## Persistence
 
 `persistence/save.ts` keeps one JSON document, `follyworks.save`, with a `version` field. It holds settings, per-level progress, the autosaved build for each level, custom levels, sandbox slots, the level last open in the editor and the lab lesson last played (`lab`, absent in older saves and filled in on load). Lab lessons keep their progress and builds under their `lab-` level ids like any level.
 
+- `settings.difficulty` is the one difficulty every campaign mission is derived for; `settings.difficultyChosen` records that the player picked it (first-time chooser in `ui/difficulty.ts`, or the Settings control). Older saves that stored a difficulty load as chosen.
 - Progress is kept per difficulty (`byDifficulty.easy/normal/hard`) beside the aggregate fields; saves from before difficulties load as Normal. Builds for Easy and Hard autosave under `<id>@easy` / `<id>@hard`.
 - Loading never throws. Unknown or broken fields fall back to defaults field by field (an unknown `settings.theme` becomes `'auto'`).
 - An unreadable document is copied aside to `follyworks.save.corrupt-<time>` before defaults are used.

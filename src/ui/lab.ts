@@ -17,7 +17,7 @@ export const labIntro = (entry: LabEntry): HTMLElement => {
   return h(
     'div',
     { class: 'lab-intro' },
-    h('div', { class: 'li-concept' }, icon('flask', 16), h('span', null, 'Physics Lab · '), h('b', null, card.title)),
+    h('div', { class: 'li-concept', role: 'heading', 'aria-level': '3' }, icon('flask', 20), h('span', { class: 'li-kicker' }, 'Physics Lab'), h('b', null, card.title)),
     row('The idea', entry.intro.idea, 'idea'),
     row('Picture it', entry.intro.picture, 'picture'),
     row('Your challenge', entry.intro.challenge, 'challenge'),

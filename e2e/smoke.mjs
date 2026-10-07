@@ -37,6 +37,10 @@ await shot('smoke-menu');
 
 // ---- tutorial 1 by hand
 await page.getByRole('button', { name: /Start/ }).click();
+await wait(600);
+// first campaign mission: the one-time difficulty chooser, Normal recommended
+check(await page.locator('.diff-choose .diff-card.normal.recommended').isVisible(), 'first mission asks for a difficulty once, with Normal recommended');
+await page.locator('.diff-choose .diff-card.normal').click();
 await wait(800);
 await page.keyboard.press('Escape'); // close the briefing
 await wait(300);

@@ -116,21 +116,23 @@
   margin-top: 3px;
 }
 .chip {
+  /* Text and fill both come from the panel's own tokens, so the chip reads on dark and light themes. */
+  appearance: none;
   font-family: var(--font-head);
   font-size: calc(13.5px * var(--ts));
   letter-spacing: 0.03em;
   padding: 3px 10px;
   border-radius: 12px;
   border: 1px solid var(--edge-hi);
-  background: rgba(0, 0, 0, 0.25);
-  color: var(--cream-dim);
+  background: color-mix(in srgb, var(--cream) 8%, transparent);
+  color: var(--cream);
   cursor: pointer;
 }
 .chip:hover,
 .chip[aria-expanded='true'] {
   border-color: var(--brass);
-  color: var(--brass-hi);
-  background: rgba(226, 165, 74, 0.1);
+  color: color-mix(in srgb, var(--brass-hi) 70%, var(--cream));
+  background: color-mix(in srgb, var(--brass) 16%, transparent);
 }
 .physics-in-machine {
   margin-top: 12px;
@@ -142,7 +144,7 @@
   font-family: var(--font-head);
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: var(--brass-hi);
+  color: color-mix(in srgb, var(--brass-hi) 70%, var(--cream));
   margin-bottom: 6px;
 }
 .concept-chips {
@@ -170,12 +172,25 @@
 .lab-intro .li-concept {
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 4px;
   font-family: var(--font-head);
-  letter-spacing: 0.05em;
   color: var(--cream-dim);
 }
+.lab-intro .li-kicker {
+  font-size: calc(12px * var(--ts));
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 1px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--edge-hi);
+}
 .lab-intro .li-concept b {
+  font-size: calc(21px * var(--ts));
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: var(--brass-hi);
 }
 .lab-intro .li-row {
@@ -198,7 +213,10 @@
   color: var(--brass-hi);
 }
 .lab-intro .cc-formula {
-  margin: 0;
+  margin: 2px 0 0;
+}
+.lab-intro .science {
+  margin-top: 2px;
 }
 .level-tile.lab-tile.last {
   border-color: var(--edge-hi);

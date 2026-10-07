@@ -14,6 +14,9 @@ import { clear, h, icon, iconBtn } from './dom';
 
 type Tab = 'level' | 'parts' | 'goals';
 
+/** Parts a containerCount goal can count in: things with an inside (bucket) or a tally (hoop swishes). */
+const isContainer = (type: string) => !!(getComponent(type)?.interior || getComponent(type)?.tally);
+
 const GOAL_KINDS: { kind: GoalDef['kind']; label: string }[] = [
   { kind: 'enterRegion', label: 'Reach a zone' },
   { kind: 'contact', label: 'Two things touch' },
@@ -250,14 +253,14 @@ export class EditorPanel {
       const on = ed.selectedGoal === i;
       const card = h('div', { class: `goal-card ${on ? 'on' : ''}`, onClick: () => ((ed.selectedGoal = i), (this.lastKey = ''), this.render()) });
       card.append(
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h('b', { style: { flex: '1' } }, goalLabel(g)), iconBtn('trash', 'Remove goal', (e) => {
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h('b', { style: { flex: '1' } }, goalLabel(g, l)), iconBtn('trash', 'Remove goal', (e) => {
           e.stopPropagation();
           this.edit('goal-del', (lv) => lv.goals.splice(i, 1));
           ed.selectedGoal = null;
         })),
       );
       if (on) {
-        const lab = h('input', { type: 'text', value: g.label ?? '', placeholder: goalLabel({ ...g, label: undefined } as GoalDef) }) as HTMLInputElement;
+        const lab = h('input', { type: 'text', value: g.label ?? '', placeholder: goalLabel({ ...g, label: undefined } as GoalDef, l) }) as HTMLInputElement;
         lab.addEventListener('change', () => this.edit('goal', (lv) => (lv.goals[i].label = lab.value.trim() || undefined)));
         card.append(h('label', { class: 'field' }, h('span', { class: 'label' }, 'Text shown to the player'), lab));
         const upd = (fn: (g: any) => void) => this.edit('goal', (lv) => fn(lv.goals[i]));
@@ -273,10 +276,14 @@ export class EditorPanel {
             const d = h('input', { type: 'number', min: '0', max: '60', step: '0.5', value: String(g.duration ?? 0) }) as HTMLInputElement;
             d.addEventListener('change', () => upd((q) => (q.duration = Number(d.value) > 0 ? Number(d.value) : undefined)));
             card.append(h('label', { class: 'field' }, h('span', { class: 'label' }, 'For at least (seconds)'), d));
+            // "knock down all 6 pins", "light all 3 candles": that many on at the same time
+            const n = h('input', { type: 'number', min: '1', max: '30', step: '1', value: String(g.count ?? 1) }) as HTMLInputElement;
+            n.addEventListener('change', () => upd((q) => (q.count = Math.round(Number(n.value)) > 1 ? Math.min(30, Math.round(Number(n.value))) : undefined)));
+            card.append(h('label', { class: 'field' }, h('span', { class: 'label' }, 'How many at once'), n));
             break;
           }
           case 'containerCount': {
-            const s = h('select', null, h('option', { value: '' }, '— choose a container —'), this.objectOptions(g.container, (t) => !!getComponent(t)?.interior)) as HTMLSelectElement;
+            const s = h('select', null, h('option', { value: '' }, '— choose a container —'), this.objectOptions(g.container, isContainer)) as HTMLSelectElement;
             s.addEventListener('change', () => upd((q) => (q.container = s.value)));
             const c = h('input', { type: 'number', min: '1', max: '30', value: String(g.count) }) as HTMLInputElement;
             c.addEventListener('change', () => upd((q) => (q.count = Math.max(1, Number(c.value) || 1))));
@@ -337,7 +344,7 @@ export class EditorPanel {
       case 'activate':
         return { kind, target: { type: 'light_bulb' } };
       case 'containerCount': {
-        const b = [...l.startingObjects, ...l.fixedObjects].find((o) => getComponent(o.type)?.interior);
+        const b = [...l.startingObjects, ...l.fixedObjects].find((o) => isContainer(o.type));
         return { kind, container: b?.id ?? '', count: 1 };
       }
       case 'height':

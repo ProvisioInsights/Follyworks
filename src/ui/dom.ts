@@ -78,6 +78,13 @@ const P: Record<string, string> = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   rope: '<path d="M5 4c0 6 14 4 14 10s-8 6-8 6"/><circle cx="5" cy="4" r="1.6"/>',
   play2: '<path d="M8 5v14l11-7z"/>',
+  // goal chips for the goofy parts
+  cat: '<path d="M5 20v-8l-1-6 4 3h8l4-3-1 6v8z"/><path d="M9.5 14h.01M14.5 14h.01M11 17h2"/>',
+  bell: '<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21h4M12 3v2"/>',
+  pin: '<path d="M12 3c-1.6 0-2 1.6-1.6 3.2.5 1.8-2.4 3.6-2.4 7.3 0 3.5 1.6 6.5 4 6.5s4-3 4-6.5c0-3.7-2.9-5.5-2.4-7.3C14 4.6 13.6 3 12 3z"/><path d="M10.4 8h3.2"/>',
+  hoop: '<path d="M4 4h4v8H4z"/><path d="M8 10h12"/><path d="M10 10l1.5 8M14 10v8M18 10l-1.5 8M11 14h6"/>',
+  chicken: '<path d="M7 8a3 3 0 1 1 5 2c3 0 6 1 7 4-1 3-4 5-8 5s-6-2-6-5c0-2 1-4 2-6z"/><path d="M4 9l3-1M8 4l1-1.5"/>',
+  flame: '<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 2-7 2 1 3 3 3 5 1-2 1-6 1-9z"/>',
 };
 
 export function icon(name: keyof typeof P | string, size = 22): SVGSVGElement {
@@ -151,6 +158,8 @@ export interface ModalOpts {
   onClose?: () => void;
   closable?: boolean;
   width?: number;
+  /** Extra class on the modal panel (e.g. 'results'). */
+  cls?: string;
 }
 
 export function modal(root: HTMLElement, o: ModalOpts) {
@@ -160,7 +169,9 @@ export function modal(root: HTMLElement, o: ModalOpts) {
     o.onClose?.();
   };
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && o.closable !== false) {
+    // Only the topmost modal answers Escape, so Settings opened over a briefing closes alone.
+    const backs = root.querySelectorAll('.modal-back');
+    if (e.key === 'Escape' && o.closable !== false && backs[backs.length - 1] === back) {
       e.stopPropagation();
       close();
     }
@@ -174,7 +185,7 @@ export function modal(root: HTMLElement, o: ModalOpts) {
   );
   const m = h(
     'div',
-    { class: 'panel modal', style: o.width ? { width: `min(${o.width}px, calc(100vw - 32px))` } : undefined, role: 'dialog', 'aria-label': o.title },
+    { class: `panel modal${o.cls ? ` ${o.cls}` : ''}`, style: o.width ? { width: `min(${o.width}px, calc(100vw - 32px))` } : undefined, role: 'dialog', 'aria-label': o.title },
     o.strip ? h('div', { class: `strip ${o.strip}` }) : null,
     h('div', { class: 'modal-head' }, h('h2', null, o.title), o.closable !== false ? iconBtn('close', 'Close', close) : null),
     h('div', { class: 'modal-body scroll' }, ...o.body),
