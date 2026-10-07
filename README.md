@@ -51,6 +51,8 @@ npm run preview    # serves dist/ at http://localhost:4173/
 ```sh
 npm test                     # unit, simulation and level tests (Vitest, headless)
 npm run typecheck            # TypeScript only
+npm run fun:audit            # measures every level for pacing, spectacle, agency and pixel hunting (several minutes)
+npm run fun:playtests        # summarizes exported player logs in playtests/ (see docs/fun/MEASURING_FUN.md)
 ```
 
 The browser tests need a production build served on port 4173 (`npm run build && npm run preview`) and Playwright's Chromium:
@@ -61,6 +63,7 @@ node e2e/acceptance.mjs      # move/rotate/duplicate/delete, pan/zoom, slow moti
                              # level rename/duplicate/import/delete, test-and-return, saves surviving reload, corrupt save
 node e2e/campaign.mjs        # plays every level with its reference solution in the real browser
 node e2e/transform.mjs       # knob, end swing, corner turn, R reset, selection toolbar by mouse; overlap refusal; goal tags
+node e2e/playtest.mjs        # the local playtest log records a real session: runs, solve, edits
 node e2e/difficulty.mjs      # first-time chooser, Settings change + restart, badges, every hint tier, per-difficulty progress and map badges
 node e2e/touch.mjs           # real touch input on an emulated iPad and iPhone: drag from the bin, tap, move, knob, twist, pinch, tap-to-place, phone-upright prompt
 ```
@@ -120,6 +123,8 @@ On a phone held sideways the controls move into the side gutters so the room use
 - [DECISIONS.md](DECISIONS.md): material design and engineering decisions, with reasons.
 - [FINAL_REPORT.md](FINAL_REPORT.md): scope, testing, known defects, compromises, risks and next steps.
 - [docs/ART_SPEC.md](docs/ART_SPEC.md): the art direction the procedural painters follow.
+- [docs/fun/FINDINGS.md](docs/fun/FINDINGS.md): the first playability findings.
+- [docs/fun/MEASURING_FUN.md](docs/fun/MEASURING_FUN.md): how fun is measured, from the levels (the fun audit) and from players (the playtest log); [fun-audit.md](docs/fun/fun-audit.md) is the latest audit.
 
 ## License
 

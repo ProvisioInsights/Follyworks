@@ -392,7 +392,7 @@ const wreckingSwing: CampaignEntry = {
   },
   solutions: [
     {
-      objects: [o('s-hook', 'hook', 870, 142), o('s-bridge', 'plank', 382, 270, { length: 100 }, 0.4)],
+      objects: [o('s-hook', 'hook', 870, 142), o('s-bridge', 'plank', 380, 270, { length: 100 }, Math.PI / 18)],
       connections: [rope('s-rope', 's-hook', 'hook', 'g2e-crate', 'hook')],
     },
     // ABSURD: a soft trampoline instead of the bridge: the rubber ball boings onto the shelf.
@@ -404,7 +404,7 @@ const wreckingSwing: CampaignEntry = {
   counterexamples: [
     {
       why: 'with no hook the crate just drops to the floor',
-      build: { objects: [o('s-bridge', 'plank', 382, 270, { length: 100 }, 0.4)], connections: [] },
+      build: { objects: [o('s-bridge', 'plank', 380, 270, { length: 100 }, Math.PI / 18)], connections: [] },
     },
     {
       why: 'with no bridge the rubber ball never reaches the crate',
@@ -412,7 +412,7 @@ const wreckingSwing: CampaignEntry = {
     },
     {
       why: 'a trampoline under the falling crate bounces it nowhere useful',
-      build: { objects: [o('s-bridge', 'plank', 382, 270, { length: 100 }, 0.4), o('s-tramp', 'trampoline', 715, 615, {}, 0.2618)], connections: [] },
+      build: { objects: [o('s-bridge', 'plank', 380, 270, { length: 100 }, Math.PI / 18), o('s-tramp', 'trampoline', 715, 615, {}, 0.2618)], connections: [] },
     },
   ],
 };
@@ -468,18 +468,18 @@ const pullTheCord: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('s-bridge', 'plank', 680, 244, { length: 124 }, 0.24),
+        o('s-bridge', 'plank', 680, 240, { length: 100 }, Math.PI / 18),
         o('s-pulley', 'pulley', 1050, 200),
-        o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2),
+        o('s-wall', 'plank', 370, 470, { length: 40 }, Math.PI / 2),
       ],
       connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook', ['s-pulley'])],
     },
     // ABSURD: the bowling ball bulldozes a bucket into the crate.
     {
       objects: [
-        o('s-bridge', 'plank', 680, 244, { length: 124 }, 0.24),
+        o('s-bridge', 'plank', 680, 240, { length: 100 }, Math.PI / 18),
         o('s-pulley', 'pulley', 1050, 200),
-        o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2),
+        o('s-wall', 'plank', 370, 470, { length: 40 }, Math.PI / 2),
         o('s-bucket', 'bucket', 917, 253, { anchored: false }),
       ],
       connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook', ['s-pulley'])],
@@ -488,33 +488,33 @@ const pullTheCord: CampaignEntry = {
   counterexamples: [
     {
       why: 'a bucket dropped on the roof cannot reach Whiskers',
-      build: { objects: [o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2), o('s-bucket', 'bucket', 450, 350, { anchored: false })], connections: [] },
+      build: { objects: [o('s-wall', 'plank', 370, 470, { length: 40 }, Math.PI / 2), o('s-bucket', 'bucket', 450, 350, { anchored: false })], connections: [] },
     },
     {
       why: 'a bucket sliding down a plank is too tall to get under the roof',
       build: {
-        objects: [o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2), o('s-ramp', 'plank', 640, 440, { length: 120 }, -0.5), o('s-bucket', 'bucket', 680, 380, { anchored: false })],
+        objects: [o('s-wall', 'plank', 370, 470, { length: 40 }, Math.PI / 2), o('s-ramp', 'plank', 640, 440, { length: 120 }, -0.5), o('s-bucket', 'bucket', 680, 380, { anchored: false })],
         connections: [],
       },
     },
     {
       why: 'roped straight to the crate, the lever is pulled down, not up',
       build: {
-        objects: [o('s-bridge', 'plank', 680, 244, { length: 124 }, 0.24), o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2)],
+        objects: [o('s-bridge', 'plank', 680, 240, { length: 100 }, Math.PI / 18), o('s-wall', 'plank', 370, 470, { length: 40 }, Math.PI / 2)],
         connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook')],
       },
     },
     {
       why: 'with nothing to turn him round, Whiskers runs off the wrong end',
       build: {
-        objects: [o('s-bridge', 'plank', 680, 244, { length: 124 }, 0.24), o('s-pulley', 'pulley', 1050, 200)],
+        objects: [o('s-bridge', 'plank', 680, 240, { length: 100 }, Math.PI / 18), o('s-pulley', 'pulley', 1050, 200)],
         connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook', ['s-pulley'])],
       },
     },
     {
       why: 'with no bridge the bowling ball never reaches the crate',
       build: {
-        objects: [o('s-pulley', 'pulley', 1050, 200), o('s-wall', 'plank', 370, 465, { length: 50 }, Math.PI / 2)],
+        objects: [o('s-pulley', 'pulley', 1050, 200), o('s-wall', 'plank', 370, 470, { length: 40 }, Math.PI / 2)],
         connections: [rope('s-rope', 'g2f-switch', 'lever', 'g2f-crate', 'hook', ['s-pulley'])],
       },
     },
@@ -538,7 +538,7 @@ const dumbwaiter: CampaignEntry = {
       o('g2g-chute', 'wall', 110, 100, { w: 220, h: 14, material: 'wood' }, 0.32),
       o('g2g-ledge', 'wall', 270, 160, { w: 70, h: 16, material: 'wood' }),
       o('g2g-ramp', 'plank', 310, 280, { length: 150 }, 0.28),
-      o('g2g-ramp-2', 'plank', 500, 311, { length: 80 }, 0.28),
+      o('g2g-ramp-2', 'plank', 530, 336, { length: 80 }, 0.28),
       o('g2g-shaft-l', 'wall', 762, 470, { w: 14, h: 320, material: 'brick' }),
       o('g2g-shaft-r', 'wall', 868, 525, { w: 14, h: 210, material: 'brick' }),
       o('g2g-shaft-top', 'wall', 787, 324, { w: 64, h: 16, material: 'brick' }),
@@ -577,20 +577,20 @@ const dumbwaiter: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('s-bridge', 'plank', 422, 300, { length: 74 }),
+        o('s-bridge', 'plank', 430, 310, { length: 90 }),
         o('s-pulley', 'pulley', 820, 60),
-        o('s-pulley-2', 'pulley', 585, 60),
-        o('s-bucket', 'bucket', 585, 395, { anchored: false }),
+        o('s-pulley-2', 'pulley', 610, 60),
+        o('s-bucket', 'bucket', 610, 395, { anchored: false }),
       ],
       connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['s-pulley', 's-pulley-2'])],
     },
     // ABSURD: a second bucket on the floor catches the rubber ball as it chases the bowling ball down.
     {
       objects: [
-        o('s-bridge', 'plank', 422, 300, { length: 74 }),
+        o('s-bridge', 'plank', 430, 310, { length: 90 }),
         o('s-pulley', 'pulley', 820, 60),
-        o('s-pulley-2', 'pulley', 585, 60),
-        o('s-bucket', 'bucket', 585, 395, { anchored: false }),
+        o('s-pulley-2', 'pulley', 610, 60),
+        o('s-bucket', 'bucket', 610, 395, { anchored: false }),
         o('s-catcher', 'bucket', 722, 608),
       ],
       connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['s-pulley', 's-pulley-2'])],
@@ -600,14 +600,14 @@ const dumbwaiter: CampaignEntry = {
     {
       why: 'with no bridge the bowling ball never reaches the counterweight',
       build: {
-        objects: [o('s-pulley', 'pulley', 820, 60), o('s-pulley-2', 'pulley', 585, 60), o('s-bucket', 'bucket', 585, 395, { anchored: false })],
+        objects: [o('s-pulley', 'pulley', 820, 60), o('s-pulley-2', 'pulley', 610, 60), o('s-bucket', 'bucket', 610, 395, { anchored: false })],
         connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['s-pulley', 's-pulley-2'])],
       },
     },
     {
       why: 'a bolted-down counterweight bucket never falls',
       build: {
-        objects: [o('s-bridge', 'plank', 422, 300, { length: 74 }), o('s-pulley', 'pulley', 820, 60), o('s-pulley-2', 'pulley', 585, 60), o('s-bucket', 'bucket', 585, 395)],
+        objects: [o('s-bridge', 'plank', 430, 310, { length: 90 }), o('s-pulley', 'pulley', 820, 60), o('s-pulley-2', 'pulley', 610, 60), o('s-bucket', 'bucket', 610, 395)],
         connections: [rope('s-rope', 'g2g-car', 'handle', 's-bucket', 'handle', ['s-pulley', 's-pulley-2'])],
       },
     },
@@ -756,9 +756,9 @@ const toastOfTheTown: CampaignEntry = {
       o('g2i-partition', 'wall', 795, 127, { w: 12, h: 176, material: 'wood' }),
       o('g2i-hoop', 'basketball_hoop', 976, 136),
       o('g2i-walk', 'plank', 920, 400, { length: 240 }),
-      o('g2i-walk-2', 'plank', 700, 400, { length: 80 }),
-      o('g2i-walk-3', 'plank', 560, 400, { length: 80 }),
-      o('g2i-bell', 'bell', 540, 374),
+      o('g2i-walk-2', 'plank', 700, 420, { length: 40 }),
+      o('g2i-walk-3', 'plank', 560, 440, { length: 80 }),
+      o('g2i-bell', 'bell', 540, 414),
     ],
     startingObjects: [
       o('g2i-ball', 'bowling_ball', 40, 95),
@@ -793,10 +793,10 @@ const toastOfTheTown: CampaignEntry = {
     {
       objects: [
         o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }),
-        o('s-hook', 'hook', 853, 52),
-        o('s-wall', 'plank', 900, 348, { length: 90 }, Math.PI / 2),
-        o('s-bridge', 'plank', 770, 400, { length: 56 }),
-        o('s-bridge-2', 'plank', 630, 400, { length: 56 }),
+        o('s-hook', 'hook', 860, 40),
+        o('s-wall', 'plank', 900, 350, { length: 70 }, Math.PI / 2),
+        o('s-bridge', 'plank', 760, 410, { length: 60 }),
+        o('s-bridge-2', 'plank', 640, 430, { length: 60 }),
       ],
       connections: [rope('s-rope', 's-hook', 'hook', 'g2i-crate', 'hook')],
     },
@@ -805,10 +805,10 @@ const toastOfTheTown: CampaignEntry = {
       objects: [
         o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }),
         o('s-tramp-2', 'trampoline', 390, 250, { power: 1.2 }, Math.PI / 12),
-        o('s-hook', 'hook', 853, 52),
-        o('s-wall', 'plank', 900, 348, { length: 90 }, Math.PI / 2),
-        o('s-bridge', 'plank', 770, 400, { length: 56 }),
-        o('s-bridge-2', 'plank', 630, 400, { length: 56 }),
+        o('s-hook', 'hook', 860, 40),
+        o('s-wall', 'plank', 900, 350, { length: 70 }, Math.PI / 2),
+        o('s-bridge', 'plank', 760, 410, { length: 60 }),
+        o('s-bridge-2', 'plank', 640, 430, { length: 60 }),
       ],
       connections: [rope('s-rope', 's-hook', 'hook', 'g2i-crate', 'hook')],
     },
@@ -817,21 +817,21 @@ const toastOfTheTown: CampaignEntry = {
     {
       why: 'with nothing to turn him round, Whiskers runs off the end of his walkway',
       build: {
-        objects: [o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }), o('s-hook', 'hook', 853, 52), o('s-bridge', 'plank', 770, 400, { length: 56 }), o('s-bridge-2', 'plank', 630, 400, { length: 56 })],
+        objects: [o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }), o('s-hook', 'hook', 860, 40), o('s-bridge', 'plank', 760, 410, { length: 60 }), o('s-bridge-2', 'plank', 640, 430, { length: 60 })],
         connections: [rope('s-rope', 's-hook', 'hook', 'g2i-crate', 'hook')],
       },
     },
     {
       why: 'without the rope the crate just drops into the bucket',
       build: {
-        objects: [o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }), o('s-wall', 'plank', 900, 348, { length: 90 }, Math.PI / 2), o('s-bridge', 'plank', 770, 400, { length: 56 }), o('s-bridge-2', 'plank', 630, 400, { length: 56 })],
+        objects: [o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }), o('s-wall', 'plank', 900, 350, { length: 70 }, Math.PI / 2), o('s-bridge', 'plank', 760, 410, { length: 60 }), o('s-bridge-2', 'plank', 640, 430, { length: 60 })],
         connections: [],
       },
     },
     {
       why: 'a plank ramp up to the shelf is too steep for the bowling ball to climb',
       build: {
-        objects: [o('s-ramp', 'plank', 395, 230, { length: 170 }, -0.2), o('s-hook', 'hook', 853, 52), o('s-wall', 'plank', 900, 348, { length: 90 }, Math.PI / 2), o('s-bridge', 'plank', 770, 400, { length: 56 }), o('s-bridge-2', 'plank', 630, 400, { length: 56 })],
+        objects: [o('s-ramp', 'plank', 395, 230, { length: 170 }, -0.2), o('s-hook', 'hook', 860, 40), o('s-wall', 'plank', 900, 350, { length: 70 }, Math.PI / 2), o('s-bridge', 'plank', 760, 410, { length: 60 }), o('s-bridge-2', 'plank', 640, 430, { length: 60 })],
         connections: [rope('s-rope', 's-hook', 'hook', 'g2i-crate', 'hook')],
       },
     },
@@ -854,23 +854,24 @@ const grandOpening: CampaignEntry = {
       o('g2j-beam', 'wall', 560, 30, { w: 1080, h: 20, material: 'steel' }),
       o('g2j-shelf', 'plank', 110, 230, { length: 160 }),
       o('g2j-bell', 'bell', 640, 290),
-      o('g2j-walk', 'plank', 780, 380, { length: 120 }),
-      o('g2j-walk-2', 'plank', 930, 380, { length: 60 }),
-      o('g2j-walk-3', 'plank', 1030, 380, { length: 40 }),
-      o('g2j-hoop', 'basketball_hoop', 1063, 425, {}, 0, true),
+      o('g2j-walk', 'plank', 770, 380, { length: 100 }),
+      o('g2j-walk-2', 'plank', 920, 400, { length: 40 }),
+      o('g2j-walk-3', 'plank', 1040, 420, { length: 60 }),
+      o('g2j-hoop', 'basketball_hoop', 1083, 455, {}, 0, true),
+      o('g2j-chute', 'wall', 1067, 446, { w: 6, h: 38, material: 'wood' }),
     ],
     startingObjects: [
       o('g2j-trap', 'mousetrap', 110, 218),
       o('g2j-bowl', 'bowling_ball', 110, 193),
       o('g2j-crate', 'crate', 640, 608),
       o('g2j-cat', 'cat', 760, 360, {}, 0, true),
-      o('g2j-pin-1', 'bowling_pin', 1000, 602),
-      o('g2j-pin-2', 'bowling_pin', 1022, 602),
-      o('g2j-pin-3', 'bowling_pin', 1044, 602),
-      o('g2j-pin-4', 'bowling_pin', 1066, 602),
-      o('g2j-pin-5', 'bowling_pin', 1088, 602),
+      o('g2j-pin-1', 'bowling_pin', 980, 602),
+      o('g2j-pin-2', 'bowling_pin', 1002, 602),
+      o('g2j-pin-3', 'bowling_pin', 1024, 602),
+      o('g2j-pin-4', 'bowling_pin', 1046, 602),
+      o('g2j-pin-5', 'bowling_pin', 1068, 602),
       o('g2j-chicken', 'rubber_chicken', 940, 621),
-      o('g2j-hoopball', 'basketball', 1030, 358),
+      o('g2j-hoopball', 'basketball', 1050, 398),
     ],
     connections: [],
     inventory: [
@@ -901,8 +902,8 @@ const grandOpening: CampaignEntry = {
         o('s-pulley-2', 'pulley', 250, 60),
         o('s-bucket', 'bucket', 250, 175, { anchored: false }),
         o('s-wall', 'plank', 705, 330, { length: 90 }, Math.PI / 2),
-        o('s-bridge', 'plank', 870, 380, { length: 56 }),
-        o('s-bridge-2', 'plank', 985, 380, { length: 46 }),
+        o('s-bridge', 'plank', 860, 390, { length: 60 }),
+        o('s-bridge-2', 'plank', 980, 410, { length: 50 }),
       ],
       connections: [rope('s-rope', 's-bucket', 'handle', 'g2j-crate', 'hook', ['s-pulley-2', 's-pulley'])],
     },
@@ -913,8 +914,8 @@ const grandOpening: CampaignEntry = {
         o('s-pulley-2', 'pulley', 250, 60),
         o('s-bucket', 'bucket', 250, 175, { anchored: false }),
         o('s-wall', 'plank', 705, 330, { length: 90 }, Math.PI / 2),
-        o('s-bridge', 'plank', 870, 380, { length: 56 }),
-        o('s-bridge-2', 'plank', 985, 380, { length: 46 }),
+        o('s-bridge', 'plank', 860, 390, { length: 60 }),
+        o('s-bridge-2', 'plank', 980, 410, { length: 50 }),
         o('s-chicken', 'rubber_chicken', 250, 177),
       ],
       connections: [rope('s-rope', 's-bucket', 'handle', 'g2j-crate', 'hook', ['s-pulley-2', 's-pulley'])],
@@ -924,21 +925,21 @@ const grandOpening: CampaignEntry = {
     {
       why: 'with nothing to turn him round, Whiskers runs off the wrong end of his walkway',
       build: {
-        objects: [o('s-pulley', 'pulley', 640, 60), o('s-pulley-2', 'pulley', 250, 60), o('s-bucket', 'bucket', 250, 175, { anchored: false }), o('s-bridge', 'plank', 870, 380, { length: 56 }), o('s-bridge-2', 'plank', 985, 380, { length: 46 })],
+        objects: [o('s-pulley', 'pulley', 640, 60), o('s-pulley-2', 'pulley', 250, 60), o('s-bucket', 'bucket', 250, 175, { anchored: false }), o('s-bridge', 'plank', 860, 390, { length: 60 }), o('s-bridge-2', 'plank', 980, 410, { length: 50 })],
         connections: [rope('s-rope', 's-bucket', 'handle', 'g2j-crate', 'hook', ['s-pulley-2', 's-pulley'])],
       },
     },
     {
       why: 'without the second bridge Whiskers falls through the gap before he reaches the basketball',
       build: {
-        objects: [o('s-pulley', 'pulley', 640, 60), o('s-pulley-2', 'pulley', 250, 60), o('s-bucket', 'bucket', 250, 175, { anchored: false }), o('s-wall', 'plank', 705, 330, { length: 90 }, Math.PI / 2), o('s-bridge', 'plank', 870, 380, { length: 56 })],
+        objects: [o('s-pulley', 'pulley', 640, 60), o('s-pulley-2', 'pulley', 250, 60), o('s-bucket', 'bucket', 250, 175, { anchored: false }), o('s-wall', 'plank', 705, 330, { length: 90 }, Math.PI / 2), o('s-bridge', 'plank', 860, 390, { length: 60 })],
         connections: [rope('s-rope', 's-bucket', 'handle', 'g2j-crate', 'hook', ['s-pulley-2', 's-pulley'])],
       },
     },
     {
       why: 'a bucket with no rope just catches the bowling ball; the crate never leaves the floor',
       build: {
-        objects: [o('s-bucket', 'bucket', 250, 175, { anchored: false }), o('s-wall', 'plank', 705, 330, { length: 90 }, Math.PI / 2), o('s-bridge', 'plank', 870, 380, { length: 56 }), o('s-bridge-2', 'plank', 985, 380, { length: 46 })],
+        objects: [o('s-bucket', 'bucket', 250, 175, { anchored: false }), o('s-wall', 'plank', 705, 330, { length: 90 }, Math.PI / 2), o('s-bridge', 'plank', 860, 390, { length: 60 }), o('s-bridge-2', 'plank', 980, 410, { length: 50 })],
         connections: [],
       },
     },

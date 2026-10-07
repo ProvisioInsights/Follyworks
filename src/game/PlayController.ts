@@ -8,6 +8,7 @@ import { Session, type SessionKind } from '../editor/Session';
 import type { WorkshopScene } from '../render/WorkshopScene';
 import type { OverlayState } from '../render/Overlays';
 import type { Entity } from '../sim/Entity';
+import { playtest } from '../telemetry/playtest';
 import { EditorController, type EditorFeedback } from './EditorController';
 import { RunController } from './RunController';
 import type { AttemptResult } from './scoring';
@@ -38,6 +39,7 @@ export class PlayController {
   private listeners = new Set<() => void>();
   private unhook: (() => void)[] = [];
   private trails: Vec[][] = [];
+  private wasRewinding = false;
   /** Number of runs this session (for attempts). */
   runs = 0;
   /** Goal the player is pointing at in the top bar: its zone and tag are highlighted. */
@@ -51,14 +53,17 @@ export class PlayController {
     this.unhook.push(this.editor.onChange(() => this.emit()));
     this.unhook.push(
       this.session.onChange(() => {
+        playtest.edit();
         this.opts.onBuildChanged(this.session.build, this.session.level);
       }),
     );
+    playtest.begin(opts.level.id, opts.kind);
     this.unhook.push(scene.onFrame((dt) => this.frame(dt)));
     scene.resetView();
   }
 
   destroy() {
+    playtest.end();
     this.run?.dispose();
     this.run = null;
     for (const u of this.unhook) u();
@@ -83,11 +88,21 @@ export class PlayController {
     this.editor.enabled = false;
     this.mode = 'run';
     this.runs++;
+    playtest.run();
     this.opts.audio?.play('switch');
     this.run = new RunController(this.scene, this.session.level, this.session.build, this.opts.audio, {
-      onSolved: (r) => this.opts.onSolved(r),
-      onTimeUp: () => this.opts.onTimeUp(),
-      onSettled: () => this.opts.onSettled?.(),
+      onSolved: (r) => {
+        playtest.result('solved', { stages: r.stages, absurd: r.absurd.earned, elegant: r.elegant.earned });
+        this.opts.onSolved(r);
+      },
+      onTimeUp: () => {
+        playtest.result('timeup');
+        this.opts.onTimeUp();
+      },
+      onSettled: () => {
+        playtest.result('settled');
+        this.opts.onSettled?.();
+      },
       onTick: () => this.emit(),
     });
     this.opts.audio?.setMusicIntensity(0.75);
@@ -97,6 +112,7 @@ export class PlayController {
   reset() {
     if (this.mode !== 'run') return;
     if (this.run) this.trails = this.run.trailLines();
+    playtest.reset();
     this.run?.dispose();
     this.run = null;
     this.mode = 'build';
@@ -116,7 +132,11 @@ export class PlayController {
   // ------------------------------------------------------------------ frame
 
   private frame(dt: number) {
-    if (this.mode === 'run' && this.run) this.run.update(dt);
+    if (this.mode === 'run' && this.run) {
+      this.run.update(dt);
+      if (this.run.rewinding && !this.wasRewinding) playtest.rewind();
+      this.wasRewinding = this.run.rewinding;
+    }
     const ed = this.editor;
     this.scene.overlayState = {
       mode: this.mode,
