@@ -30,7 +30,7 @@ export class SelectionBar {
   private host: SelectionBarHost;
   readonly el: HTMLElement;
   private badge: HTMLElement;
-  private btns: Record<'rotL' | 'rotR' | 'flip' | 'dup' | 'del', HTMLElement>;
+  private btns: Record<'rotL' | 'rotR' | 'flip' | 'dup' | 'del' | 'tune', HTMLElement>;
   private unhook: () => void;
   private key = '';
 
@@ -43,6 +43,8 @@ export class SelectionBar {
       flip: iconBtn('flip', 'Flip <kbd>F</kbd>', () => ed().flip()),
       dup: iconBtn('copy', 'Duplicate <kbd>Ctrl</kbd>+<kbd>D</kbd>', () => ed().duplicate()),
       del: iconBtn('trash', 'Delete <kbd>Del</kbd>', () => ed().deleteSelection()),
+      // phones only (touch.css): the part's settings open beside the bin instead of living under it
+      tune: iconBtn('wrench', 'Part settings', () => host.root.classList.toggle('props-open'), { class: 'icon-btn sel-tune' }),
     };
     this.btns.del.classList.add('danger');
     this.el = h('div', { class: 'panel sel-bar', role: 'toolbar', 'aria-label': 'Selected part' }, ...Object.values(this.btns));

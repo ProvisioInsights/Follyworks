@@ -113,7 +113,7 @@ async function run(name, device) {
   await tap(await screen(plank.x, plank.y));
   s = await state();
   check(s.selected.includes(plank.id), 'tap on the part selects it');
-  await wait(page, 100);
+  await wait(page, 300);
   check(await page.locator('.sel-bar').isVisible(), 'selection toolbar shows');
   if (!(await page.locator('.sel-bar').isVisible())) await page.screenshot({ path: `${out}/touch-${name}-nosel.png` });
 

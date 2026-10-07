@@ -107,7 +107,7 @@ Parts stay their normal size; fingers get a longer reach instead (handles and sm
 | Turn 15°, flip, duplicate, delete | The toolbar that floats beside the selected part |
 | Zoom / pan | Pinch / two-finger drag anywhere off the part you hold |
 
-On a phone the HUD goes compact (narrower bin, smaller bars, the turn/flip/copy/delete buttons live only on the selection toolbar), and held upright it asks to be turned sideways.
+On a phone held sideways the controls move into the side gutters so the room uses the full height: a strip of parts on the left, and leave, hint, a "more" menu and a round Run button on the right. Part settings open from the wrench on the selection toolbar. Held upright, it asks to be turned sideways. On tablets the parts bin is one slim column.
 
 ## Debug URL parameters
 
