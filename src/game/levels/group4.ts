@@ -298,8 +298,8 @@ const strike: CampaignEntry = {
 const M4_BALLOONS = [
   o('g4d-balloon-1', 'balloon', 450, 118, { lift: 1, color: 'red' }),
   o('g4d-balloon-2', 'balloon', 510, 118, { lift: 1, color: 'yellow' }),
-  o('g4d-balloon-3', 'balloon', 570, 118, { lift: 1, color: 'blue' }),
-  o('g4d-balloon-4', 'balloon', 630, 118, { lift: 1, color: 'green' }),
+  o('g4d-balloon-3', 'balloon', 570, 118, { lift: 1, color: 'teal' }),
+  o('g4d-balloon-4', 'balloon', 630, 118, { lift: 1, color: 'red' }),
 ];
 
 const M4_BUILD = {
@@ -434,8 +434,8 @@ const birthdaySurprise: CampaignEntry = {
       o('g4e-bolt', 'robot', 60, 148, { awake: false }),
       o('g4e-ball', 'ball', 305, 156),
       o('g4e-rocket', 'rocket', 960, 595, { thrust: 3, burn: 1.8 }, -90 * DEG),
-      o('g4e-balloon-1', 'balloon', 940, 95, { lift: 1, color: 'pink' }),
-      o('g4e-balloon-2', 'balloon', 982, 95, { lift: 1, color: 'blue' }),
+      o('g4e-balloon-1', 'balloon', 940, 95, { lift: 1, color: 'red' }),
+      o('g4e-balloon-2', 'balloon', 982, 95, { lift: 1, color: 'teal' }),
     ],
     connections: [
       wire('g4e-w1', 'g4e-battery', 'out', 'g4e-plate', 'in'),
@@ -687,72 +687,118 @@ const threePointer: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 4-8: magnet lift: hoist Bolt out of the pit
+// ---------------------------------------------------------------- 4-8: fan, ball, arming switch, toaster wakes the cat, cat on the mat, rocket pops the balloons
 
-const goingUp: CampaignEntry = {
+const M8_BUILD = {
+  fan: o('s-fan', 'fan', 150, 104, { strength: 2, range: 160 }),
+  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 22 * DEG),
+  battery: o('s-battery', 'battery', 40, 601),
+  bumper: o('s-bumper', 'plank', 632, 520, { length: 80 }, 90 * DEG),
+  bridgeA: o('s-bridge-a', 'plank', 770, 567, { length: 58 }),
+  bridgeB: o('s-bridge-b', 'plank', 890, 567, { length: 58 }),
+  bridgeC: o('s-bridge-c', 'plank', 995, 567, { length: 88 }),
+};
+
+const launchDay: CampaignEntry = {
   chapter: 4,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g4-going-up',
-    name: 'Going Up',
-    description: 'Bolt has wandered into the pit and robots cannot climb. Hoist him up onto the ledge and set him down so he can march into the lift.',
+    id: 'g4-launch-day',
+    name: 'Ground Control to Whiskers',
+    description: 'The lab rocket only launches when Whiskers sits on the launch mat, and the mat only works once the arming switch is on. Breeze the ball down to the switch, let the toaster wake him, and see him safely to the launch pad.',
     environment: 'research',
     world: WORLD,
     fixedObjects: [
-      o('g4i-ledge', 'wall', 890, 550, { w: 380, h: 160, material: 'concrete' }),
-      o('g4i-lift-wall', 'wall', 1076, 400, { w: 8, h: 140, material: 'steel' }),
-      o('g4i-call-plate', 'pressure_plate', 1020, 463, { minMass: 2.5 }),
-      o('g4i-lift-lamp', 'light_bulb', 1020, 330),
-      o('g4i-lift-battery', 'battery', 950, 330),
+      o('g4h-perch', 'wall', 232, 126, { w: 44, h: 12, material: 'wood' }),
+      o('g4h-track-1', 'plank', 325, 230, { length: 194 }, 12 * DEG),
+      o('g4h-track-2', 'plank', 602, 324, { length: 120 }, 6 * DEG),
+      o('g4h-switch', 'toggle_switch', 602, 309),
+      o('g4h-toaster', 'toaster', 560, 606, { delay: 0.5, slices: 1 }),
+      o('g4h-bucket', 'bucket', 960, 480),
+      o('g4h-counter', 'wall', 680, 595, { w: 120, h: 70, material: 'wood' }),
+      o('g4h-mid-1', 'wall', 830, 595, { w: 60, h: 70, material: 'wood' }),
+      o('g4h-mid-2', 'wall', 935, 595, { w: 30, h: 70, material: 'wood' }),
+      o('g4h-mat', 'pressure_plate', 1078, 565, { minMass: 2 }),
+      o('g4h-shelf', 'wall', 1060, 440, { w: 60, h: 14, material: 'steel' }),
+      o('g4h-cage-1', 'wall', 1098, 312, { w: 50, h: 8, material: 'wood' }),
+      o('g4h-cage-2', 'wall', 1022, 232, { w: 50, h: 8, material: 'wood' }),
+      o('g4h-cage-2-lip', 'wall', 1000, 252, { w: 6, h: 40, material: 'wood' }),
+      o('g4h-cage-3', 'wall', 1098, 152, { w: 50, h: 8, material: 'wood' }),
+      o('g4h-armed', 'light_bulb', 760, 200),
+      o('g4h-count-3', 'light_bulb', 880, 140),
+      o('g4h-count-2', 'light_bulb', 930, 140),
+      o('g4h-count-1', 'light_bulb', 980, 140),
+      o('g4h-liftoff', 'light_bulb', 930, 80),
+      o('g4h-desk-lamp', 'light_bulb', 420, 420),
     ],
-    startingObjects: [o('g4i-bolt', 'robot', 300, 606, { speed: 60 })],
-    connections: [wire('g4i-w1', 'g4i-lift-battery', 'out', 'g4i-call-plate', 'in'), wire('g4i-w2', 'g4i-call-plate', 'out', 'g4i-lift-lamp', 'in')],
+    startingObjects: [
+      o('g4h-ball', 'ball', 232, 106),
+      o('g4h-cat', 'cat', 700, 547, {}, 0, true),
+      o('g4h-rocket', 'rocket', 1060, 406, { thrust: 3, burn: 1.8 }, -90 * DEG),
+      o('g4h-balloon-1', 'balloon', 1093, 338, { lift: 1, color: 'red' }),
+      o('g4h-balloon-2', 'balloon', 1027, 258, { lift: 1, color: 'yellow' }),
+      o('g4h-balloon-3', 'balloon', 1093, 178, { lift: 1, color: 'teal' }),
+    ],
+    connections: [
+      wire('g4h-w1', 'g4h-switch', 'out', 'g4h-mat', 'in'),
+      wire('g4h-w2', 'g4h-mat', 'out', 'g4h-rocket', 'in'),
+      wire('g4h-w3', 'g4h-switch', 'out', 'g4h-armed', 'in'),
+      wire('g4h-w4', 'g4h-mat', 'out', 'g4h-count-3', 'in'),
+      wire('g4h-w5', 'g4h-mat', 'out', 'g4h-count-2', 'in'),
+      wire('g4h-w6', 'g4h-mat', 'out', 'g4h-count-1', 'in'),
+      wire('g4h-w7', 'g4h-mat', 'out', 'g4h-liftoff', 'in'),
+      wire('g4h-w8', 'g4h-switch', 'out', 'g4h-desk-lamp', 'in'),
+      wire('g4h-w9', 'g4h-switch', 'out', 'g4h-toaster', 'in'),
+    ],
     inventory: [
+      { type: 'fan', count: 1 },
       { type: 'battery', count: 1 },
+      { type: 'plank', count: 5 },
       { type: 'magnet', count: 1 },
-      { type: 'toggle_switch', count: 1 },
-      { type: 'plank', count: 2 },
-      { type: 'ball', count: 2 },
     ],
-    goals: [{ kind: 'activate', target: { id: 'g4i-lift-lamp' }, label: 'Get Bolt onto the lift button' }],
+    goals: [{ kind: 'destroyed', target: { type: 'balloon' }, label: 'Pop all three balloons with the rocket' }],
     restrictions: { timeLimit: 25 },
-    bonus: { elegantParts: 3, absurdStages: 8 },
+    bonus: { elegantParts: 6, elegantTime: 12, absurdStages: 18 },
     hints: [
-      'An electromagnet can lift Bolt: he is small, and very much made of metal. Hang it above the edge of the ledge, facing down, with its Strength up.',
-      'Trouble is, a magnet never lets go. Power it through a toggle switch, so something can cut the current at the right moment.',
-      'Flip the switch so that moving RIGHT turns it OFF, and put it just under the magnet where Bolt swings across. He drops onto the ledge and marches on.',
+      'A gentle fan, wired to a battery, blows the ball off its perch, so fast it needs a plank standing up to stop it over the track. The track has a gap further on, and the arming switch needs power from the same battery.',
+      'The ball flicks the switch on. The switch also starts the toaster, and the POP wakes Whiskers, who bolts left. Stand a plank up at the end of his counter so he turns round.',
+      'Bridge all three gaps to the launch mat; the last one is wide. Once he sits down, the countdown lights up and the rocket exhaust singes every balloon on the way up.',
     ],
-    metadata: { chapter: 4, order: 8, author: 'Follyworks', blurb: 'Hoist, swing, drop, march.' },
+    metadata: { chapter: 4, order: 8, author: 'Follyworks', blurb: 'Three, two, one, meow.' },
   },
   solutions: [
     {
-      objects: [
-        o('s-battery', 'battery', 120, 601),
-        o('s-magnet', 'magnet', 740, 375, { strength: 10, reach: 420 }, 90 * DEG),
-        o('s-switch', 'toggle_switch', 735, 440, { on: true }, 0, true),
-      ],
-      connections: [wire('s-w1', 's-battery', 'out', 's-switch', 'in'), wire('s-w2', 's-switch', 'out', 's-magnet', 'in')],
+      objects: [M8_BUILD.fan, M8_BUILD.plankA, M8_BUILD.battery, M8_BUILD.bumper, M8_BUILD.bridgeA, M8_BUILD.bridgeB, M8_BUILD.bridgeC],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 'g4h-switch', 'in')],
     },
-    // ABSURD: meanwhile, up on a shelf, a rubber ball rolls down a ramp into another one. For no reason at all.
+    // ABSURD: the same, plus an electromagnet humming on the battery while everybody waits for lift-off.
     {
-      objects: [
-        o('s-battery', 'battery', 120, 601),
-        o('s-magnet', 'magnet', 740, 375, { strength: 10, reach: 420 }, 90 * DEG),
-        o('s-switch', 'toggle_switch', 735, 440, { on: true }, 0, true),
-        o('s-ramp', 'plank', 250, 300, { length: 300 }, -10 * DEG),
-        o('s-stop', 'plank', 90, 310, { length: 60 }, 90 * DEG),
-        o('s-ball-a', 'ball', 370, 256),
-        o('s-ball-b', 'ball', 125, 300),
-      ],
-      connections: [wire('s-w1', 's-battery', 'out', 's-switch', 'in'), wire('s-w2', 's-switch', 'out', 's-magnet', 'in')],
+      objects: [M8_BUILD.fan, M8_BUILD.plankA, M8_BUILD.battery, M8_BUILD.bumper, M8_BUILD.bridgeA, M8_BUILD.bridgeB, M8_BUILD.bridgeC, o('s-magnet', 'magnet', 300, 450)],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 'g4h-switch', 'in'), wire('s-w3', 's-battery', 'out', 's-magnet', 'in')],
     },
   ],
   counterexamples: [
     {
-      why: 'a magnet wired straight to the battery never lets go of Bolt',
+      why: 'the arming switch has no power, so the mat never fires the rocket',
+      build: { objects: [M8_BUILD.fan, M8_BUILD.plankA, M8_BUILD.battery, M8_BUILD.bumper, M8_BUILD.bridgeA, M8_BUILD.bridgeB, M8_BUILD.bridgeC], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
+    },
+    {
+      why: 'the fan is not wired up, so the ball never leaves its perch',
+      build: { objects: [M8_BUILD.fan, M8_BUILD.plankA, M8_BUILD.battery, M8_BUILD.bumper, M8_BUILD.bridgeA, M8_BUILD.bridgeB, M8_BUILD.bridgeC], connections: [wire('s-w2', 's-battery', 'out', 'g4h-switch', 'in')] },
+    },
+    {
+      why: 'nothing turns Whiskers round, so he leaps off the left end of the counter',
+      build: { objects: [M8_BUILD.fan, M8_BUILD.plankA, M8_BUILD.battery, M8_BUILD.bridgeA, M8_BUILD.bridgeB, M8_BUILD.bridgeC], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 'g4h-switch', 'in')] },
+    },
+    {
+      why: 'the last gap is left open',
+      build: { objects: [M8_BUILD.fan, M8_BUILD.plankA, M8_BUILD.battery, M8_BUILD.bumper, M8_BUILD.bridgeA, M8_BUILD.bridgeB], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 'g4h-switch', 'in')] },
+    },
+    {
+      why: 'a full-blast fan tries to blow Whiskers straight onto the mat',
       build: {
-        objects: [o('s-battery', 'battery', 120, 601), o('s-magnet', 'magnet', 740, 375, { strength: 10, reach: 420 }, 90 * DEG)],
-        connections: [wire('s-w1', 's-battery', 'out', 's-magnet', 'in')],
+        objects: [o('s-fan', 'fan', 560, 530, { strength: 10, range: 600 }), M8_BUILD.battery, M8_BUILD.bridgeA, M8_BUILD.bridgeB, M8_BUILD.bridgeC],
+        connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 'g4h-switch', 'in')],
       },
     },
   ],
@@ -980,4 +1026,4 @@ const grandOpening: CampaignEntry = {
   ],
 };
 
-export const GROUP_4: CampaignEntry[] = [upUpAndAway, toastDunk, strike, partyPooper, birthdaySurprise, vaultLights, threePointer, goingUp, specialDelivery, grandOpening];
+export const GROUP_4: CampaignEntry[] = [upUpAndAway, toastDunk, strike, partyPooper, birthdaySurprise, vaultLights, threePointer, launchDay, specialDelivery, grandOpening];
