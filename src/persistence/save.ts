@@ -8,7 +8,7 @@ import type { BuildDef, LevelDef } from '../core/types';
 export const SAVE_KEY = 'follyworks.save';
 export const SAVE_VERSION = 2;
 
-/** Per-mission difficulty (see game/difficulty.ts). Normal is the level as authored. */
+/** Campaign difficulty (see game/difficulty.ts). Normal is the level as authored. */
 export const DIFFICULTIES = ['easy', 'normal', 'hard'] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 const isDifficulty = (v: unknown): v is Difficulty => typeof v === 'string' && (DIFFICULTIES as readonly string[]).includes(v);
@@ -28,8 +28,10 @@ export interface Settings {
   tips: boolean;
   /** Step-by-step on-screen guidance in tutorial missions. */
   guidance: boolean;
-  /** Difficulty last picked in a mission briefing. */
+  /** The one difficulty every campaign mission is played on, until the player changes it in Settings. */
   difficulty: Difficulty;
+  /** The player has picked a difficulty (first-time chooser or Settings), so the chooser never shows again. */
+  difficultyChosen: boolean;
   /** Visual theme: 'auto' follows each mission's era, or one fixed theme everywhere. */
   theme: ThemeSetting;
 }
@@ -48,6 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tips: true,
   guidance: true,
   difficulty: 'normal',
+  difficultyChosen: false,
   theme: 'auto',
 };
 
@@ -162,6 +165,8 @@ export const parseSettings = (raw: unknown): Settings => {
     tips: bool(r.tips, d.tips),
     guidance: bool(r.guidance, d.guidance),
     difficulty: isDifficulty(r.difficulty) ? r.difficulty : d.difficulty,
+    // Saves from before the flag remembered a difficulty picked in a briefing: that counts as chosen.
+    difficultyChosen: typeof r.difficultyChosen === 'boolean' ? r.difficultyChosen : isDifficulty(r.difficulty),
     theme: r.theme === 'auto' || THEMES.some((t) => t.id === r.theme) ? (r.theme as ThemeSetting) : d.theme,
   };
 };

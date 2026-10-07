@@ -1,5 +1,6 @@
-// Per-mission difficulty. Normal is the level exactly as authored; Easy and Hard are derived from
-// the level plus its campaign reference solution (solutions[0]) by one pure function, so every
+// Campaign difficulty. The player picks one (first-time chooser, or Settings) and it applies to
+// every mission until changed. Normal is the level exactly as authored; Easy and Hard are derived
+// from the level plus its campaign reference solution (solutions[0]) by one pure function, so every
 // mission (including groups added later) gets all three without any authoring.
 //
 // Easy:   time limit ×1.5 (rounded up); every part type solutions[0] uses gets one extra in the
@@ -30,10 +31,11 @@ import type { CampaignEntry } from './levels/types';
 export { DIFFICULTIES, type Difficulty };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
+/** One plain-English line each, shown on the first-time chooser, in Settings and on badges. */
 export const DIFFICULTY_BLURBS: Record<Difficulty, string> = {
-  easy: 'More time, spare parts, and one part already in place',
-  normal: 'The puzzle as designed',
-  hard: 'Less time, a lean parts bin and a strict part cap',
+  easy: 'Extra time, spare parts, and one part already in place.',
+  normal: 'Every puzzle just as it was designed.',
+  hard: 'Less time, only the parts you need, and a strict part limit.',
 };
 
 export const EASY_TIME_FACTOR = 1.5;

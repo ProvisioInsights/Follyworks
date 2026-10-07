@@ -41,6 +41,7 @@ await ready();
 await page.evaluate(() => localStorage.clear());
 await page.reload();
 await ready();
+await app(() => window.__follyworks.updateSettings({ difficultyChosen: true })); // skip the one-time difficulty chooser
 await wait(600);
 
 // ---- build interaction in the sandbox

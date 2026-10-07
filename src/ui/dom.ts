@@ -151,6 +151,8 @@ export interface ModalOpts {
   onClose?: () => void;
   closable?: boolean;
   width?: number;
+  /** Extra class on the modal panel (e.g. 'results'). */
+  cls?: string;
 }
 
 export function modal(root: HTMLElement, o: ModalOpts) {
@@ -160,7 +162,9 @@ export function modal(root: HTMLElement, o: ModalOpts) {
     o.onClose?.();
   };
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && o.closable !== false) {
+    // Only the topmost modal answers Escape, so Settings opened over a briefing closes alone.
+    const backs = root.querySelectorAll('.modal-back');
+    if (e.key === 'Escape' && o.closable !== false && backs[backs.length - 1] === back) {
       e.stopPropagation();
       close();
     }
@@ -174,7 +178,7 @@ export function modal(root: HTMLElement, o: ModalOpts) {
   );
   const m = h(
     'div',
-    { class: 'panel modal', style: o.width ? { width: `min(${o.width}px, calc(100vw - 32px))` } : undefined, role: 'dialog', 'aria-label': o.title },
+    { class: `panel modal${o.cls ? ` ${o.cls}` : ''}`, style: o.width ? { width: `min(${o.width}px, calc(100vw - 32px))` } : undefined, role: 'dialog', 'aria-label': o.title },
     o.strip ? h('div', { class: `strip ${o.strip}` }) : null,
     h('div', { class: 'modal-head' }, h('h2', null, o.title), o.closable !== false ? iconBtn('close', 'Close', close) : null),
     h('div', { class: 'modal-body scroll' }, ...o.body),

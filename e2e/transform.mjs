@@ -41,6 +41,7 @@ await page.waitForFunction(() => !!window.__follyworks, null, { timeout: 30000 }
 await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForFunction(() => !!window.__follyworks, null, { timeout: 30000 });
+await page.evaluate(() => window.__follyworks.updateSettings({ difficultyChosen: true })); // skip the one-time difficulty chooser
 await wait(600);
 
 // ---- sandbox: place a plank, then rotate and stretch it with the handles
