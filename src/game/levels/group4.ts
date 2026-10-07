@@ -522,7 +522,7 @@ const vaultLights: CampaignEntry = {
       o('g4f-track-1', 'plank', 325, 230, { length: 194 }, 12 * DEG),
       o('g4f-track-2', 'plank', 602, 324, { length: 120 }, 6 * DEG),
       o('g4f-track-3', 'plank', 826, 384, { length: 110 }, 6 * DEG),
-      o('g4f-track-4', 'plank', 976, 415, { length: 36 }, 4 * DEG),
+      o('g4f-track-4', 'plank', 977, 415, { length: 40 }, 4 * DEG),
       o('g4f-switch-1', 'toggle_switch', 602, 309),
       o('g4f-switch-2', 'toggle_switch', 826, 369),
       o('g4f-switch-3', 'toggle_switch', 930, 384),
