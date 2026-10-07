@@ -137,13 +137,16 @@ const riseAndShine: CampaignEntry = {
       o('g5b-start-shelf', 'wall', 260, 160, { w: 440, h: 20, material: 'wood' }),
       o('g5b-bell', 'bell', 310, 130),
       // Whiskers' tunnel, the drop pipe and the cradle under it
-      o('g5b-shelf', 'wall', 850, 300, { w: 500, h: 20, material: 'wood' }),
-      o('g5b-roof', 'wall', 860, 238, { w: 480, h: 20, material: 'wood' }),
-      o('g5b-pipe-l', 'wall', 559, 335, { w: 8, h: 170, material: 'steel' }),
-      o('g5b-pipe-r', 'wall', 604, 365, { w: 8, h: 110, material: 'steel' }),
+      o('g5b-shelf', 'wall', 850, 280, { w: 500, h: 20, material: 'wood' }),
+      o('g5b-roof', 'wall', 860, 218, { w: 480, h: 20, material: 'wood' }),
+      o('g5b-pipe-l', 'wall', 559, 396, { w: 8, h: 294, material: 'steel' }),
+      o('g5b-pipe-r', 'wall', 604, 355, { w: 8, h: 130, material: 'steel' }),
+      // the pipe runs down to just above the post, so a plate only fits in one spot; the lip keeps a bouncing ball over it.
+      // The tunnel sits high enough that the punched ball clears the shelf on its way to the hoop.
       o('g5b-cradle', 'wall', 594, 595, { w: 20, h: 70, material: 'wood' }),
-      o('g5b-hoop', 'basketball_hoop', 945, 486, {}, 0, true),
-      o('g5b-score-bell', 'bell', 948, 594),
+      o('g5b-lip', 'wall', 602, 541, { w: 8, h: 6, material: 'wood' }),
+      o('g5b-hoop', 'basketball_hoop', 955, 476, {}, 0, true),
+      o('g5b-score-bell', 'bell', 958, 594),
     ],
     startingObjects: [
       o('g5b-bowling', 'bowling_ball', 45, 52),
@@ -151,8 +154,8 @@ const riseAndShine: CampaignEntry = {
       o('g5b-domino-2', 'domino', 225, 121),
       o('g5b-domino-3', 'domino', 260, 121),
       o('g5b-toaster', 'toaster', 420, 112, { slices: 1, delay: 1, power: 720 }, 30 * DEG),
-      o('g5b-cat', 'cat', 1040, 277, {}, 0, true),
-      o('g5b-ball', 'basketball', 680, 274),
+      o('g5b-cat', 'cat', 1040, 257, {}, 0, true),
+      o('g5b-ball', 'basketball', 680, 254),
       o('g5b-bulb', 'light_bulb', 1060, 420),
     ],
     connections: [wire('g5b-w1', 'g5b-bell', 'g5b-toaster'), wire('g5b-w2', 'g5b-score-bell', 'g5b-bulb')],
@@ -177,20 +180,20 @@ const riseAndShine: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('s-chicken', 'rubber_chicken', 830, 219),
-        o('s-glove', 'boxing_glove', 541, 590, {}, -60 * DEG),
-        o('s-plate', 'pressure_plate', 584, 553, { minMass: 1 }),
-        o('s-battery', 'battery', 400, 601),
+        o('s-chicken', 'rubber_chicken', 830, 200),
+        o('s-glove', 'boxing_glove', 540, 590, {}, -60 * DEG),
+        o('s-plate', 'pressure_plate', 590, 550, { minMass: 1 }),
+        o('s-battery', 'battery', 400, 600),
       ],
       connections: [wire('s-w1', 's-battery', 's-plate'), wire('s-w2', 's-plate', 's-glove')],
     },
     // ABSURD: the plate lights a bulb as well as firing the glove, and a kitchen timer chimes in at RUN for no reason at all.
     {
       objects: [
-        o('s-chicken', 'rubber_chicken', 830, 219),
-        o('s-glove', 'boxing_glove', 541, 590, {}, -60 * DEG),
-        o('s-plate', 'pressure_plate', 584, 553, { minMass: 1 }),
-        o('s-battery', 'battery', 400, 601),
+        o('s-chicken', 'rubber_chicken', 830, 200),
+        o('s-glove', 'boxing_glove', 540, 590, {}, -60 * DEG),
+        o('s-plate', 'pressure_plate', 590, 550, { minMass: 1 }),
+        o('s-battery', 'battery', 400, 600),
         o('s-timer', 'timer', 450, 480, { delay: 1, hold: 0 }),
         o('s-bulb', 'light_bulb', 380, 480),
       ],
@@ -201,21 +204,21 @@ const riseAndShine: CampaignEntry = {
     {
       why: 'the glove is wired straight to the battery and punches the empty cradle',
       build: {
-        objects: [o('s-chicken', 'rubber_chicken', 830, 219), o('s-glove', 'boxing_glove', 541, 590, {}, -60 * DEG), o('s-battery', 'battery', 400, 601)],
+        objects: [o('s-chicken', 'rubber_chicken', 830, 200), o('s-glove', 'boxing_glove', 540, 590, {}, -60 * DEG), o('s-battery', 'battery', 400, 600)],
         connections: [wire('s-w1', 's-battery', 's-glove')],
       },
     },
     {
       why: 'nobody wakes Whiskers, so the basketball never moves',
       build: {
-        objects: [o('s-glove', 'boxing_glove', 541, 590, {}, -60 * DEG), o('s-plate', 'pressure_plate', 584, 553, { minMass: 1 }), o('s-battery', 'battery', 400, 601)],
+        objects: [o('s-glove', 'boxing_glove', 540, 590, {}, -60 * DEG), o('s-plate', 'pressure_plate', 590, 550, { minMass: 1 }), o('s-battery', 'battery', 400, 600)],
         connections: [wire('s-w1', 's-battery', 's-plate'), wire('s-w2', 's-plate', 's-glove')],
       },
     },
     {
       why: 'the glove punches the basketball along the shelf at RUN instead of waiting for it at the cradle',
       build: {
-        objects: [o('s-glove', 'boxing_glove', 920, 269, {}, 0, true), o('s-battery', 'battery', 400, 601)],
+        objects: [o('s-glove', 'boxing_glove', 920, 249, {}, 0, true), o('s-battery', 'battery', 400, 600)],
         connections: [wire('s-w1', 's-battery', 's-glove')],
       },
     },

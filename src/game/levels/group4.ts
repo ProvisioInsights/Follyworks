@@ -109,9 +109,9 @@ const upUpAndAway: CampaignEntry = {
 // ---------------------------------------------------------------- 4-2: teapot steam, bell, toaster, mousetrap: dunk the toast
 
 const M2_BUILD = {
-  candle: o('s-candle', 'candle', 150, 190),
-  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 20 * DEG),
-  plankB: o('s-plank-b', 'plank', 717, 350, { length: 100 }, 20 * DEG),
+  candle: o('s-candle', 'candle', 150, 170),
+  plankA: o('s-plank-a', 'plank', 480, 280, { length: 130 }, 20 * DEG),
+  plankB: o('s-plank-b', 'plank', 730, 370, { length: 100 }, 20 * DEG),
   trap: o('s-trap', 'mousetrap', 295, 625),
 };
 
@@ -125,18 +125,18 @@ const toastDunk: CampaignEntry = {
     environment: 'basement',
     world: WORLD,
     fixedObjects: [
-      o('g4b-hob', 'wall', 130, 170, { w: 150, h: 14, material: 'steel' }),
-      o('g4b-perch', 'wall', 232, 126, { w: 44, h: 12, material: 'wood' }),
-      o('g4b-backstop', 'wall', 352, 125, { w: 12, h: 130, material: 'wood' }),
-      o('g4b-track-1', 'plank', 325, 230, { length: 194 }, 12 * DEG),
+      o('g4b-hob', 'wall', 130, 150, { w: 150, h: 14, material: 'steel' }),
+      o('g4b-perch', 'wall', 232, 106, { w: 44, h: 12, material: 'wood' }),
+      o('g4b-backstop', 'wall', 352, 105, { w: 12, h: 130, material: 'wood' }),
+      o('g4b-track-1', 'plank', 325, 210, { length: 194 }, 12 * DEG),
       o('g4b-track-2', 'plank', 602, 324, { length: 120 }, 6 * DEG),
-      o('g4b-track-3', 'plank', 826, 384, { length: 110 }, 6 * DEG),
-      o('g4b-bell', 'bell', 912, 374),
+      o('g4b-track-3', 'plank', 836, 424, { length: 90 }, 6 * DEG),
+      o('g4b-bell', 'bell', 912, 414),
       o('g4b-toaster', 'toaster', 150, 606, { delay: 0.8, slices: 1 }, 15 * DEG),
       o('g4b-sign', 'light_bulb', 60, 470),
       o('g4b-hoop', 'basketball_hoop', 572, 416, {}, 0, true),
     ],
-    startingObjects: [o('g4b-teapot', 'teapot', 150, 142), o('g4b-ball', 'ball', 232, 106), o('g4b-cat', 'cat', 580, 617, {}, 0, true)],
+    startingObjects: [o('g4b-teapot', 'teapot', 150, 122), o('g4b-ball', 'ball', 232, 86), o('g4b-cat', 'cat', 580, 617, {}, 0, true)],
     connections: [wire('g4b-w1', 'g4b-bell', 'out', 'g4b-toaster', 'in'), wire('g4b-w2', 'g4b-toaster', 'out', 'g4b-sign', 'in')],
     inventory: [
       { type: 'candle', count: 1 },
@@ -505,11 +505,11 @@ const birthdaySurprise: CampaignEntry = {
 // ---------------------------------------------------------------- 4-6: teapot steam sends one ball through three switches and onto a plate: four lamps
 
 const M6_BUILD = {
-  candle: o('s-candle', 'candle', 150, 190),
-  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 20 * DEG),
-  plankB: o('s-plank-b', 'plank', 717, 350, { length: 100 }, 20 * DEG),
-  gap: o('s-gap', 'plank', 920, 400, { length: 70 }, 10 * DEG),
-  stop: o('s-stop', 'plank', 1064, 374, { length: 70 }, 90 * DEG),
+  candle: o('s-candle', 'candle', 150, 170),
+  plankA: o('s-plank-a', 'plank', 480, 280, { length: 130 }, 20 * DEG),
+  plankB: o('s-plank-b', 'plank', 740, 390, { length: 100 }, 20 * DEG),
+  gap: o('s-gap', 'plank', 920, 440, { length: 70 }, 10 * DEG),
+  stop: o('s-stop', 'plank', 1060, 430, { length: 70 }, 90 * DEG),
   battery: o('s-battery', 'battery', 40, 601),
 };
 
@@ -523,24 +523,25 @@ const vaultLights: CampaignEntry = {
     environment: 'underground',
     world: WORLD,
     fixedObjects: [
-      o('g4f-hob', 'wall', 130, 170, { w: 150, h: 14, material: 'steel' }),
-      o('g4f-perch', 'wall', 232, 126, { w: 44, h: 12, material: 'wood' }),
-      o('g4f-backstop', 'wall', 352, 125, { w: 12, h: 130, material: 'wood' }),
-      o('g4f-track-1', 'plank', 325, 230, { length: 194 }, 12 * DEG),
+      o('g4f-hob', 'wall', 130, 150, { w: 150, h: 14, material: 'steel' }),
+      o('g4f-perch', 'wall', 232, 106, { w: 44, h: 12, material: 'wood' }),
+      o('g4f-backstop', 'wall', 352, 105, { w: 12, h: 130, material: 'wood' }),
+      o('g4f-track-1', 'plank', 325, 210, { length: 194 }, 12 * DEG),
       o('g4f-track-2', 'plank', 602, 324, { length: 120 }, 6 * DEG),
-      o('g4f-track-3', 'plank', 826, 384, { length: 110 }, 6 * DEG),
-      o('g4f-track-4', 'plank', 977, 415, { length: 40 }, 4 * DEG),
+      o('g4f-track-3', 'plank', 826, 424, { length: 70 }, 6 * DEG),
+      o('g4f-track-4', 'plank', 977, 455, { length: 40 }, 4 * DEG),
       o('g4f-switch-1', 'toggle_switch', 602, 309),
-      o('g4f-switch-2', 'toggle_switch', 826, 369),
-      o('g4f-switch-3', 'toggle_switch', 930, 384),
-      o('g4f-plate', 'pressure_plate', 1036, 420, { minMass: 0.8 }),
+      o('g4f-switch-2', 'toggle_switch', 826, 409),
+      o('g4f-switch-3', 'toggle_switch', 930, 424),
+      o('g4f-pit', 'wall', 995, 476, { w: 6, h: 24, material: 'wood' }),
+      o('g4f-plate', 'pressure_plate', 1036, 480, { minMass: 0.8 }),
       o('g4f-lamp-1', 'light_bulb', 640, 160),
       o('g4f-lamp-2', 'light_bulb', 720, 160),
       o('g4f-lamp-3', 'light_bulb', 800, 160),
       o('g4f-lamp-4', 'light_bulb', 880, 160),
       o('g4f-battery', 'battery', 1080, 250),
     ],
-    startingObjects: [o('g4f-teapot', 'teapot', 150, 142), o('g4f-ball', 'ball', 232, 106)],
+    startingObjects: [o('g4f-teapot', 'teapot', 150, 122), o('g4f-ball', 'ball', 232, 86)],
     connections: [
       wire('g4f-w1', 'g4f-battery', 'out', 'g4f-switch-1', 'in'),
       wire('g4f-w2', 'g4f-battery', 'out', 'g4f-switch-2', 'in'),
@@ -600,13 +601,13 @@ const vaultLights: CampaignEntry = {
 // ---------------------------------------------------------------- 4-7: balloon yanks the switch, conveyor feeds the air tube, three balls into the hoop
 
 const M7_BUILD = {
-  candle: o('s-candle', 'candle', 52, 601),
-  fan: o('s-fan', 'fan', 715, 590, { strength: 6, range: 500 }, -90 * DEG),
-  battery: o('s-battery', 'battery', 640, 601),
-  gapA: o('s-gap-a', 'plank', 532, 487, { length: 60 }, 25 * DEG),
-  gapB: o('s-gap-b', 'plank', 658, 540, { length: 50 }, 15 * DEG),
-  cap: o('s-cap', 'plank', 740, 156, { length: 110 }, -30 * DEG),
-  backstop: o('s-backstop', 'plank', 887, 148, { length: 220 }, 115 * DEG),
+  candle: o('s-candle', 'candle', 50, 600),
+  fan: o('s-fan', 'fan', 710, 590, { strength: 6, range: 500 }, -90 * DEG),
+  battery: o('s-battery', 'battery', 640, 600),
+  gapA: o('s-gap-a', 'plank', 530, 480, { length: 60 }, 25 * DEG),
+  gapB: o('s-gap-b', 'plank', 660, 550, { length: 50 }, 15 * DEG),
+  cap: o('s-cap', 'plank', 740, 160, { length: 110 }, -30 * DEG),
+  backstop: o('s-backstop', 'plank', 890, 150, { length: 220 }, 115 * DEG),
 };
 
 const threePointer: CampaignEntry = {
@@ -622,9 +623,11 @@ const threePointer: CampaignEntry = {
       o('g4g-hook', 'hook', 50, 612),
       o('g4g-switch', 'toggle_switch', 80, 380, {}, -90 * DEG),
       o('g4g-battery', 'battery', 150, 601),
-      o('g4g-conveyor', 'conveyor', 270, 420, { length: 260, speed: 90 }),
-      o('g4g-ramp-1', 'plank', 450, 450, { length: 110 }, 25 * DEG),
+      o('g4g-conveyor', 'conveyor', 270, 380, { length: 260, speed: 90 }),
+      o('g4g-ramp-1', 'plank', 450, 410, { length: 110 }, 25 * DEG),
       o('g4g-ramp-2', 'plank', 600, 515, { length: 70 }, 20 * DEG),
+      // a prop under the upper gap: a plank set too low will not fit, and the drops either side forgive the rest
+      o('g4g-prop-a', 'wall', 527, 501, { w: 10, h: 20, material: 'wood' }),
       o('g4g-tube-l', 'wall', 690, 345, { w: 12, h: 310, material: 'steel' }),
       o('g4g-tube-r', 'wall', 740, 400, { w: 12, h: 320, material: 'steel' }),
       o('g4g-game-on', 'light_bulb', 200, 300),
@@ -635,9 +638,9 @@ const threePointer: CampaignEntry = {
     ],
     startingObjects: [
       o('g4g-balloon', 'balloon', 50, 300, { lift: 1, color: 'yellow' }),
-      o('g4g-ball-1', 'ball', 180, 395),
-      o('g4g-ball-2', 'ball', 250, 395),
-      o('g4g-ball-3', 'ball', 320, 395),
+      o('g4g-ball-1', 'ball', 150, 355),
+      o('g4g-ball-2', 'ball', 260, 355),
+      o('g4g-ball-3', 'ball', 370, 355),
     ],
     connections: [
       rope('g4g-tether', 'g4g-hook', 'hook', 'g4g-balloon', 'string'),
@@ -656,7 +659,7 @@ const threePointer: CampaignEntry = {
     ],
     goals: [{ kind: 'containerCount', container: 'g4g-hoop', count: 3, filter: { type: 'ball' }, label: 'Sink all three balls through the hoop' }],
     restrictions: { timeLimit: 30 },
-    bonus: { elegantParts: 7, elegantTime: 14, absurdStages: 13 },
+    bonus: { elegantParts: 7, elegantTime: 14, absurdStages: 10 },
     hints: [
       'A candle under the tether frees the balloon, and the balloon yanks the switch that starts the conveyor.',
       'The balls need a path from the end of the conveyor down to the opening at the bottom of the tube.',
@@ -702,9 +705,9 @@ const M8_BUILD = {
   plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 20 * DEG),
   battery: o('s-battery', 'battery', 40, 601),
   bumper: o('s-bumper', 'plank', 632, 520, { length: 80 }, 90 * DEG),
-  bridgeA: o('s-bridge-a', 'plank', 770, 567, { length: 60 }),
-  bridgeB: o('s-bridge-b', 'plank', 890, 567, { length: 60 }),
-  bridgeC: o('s-bridge-c', 'plank', 995, 567, { length: 90 }),
+  bridgeA: o('s-bridge-a', 'plank', 780, 570, { length: 60 }),
+  bridgeB: o('s-bridge-b', 'plank', 880, 570, { length: 60 }),
+  bridgeC: o('s-bridge-c', 'plank', 990, 570, { length: 80 }),
 };
 
 const launchDay: CampaignEntry = {
@@ -724,8 +727,13 @@ const launchDay: CampaignEntry = {
       o('g4h-toaster', 'toaster', 560, 606, { delay: 0.5, slices: 1 }),
       o('g4h-bucket', 'bucket', 960, 480),
       o('g4h-counter', 'wall', 680, 595, { w: 120, h: 70, material: 'wood' }),
-      o('g4h-mid-1', 'wall', 830, 595, { w: 60, h: 70, material: 'wood' }),
-      o('g4h-mid-2', 'wall', 935, 595, { w: 30, h: 70, material: 'wood' }),
+      // each gap is a little wider than its plank, with a prop or ledges under it, so a bridge drops in without pixel hunting
+      o('g4h-prop-a', 'wall', 780, 605, { w: 30, h: 50, material: 'wood' }),
+      o('g4h-mid-1', 'wall', 830, 595, { w: 20, h: 70, material: 'wood' }),
+      o('g4h-prop-b', 'wall', 880, 605, { w: 30, h: 50, material: 'wood' }),
+      o('g4h-mid-2', 'wall', 930, 595, { w: 20, h: 70, material: 'wood' }),
+      o('g4h-ledge-c1', 'wall', 945, 605, { w: 10, h: 50, material: 'wood' }),
+      o('g4h-ledge-c2', 'wall', 1035, 605, { w: 10, h: 50, material: 'wood' }),
       o('g4h-mat', 'pressure_plate', 1078, 565, { minMass: 2 }),
       o('g4h-shelf', 'wall', 1060, 440, { w: 60, h: 14, material: 'steel' }),
       o('g4h-cage-1', 'wall', 1098, 312, { w: 50, h: 8, material: 'wood' }),
@@ -845,9 +853,12 @@ const specialDelivery: CampaignEntry = {
       o('g4i-hazard-shelf', 'wall', 780, 175, { w: 60, h: 12, material: 'wood' }),
       o('g4i-hazard', 'candle', 780, 140),
       o('g4i-vent', 'fan', 1010, 100, { strength: 10, range: 700 }, 0, true),
-      o('g4i-shelf-a', 'wall', 55, 220, { w: 110, h: 14, material: 'wood' }),
-      o('g4i-shelf-m', 'wall', 195, 220, { w: 50, h: 14, material: 'wood' }),
-      o('g4i-shelf-b', 'wall', 305, 220, { w: 50, h: 14, material: 'wood' }),
+      o('g4i-shelf-a', 'wall', 50, 220, { w: 100, h: 14, material: 'wood' }),
+      o('g4i-shelf-m', 'wall', 195, 220, { w: 30, h: 14, material: 'wood' }),
+      o('g4i-shelf-b', 'wall', 310, 220, { w: 40, h: 14, material: 'wood' }),
+      // brackets under the two gaps: a bridge plank drops in anywhere along them without pixel hunting
+      o('g4i-bracket-a', 'wall', 140, 235, { w: 30, h: 10, material: 'wood' }),
+      o('g4i-bracket-b', 'wall', 250, 235, { w: 30, h: 10, material: 'wood' }),
       o('g4i-track', 'plank', 400, 283, { length: 140 }, 10 * DEG),
       o('g4i-ledge', 'wall', 505, 344, { w: 120, h: 14, material: 'wood' }),
       o('g4i-ledge-stop', 'wall', 559, 314, { w: 12, h: 46, material: 'wood' }),
