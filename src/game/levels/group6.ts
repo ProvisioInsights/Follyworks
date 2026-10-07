@@ -20,352 +20,467 @@ const DEG = Math.PI / 180;
 const UP = -45 * DEG;
 const DOWN = 45 * DEG;
 
-// ---------------------------------------------------------------- 6-1: round the corner
+// ---------------------------------------------------------------- 6-1: wake-up call
 
-const cornerShot: CampaignEntry = {
+const dingDong: CampaignEntry = {
   chapter: 6,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g6-corner-shot',
-    name: 'Corner Shot',
-    description: 'The laser is on, the light sensor is waiting and the bulb is wired up. There is just a wall in the way. Bounce the beam over it and down onto the sensor.',
+    id: 'g6-wake-up-call',
+    name: 'Wake-Up Call',
+    description: 'Whiskers is napping under the bell. Get the rolling ball to flick the switch, then bounce the laser round the wall to burn the rope, so the crate rings the bell right over his ears.',
     environment: 'research',
     world: WORLD(),
-    fixedObjects: [o('g6a-divider', 'wall', 560, 440, { w: 30, h: 380, material: 'brick' })],
-    startingObjects: [
-      o('g6a-laser', 'laser', 100, 560, { alwaysOn: true, color: 'red' }),
-      o('g6a-sensor', 'light_sensor', 800, 596),
-      o('g6a-bulb', 'light_bulb', 990, 420),
+    fixedObjects: [
+      o('g6a-ramp', 'plank', 150, 120, { length: 200 }, -12 * DEG),
+      o('g6a-shelf', 'plank', 300, 300, { length: 160 }),
+      o('g6a-cup', 'bucket', 412, 345),
+      o('g6a-wall', 'wall', 520, 400, { w: 30, h: 460, material: 'brick' }),
+      o('g6a-roof', 'wall', 980, 372, { w: 280, h: 16, material: 'steel' }),
+      o('g6a-hook', 'hook', 960, 392),
     ],
-    connections: [wire('g6a-w1', 'g6a-sensor', 'g6a-bulb')],
+    startingObjects: [
+      o('g6a-ball', 'ball', 225, 80),
+      o('g6a-switch', 'toggle_switch', 300, 268),
+      o('g6a-battery', 'battery', 100, 600),
+      o('g6a-laser', 'laser', 100, 560, { alwaysOn: false, color: 'red' }),
+      o('g6a-crate', 'crate', 960, 495),
+      o('g6a-bell', 'bell', 960, 560),
+      o('g6a-cat', 'cat', 1060, 617, {}, 0, true),
+    ],
+    connections: [
+      wire('g6a-w1', 'g6a-battery', 'g6a-switch'),
+      wire('g6a-w2', 'g6a-switch', 'g6a-laser'),
+      rope('g6a-r1', 'g6a-hook', 'hook', 'g6a-crate', 'hook'),
+    ],
     inventory: [
-      { type: 'mirror', count: 4 },
+      { type: 'plank', count: 2 },
+      { type: 'mirror', count: 5 },
       { type: 'beam_splitter', count: 1 },
     ],
-    goals: [{ kind: 'activate', target: { id: 'g6a-bulb' }, label: 'Light the bulb' }],
-    restrictions: { timeLimit: 10 },
-    bonus: { elegantParts: 3, elegantTime: 1, absurdStages: 7 },
+    goals: [
+      { kind: 'activate', target: { id: 'g6a-bell' }, label: 'Ring the bell' },
+      { kind: 'activate', target: { id: 'g6a-cat' }, label: 'Wake up Whiskers' },
+    ],
+    restrictions: { timeLimit: 15 },
+    bonus: { elegantParts: 5, elegantTime: 3.5, absurdStages: 11 },
     hints: [
-      'A mirror turned 45° bends the beam through a right angle. Rotate parts with Q and E.',
-      'Send the beam straight up before the wall, then right above it, then down onto the sensor: three mirrors.',
+      'The ball falls off the end of its ramp. A plank can catch it and roll it onto the shelf with the switch.',
+      'A mirror turned 45° bends the beam through a right angle. The rope hangs under a roof, so the beam has to come in from the side.',
+      'Up beside the wall, right over the top, down past it, then right again under the roof: four mirrors.',
     ],
     metadata: { chapter: 6, order: 1, author: 'Follyworks', blurb: 'Light goes where it is told.' },
   },
   solutions: [
     {
-      objects: [o('s-m1', 'mirror', 300, 560, {}, UP), o('s-m2', 'mirror', 300, 150, {}, UP), o('s-m3', 'mirror', 800, 150, {}, DOWN)],
+      objects: [
+        o('s-plank', 'plank', 110, 235, { length: 200 }, 15 * DEG),
+        o('s-m1', 'mirror', 470, 560, {}, UP),
+        o('s-m2', 'mirror', 470, 100, {}, UP),
+        o('s-m3', 'mirror', 760, 100, {}, DOWN),
+        o('s-m4', 'mirror', 760, 435, {}, DOWN),
+      ],
       connections: [],
     },
-    // ABSURD: a splitter on the way up sends half the light off on a pointless detour.
+    // ABSURD: a splitter on the floor sends half the beam up into a spare mirror and off into the brickwork.
     {
       objects: [
-        o('s-m1', 'mirror', 300, 560, {}, UP),
-        o('s-split', 'beam_splitter', 300, 380, {}, UP),
-        o('s-m4', 'mirror', 470, 380, {}, UP),
-        o('s-m2', 'mirror', 300, 150, {}, UP),
-        o('s-m3', 'mirror', 800, 150, {}, DOWN),
+        o('s-plank', 'plank', 110, 235, { length: 200 }, 15 * DEG),
+        o('s-split', 'beam_splitter', 300, 560, {}, UP),
+        o('s-m5', 'mirror', 300, 450, {}, UP),
+        o('s-m1', 'mirror', 470, 560, {}, UP),
+        o('s-m2', 'mirror', 470, 100, {}, UP),
+        o('s-m3', 'mirror', 760, 100, {}, DOWN),
+        o('s-m4', 'mirror', 760, 435, {}, DOWN),
       ],
       connections: [],
     },
   ],
   counterexamples: [
     {
-      why: 'two mirrors send the beam over the wall but straight past the sensor',
-      build: { objects: [o('s-m1', 'mirror', 300, 560, {}, UP), o('s-m2', 'mirror', 300, 150, {}, UP)], connections: [] },
-    },
-  ],
-};
-
-// ---------------------------------------------------------------- 6-2: cut the cord
-
-const cutTheCord: CampaignEntry = {
-  chapter: 6,
-  level: {
-    schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g6-cut-the-cord',
-    name: 'Cut The Cord',
-    description: 'A laser beam is hot enough to burn through rope. Power the laser and steer its beam across the cord, and the crate drops into the bucket.',
-    environment: 'research',
-    world: WORLD(),
-    fixedObjects: [o('g6b-wall', 'wall', 430, 465, { w: 30, h: 330, material: 'brick' })],
-    startingObjects: [
-      o('g6b-laser', 'laser', 100, 590, { alwaysOn: false, color: 'red' }),
-      o('g6b-hook', 'hook', 820, 40),
-      o('g6b-crate', 'crate', 820, 300),
-      o('g6b-bucket', 'bucket', 820, 590),
-    ],
-    connections: [rope('g6b-r1', 'g6b-hook', 'hook', 'g6b-crate', 'hook')],
-    inventory: [
-      { type: 'battery', count: 1 },
-      { type: 'mirror', count: 3 },
-      { type: 'beam_splitter', count: 1 },
-    ],
-    goals: [{ kind: 'containerCount', container: 'g6b-bucket', count: 1, label: 'Drop the crate in the bucket' }],
-    restrictions: { timeLimit: 12 },
-    bonus: { elegantParts: 3, elegantTime: 2, absurdStages: 6 },
-    hints: [
-      'This laser is not always on: wire a battery to its power socket.',
-      'Rest the beam on the rope for a moment and it burns through. Two mirrors get the beam up over the wall and across the rope.',
-    ],
-    metadata: { chapter: 6, order: 2, author: 'Follyworks', blurb: 'Hot light, cold cut.' },
-  },
-  solutions: [
-    {
-      objects: [o('s-bat', 'battery', 30, 598), o('s-m1', 'mirror', 260, 590, {}, UP), o('s-m2', 'mirror', 260, 180, {}, UP)],
-      connections: [wire('s-w1', 's-bat', 'g6b-laser')],
-    },
-    // ABSURD: split the beam on the way up and bounce the spare half around the room.
-    {
-      objects: [
-        o('s-bat', 'battery', 30, 598),
-        o('s-m1', 'mirror', 260, 590, {}, UP),
-        o('s-split', 'beam_splitter', 260, 420, {}, UP),
-        o('s-m3', 'mirror', 380, 420, {}, UP),
-        o('s-m2', 'mirror', 260, 180, {}, UP),
-      ],
-      connections: [wire('s-w1', 's-bat', 'g6b-laser')],
-    },
-  ],
-  counterexamples: [
-    {
-      why: 'the mirrors are set but the laser has no power',
-      build: { objects: [o('s-m1', 'mirror', 260, 590, {}, UP), o('s-m2', 'mirror', 260, 180, {}, UP)], connections: [] },
-    },
-    {
-      why: 'one mirror aims the beam diagonally, but the wall is too tall to shoot over',
+      why: 'the ball misses the switch shelf without a plank, so the laser never comes on',
       build: {
-        objects: [o('s-bat', 'battery', 30, 598), o('s-m1', 'mirror', 380, 590, {}, -30 * DEG)],
-        connections: [wire('s-w1', 's-bat', 'g6b-laser')],
+        objects: [o('s-m1', 'mirror', 470, 560, {}, UP), o('s-m2', 'mirror', 470, 100, {}, UP), o('s-m3', 'mirror', 760, 100, {}, DOWN), o('s-m4', 'mirror', 760, 435, {}, DOWN)],
+        connections: [],
+      },
+    },
+    {
+      why: 'a beam sent straight down onto the rope is stopped by the roof',
+      build: {
+        objects: [o('s-plank', 'plank', 110, 235, { length: 200 }, 15 * DEG), o('s-m1', 'mirror', 470, 560, {}, UP), o('s-m2', 'mirror', 470, 100, {}, UP), o('s-m3', 'mirror', 960, 100, {}, DOWN)],
+        connections: [],
       },
     },
   ],
 };
 
+// ---------------------------------------------------------------- 6-2: tea-time tip-off
 
-// ---------------------------------------------------------------- 6-4: two balloons, one beam
-
-const payload: CampaignEntry = {
+const teaTime: CampaignEntry = {
   chapter: 6,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g6-payload',
-    name: 'Special Delivery',
-    description: 'Two balloons hold the bucket up against the ceiling, and either one alone could manage it. Pop both with one laser and bring the bucket down to the floor.',
+    id: 'g6-tea-time',
+    name: 'Tea-Time Tip-Off',
+    description: 'Dominoes, toast, a laser and a teapot, all to sink one basketball. Fill the gap in the dominoes, then steer the beam onto the teapot so its steam puffs the ball into the hoop.',
     environment: 'research',
     world: WORLD(),
     fixedObjects: [
-      o('g6c-ceiling', 'wall', 560, 20, { w: 1120, h: 40, material: 'concrete' }),
-      o('g6c-divider', 'wall', 750, 95, { w: 20, h: 110, material: 'steel' }),
-      o('g6c-shelf-l', 'wall', 535, 200, { w: 310, h: 16, material: 'steel' }),
-      o('g6c-shelf-r', 'wall', 900, 200, { w: 180, h: 16, material: 'steel' }),
+      o('g6b-ramp', 'plank', 80, 320, { length: 130 }, 25 * DEG),
+      o('g6b-platform', 'plank', 220, 380, { length: 360 }),
+      o('g6b-kerb', 'wall', 196, 361, { w: 8, h: 24, material: 'steel' }),
+      o('g6b-wall', 'wall', 480, 430, { w: 30, h: 400, material: 'brick' }),
+      o('g6b-hood', 'wall', 700, 222, { w: 130, h: 12, material: 'steel' }),
+      o('g6b-shelf', 'wall', 700, 300, { w: 120, h: 14, material: 'steel' }),
+      o('g6b-ledge', 'wall', 810, 252, { w: 70, h: 12, material: 'steel' }),
     ],
     startingObjects: [
-      o('g6c-laser', 'laser', 90, 480, { alwaysOn: true, color: 'red' }),
-      o('g6c-balloon-1', 'balloon', 600, 61, { lift: 2.5, color: 'red' }),
-      o('g6c-balloon-2', 'balloon', 900, 61, { lift: 2.5, color: 'yellow' }),
-      o('g6c-bucket', 'bucket', 750, 300, { anchored: false }),
+      o('g6b-bowl', 'bowling_ball', 40, 262),
+      o('g6b-d1', 'domino', 176, 344),
+      o('g6b-d4', 'domino', 270, 344),
+      o('g6b-d5', 'domino', 300, 344),
+      o('g6b-toaster', 'toaster', 362, 349, {}, 0, true),
+      o('g6b-flipflop', 'logic_gate', 250, 470, { mode: 'toggle' }),
+      o('g6b-laser', 'laser', 90, 560, { alwaysOn: false, color: 'red' }),
+      o('g6b-teapot', 'teapot', 700, 272),
+      o('g6b-ball', 'basketball', 800, 230),
+      o('g6b-hoop', 'basketball_hoop', 1010, 480, {}, 0, true),
     ],
-    connections: [rope('g6c-r1', 'g6c-balloon-1', 'string', 'g6c-bucket', 'handle'), rope('g6c-r2', 'g6c-balloon-2', 'string', 'g6c-bucket', 'handle')],
+    connections: [wire('g6b-w1', 'g6b-toaster', 'g6b-flipflop', 'a'), wire('g6b-w2', 'g6b-flipflop', 'g6b-laser')],
     inventory: [
+      { type: 'domino', count: 3 },
       { type: 'mirror', count: 5 },
       { type: 'beam_splitter', count: 1 },
     ],
-    goals: [{ kind: 'enterRegion', target: { id: 'g6c-bucket' }, region: { x: 620, y: 470, w: 260, h: 160 }, label: 'Bring the bucket down to the floor' }],
-    restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 4, elegantTime: 4, absurdStages: 9 },
+    goals: [{ kind: 'containerCount', container: 'g6b-hoop', count: 1, label: 'Sink the basketball' }],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 6, elegantTime: 6, absurdStages: 19 },
     hints: [
-      'A beam resting on a balloon pops it. The shelves stop you shooting up from below, and the divider stops one beam reaching both.',
-      'A beam splitter makes two beams out of one: half goes straight on, half bounces off.',
-      'Split the beam low down. Take one half up the left side and across to the first balloon, the other half up the right side and back to the second.',
+      "Two dominoes are missing from the row. The last domino has to tip onto the toaster's lever.",
+      'When the toaster dings, its pulse flips the logic box on and the laser fires. A hot teapot whistles and puffs out steam.',
+      'The teapot has a lid over it, so bring the beam in from the side: up, over the wall, down, then right.',
     ],
-    metadata: { chapter: 6, order: 4, author: 'Follyworks', blurb: 'Pop, pop, plop.' },
+    metadata: { chapter: 6, order: 2, author: 'Follyworks', blurb: 'One lump or two pointers?' },
   },
   solutions: [
     {
       objects: [
-        o('s-split', 'beam_splitter', 300, 480, {}, UP),
-        o('s-m1', 'mirror', 300, 70, {}, UP),
-        o('s-m2', 'mirror', 1050, 480, {}, UP),
-        o('s-m3', 'mirror', 1050, 70, {}, DOWN),
+        o('s-d2', 'domino', 210, 344),
+        o('s-d3', 'domino', 240, 344),
+        o('s-m1', 'mirror', 420, 560, {}, UP),
+        o('s-m2', 'mirror', 420, 150, {}, UP),
+        o('s-m3', 'mirror', 590, 150, {}, DOWN),
+        o('s-m4', 'mirror', 590, 274, {}, DOWN),
       ],
       connections: [],
     },
-    // ABSURD: spare mirrors catch both beams once the balloons are gone.
+    // ABSURD: a splitter peels half the beam off into a spare mirror, which fires it into the wall.
     {
       objects: [
-        o('s-split', 'beam_splitter', 300, 480, {}, UP),
-        o('s-m1', 'mirror', 300, 70, {}, UP),
-        o('s-m2', 'mirror', 1050, 480, {}, UP),
-        o('s-m3', 'mirror', 1050, 70, {}, DOWN),
-        o('s-m4', 'mirror', 705, 75, {}, DOWN),
-        o('s-m5', 'mirror', 800, 75, {}, UP),
+        o('s-d2', 'domino', 210, 344),
+        o('s-d3', 'domino', 240, 344),
+        o('s-split', 'beam_splitter', 300, 560, {}, UP),
+        o('s-m5', 'mirror', 300, 470, {}, UP),
+        o('s-m1', 'mirror', 420, 560, {}, UP),
+        o('s-m2', 'mirror', 420, 150, {}, UP),
+        o('s-m3', 'mirror', 590, 150, {}, DOWN),
+        o('s-m4', 'mirror', 590, 274, {}, DOWN),
       ],
       connections: [],
     },
   ],
   counterexamples: [
     {
-      why: 'one beam pops one balloon and the other keeps the bucket aloft',
-      build: { objects: [o('s-m1', 'mirror', 300, 480, {}, UP), o('s-m2', 'mirror', 300, 61, {}, UP)], connections: [] },
-    },
-  ],
-};
-
-// ---------------------------------------------------------------- 6-3: rainbow lock
-
-const rainbowLock: CampaignEntry = {
-  chapter: 6,
-  level: {
-    schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g6-rainbow-lock',
-    name: 'Rainbow Lock',
-    description: 'The lamp only lights when the red sensor AND the blue sensor see their own colour. The laser shines white. Something has to unmix it.',
-    environment: 'research',
-    world: WORLD(),
-    fixedObjects: [],
-    startingObjects: [
-      o('g6d-laser', 'laser', 90, 160, { alwaysOn: false, color: 'white' }),
-      o('g6d-red', 'light_sensor', 1090, 360, { color: 'red' }, 90 * DEG),
-      o('g6d-blue', 'light_sensor', 600, 80, { color: 'blue' }),
-      o('g6d-logic', 'logic_gate', 900, 120, { mode: 'and' }),
-      o('g6d-bulb', 'light_bulb', 1000, 110),
-    ],
-    connections: [wire('g6d-w1', 'g6d-red', 'g6d-logic', 'a'), wire('g6d-w2', 'g6d-blue', 'g6d-logic', 'b'), wire('g6d-w3', 'g6d-logic', 'g6d-bulb')],
-    inventory: [
-      { type: 'battery', count: 1 },
-      { type: 'prism', count: 1 },
-      { type: 'mirror', count: 4 },
-      { type: 'color_filter', count: 2 },
-    ],
-    goals: [{ kind: 'activate', target: { id: 'g6d-bulb' }, label: 'Light the lamp' }],
-    restrictions: { timeLimit: 10 },
-    bonus: { elegantParts: 4, elegantTime: 1, absurdStages: 9 },
-    hints: [
-      'This laser needs a battery. A prism fans white light out into red, green and blue, each bent toward the prism\'s base.',
-      'Red bends least and blue most. The red beam can find its sensor on its own; one mirror can turn the blue beam up to the other.',
-    ],
-    metadata: { chapter: 6, order: 3, author: 'Follyworks', blurb: 'Every colour has its place.' },
-  },
-  solutions: [
-    {
-      objects: [o('s-bat', 'battery', 40, 598), o('s-prism', 'prism', 280, 160), o('s-m1', 'mirror', 600, 330, {}, -30 * DEG)],
-      connections: [wire('s-w1', 's-bat', 'g6d-laser')],
-    },
-    // ABSURD: belt and braces, a filter of the right colour in front of each sensor.
-    {
-      objects: [
-        o('s-bat', 'battery', 40, 598),
-        o('s-prism', 'prism', 280, 160),
-        o('s-m1', 'mirror', 600, 330, {}, -30 * DEG),
-        o('s-fr', 'color_filter', 800, 294, { color: 'red' }),
-        o('s-fb', 'color_filter', 593, 200, { color: 'blue' }, 90 * DEG),
-      ],
-      connections: [wire('s-w1', 's-bat', 'g6d-laser')],
-    },
-  ],
-  counterexamples: [
-    {
-      why: 'white light is not blue, so a mirror alone cannot fool the blue sensor',
+      why: 'with the gap in the dominoes the toaster never dings, so the laser stays off',
       build: {
-        objects: [o('s-bat', 'battery', 40, 598), o('s-m1', 'mirror', 600, 160, {}, UP)],
-        connections: [wire('s-w1', 's-bat', 'g6d-laser')],
+        objects: [o('s-m1', 'mirror', 420, 560, {}, UP), o('s-m2', 'mirror', 420, 150, {}, UP), o('s-m3', 'mirror', 590, 150, {}, DOWN), o('s-m4', 'mirror', 590, 274, {}, DOWN)],
+        connections: [],
       },
     },
     {
-      why: 'a red filter feeds the red sensor, but nothing reaches the blue one',
+      why: 'a beam dropped straight down onto the teapot hits its lid',
       build: {
-        objects: [o('s-bat', 'battery', 40, 598), o('s-fr', 'color_filter', 280, 160, { color: 'red' }), o('s-m1', 'mirror', 1090, 160, {}, DOWN)],
-        connections: [wire('s-w1', 's-bat', 'g6d-laser')],
+        objects: [o('s-d2', 'domino', 210, 344), o('s-d3', 'domino', 240, 344), o('s-m1', 'mirror', 420, 560, {}, UP), o('s-m2', 'mirror', 420, 150, {}, UP), o('s-m3', 'mirror', 700, 150, {}, DOWN)],
+        connections: [],
       },
     },
   ],
 };
 
-// ---------------------------------------------------------------- 6-5: through the pinhole
+// ---------------------------------------------------------------- 6-4: rainbow breakfast
 
-const L = (id: string, x: number) => o(id, 'laser', x, 600, { alwaysOn: false, color: 'red' }, -90 * DEG);
-const pinhole: CampaignEntry = {
+const breakfastBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
+  o('s-p1', 'plank', 220, 160, { length: 78 }),
+  o('s-p2', 'plank', 400, 160, { length: 78 }),
+  o('s-prism', 'prism', 300, 420),
+  o('s-r1', 'mirror', 700, 522, {}, -30 * DEG),
+  o('s-r2', 'mirror', 786, 200, {}, -30 * DEG),
+  o('s-b1', 'mirror', 500, 524),
+  o('s-b2', 'mirror', 620, 446, {}, -15 * DEG),
+  ...extra,
+];
+const breakfast: CampaignEntry = {
   chapter: 6,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g6-pinhole',
-    name: 'Through The Pinhole',
-    description: 'Three lasers, three candles, and a wall with one tiny hole in it. Line the beams up, then let a lens squeeze all three through the hole at once.',
+    id: 'g6-rainbow-breakfast',
+    name: 'Rainbow Breakfast',
+    description: 'Bolt marches to the pressure plate, which powers a white laser. The toaster only starts when the red sensor sees red AND the blue sensor sees blue. Bridge Bolt\'s path, then unmix the light and serve both slices into the basket.',
     environment: 'research',
     world: WORLD(),
     fixedObjects: [
-      o('g6e-wall-top', 'wall', 760, 150, { w: 20, h: 300, material: 'brick' }),
-      o('g6e-wall-bottom', 'wall', 760, 475, { w: 20, h: 310, material: 'brick' }),
-      o('g6e-shelf-1', 'wall', 900, 375, { w: 40, h: 16, material: 'steel' }),
-      o('g6e-shelf-2', 'wall', 1000, 281, { w: 40, h: 16, material: 'steel' }),
-      o('g6e-shelf-3', 'wall', 1070, 337, { w: 40, h: 16, material: 'steel' }),
+      o('g6d-shelf-1', 'plank', 100, 160, { length: 160 }),
+      o('g6d-shelf-2', 'plank', 310, 160, { length: 100 }),
+      o('g6d-shelf-3', 'plank', 490, 160, { length: 100 }),
+      o('g6d-pit-l', 'wall', 556, 318, { w: 8, h: 50, material: 'steel' }),
+      o('g6d-pit-r', 'wall', 644, 318, { w: 8, h: 50, material: 'steel' }),
+      o('g6d-pit-floor', 'wall', 600, 349, { w: 96, h: 12, material: 'steel' }),
+      o('g6d-toast-shelf', 'wall', 860, 470, { w: 120, h: 14, material: 'steel' }),
+      o('g6d-funnel-l', 'plank', 978, 500, { length: 90 }, 55 * DEG),
+      o('g6d-funnel-r', 'plank', 1078, 500, { length: 90 }, -55 * DEG),
     ],
     startingObjects: [
-      L('g6e-laser-1', 100),
-      L('g6e-laser-2', 170),
-      L('g6e-laser-3', 240),
-      o('g6e-candle-1', 'candle', 900, 338, { lit: false }),
-      o('g6e-candle-2', 'candle', 1000, 244, { lit: false }),
-      o('g6e-candle-3', 'candle', 1070, 300, { lit: false }),
+      o('g6d-bolt', 'robot', 50, 131, { speed: 140 }),
+      o('g6d-battery', 'battery', 560, 600),
+      o('g6d-plate', 'pressure_plate', 600, 334),
+      o('g6d-laser', 'laser', 90, 420, { alwaysOn: false, color: 'white' }),
+      o('g6d-red', 'light_sensor', 1050, 271, { color: 'red' }),
+      o('g6d-blue', 'light_sensor', 760, 446, { color: 'blue' }),
+      o('g6d-and', 'logic_gate', 900, 300, { mode: 'and' }),
+      o('g6d-toaster', 'toaster', 860, 441, { delay: 0.8, power: 500 }, 20 * DEG),
+      o('g6d-basket', 'bucket', 1028, 598),
     ],
-    connections: [],
+    connections: [
+      wire('g6d-w1', 'g6d-battery', 'g6d-plate'),
+      wire('g6d-w2', 'g6d-plate', 'g6d-laser'),
+      wire('g6d-w3', 'g6d-red', 'g6d-and', 'a'),
+      wire('g6d-w4', 'g6d-blue', 'g6d-and', 'b'),
+      wire('g6d-w5', 'g6d-and', 'g6d-toaster'),
+    ],
     inventory: [
-      { type: 'battery', count: 1 },
-      { type: 'mirror', count: 4 },
-      { type: 'lens', count: 1 },
-      { type: 'beam_splitter', count: 1 },
+      { type: 'plank', count: 2 },
+      { type: 'prism', count: 1 },
+      { type: 'mirror', count: 5 },
+      { type: 'color_filter', count: 1 },
     ],
-    goals: [
-      { kind: 'activate', target: { id: 'g6e-candle-1' }, label: 'Light the low candle' },
-      { kind: 'activate', target: { id: 'g6e-candle-2' }, label: 'Light the high candle' },
-      { kind: 'activate', target: { id: 'g6e-candle-3' }, label: 'Light the far candle' },
-    ],
-    restrictions: { timeLimit: 10 },
-    bonus: { elegantParts: 5, elegantTime: 1, absurdStages: 11 },
+    goals: [{ kind: 'containerCount', container: 'g6d-basket', count: 2, filter: { type: 'toast' }, label: 'Serve both slices of toast into the basket' }],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 7, elegantTime: 6.5, absurdStages: 18 },
     hints: [
-      'One battery can power all three lasers: wire it to each of them.',
-      "Turn each beam to the right with a mirror so they run side by side, all within the lens's height.",
-      'A lens bends parallel beams so they cross at its focal point. Put that point in the hole: the focal length is how far it is from the lens.',
+      'Bolt cannot cross the gaps in his shelf. Lay a plank in each one.',
+      'A prism fans white light into red, green and blue, each bent down toward its base: red least, blue most.',
+      'Catch the red beam with a mirror and send it up and over to the red sensor; catch the blue one lower down and bounce it across to the blue sensor. Hold Shift for fine angles.',
     ],
-    metadata: { chapter: 6, order: 5, author: 'Follyworks', blurb: 'Where all beams meet.' },
+    metadata: { chapter: 6, order: 4, author: 'Follyworks', blurb: 'Every colour has its place.' },
   },
   solutions: [
+    { objects: breakfastBuild(), connections: [] },
+    // ABSURD: a red filter on the already red beam, and a spare mirror bouncing the green beam into the funnel.
     {
-      objects: [
-        o('s-bat', 'battery', 40, 598),
-        o('s-m1', 'mirror', 100, 260, {}, UP),
-        o('s-m2', 'mirror', 170, 310, {}, UP),
-        o('s-m3', 'mirror', 240, 360, {}, UP),
-        o('s-lens', 'lens', 560, 310, { focal: 200 }),
-      ],
-      connections: [wire('s-w1', 's-bat', 'g6e-laser-1'), wire('s-w2', 's-bat', 'g6e-laser-2'), wire('s-w3', 's-bat', 'g6e-laser-3')],
-    },
-    // ABSURD: a splitter skims half the middle beam off into the brickwork on the way up.
-    {
-      objects: [
-        o('s-bat', 'battery', 40, 598),
-        o('s-m1', 'mirror', 100, 260, {}, UP),
-        o('s-split', 'beam_splitter', 170, 470, {}, UP),
-        o('s-m4', 'mirror', 620, 470, {}, UP),
-        o('s-m2', 'mirror', 170, 310, {}, UP),
-        o('s-m3', 'mirror', 240, 360, {}, UP),
-        o('s-lens', 'lens', 560, 310, { focal: 200 }),
-      ],
-      connections: [wire('s-w1', 's-bat', 'g6e-laser-1'), wire('s-w2', 's-bat', 'g6e-laser-2'), wire('s-w3', 's-bat', 'g6e-laser-3')],
+      objects: breakfastBuild([o('s-red', 'color_filter', 900, 242, { color: 'red' }), o('s-green', 'mirror', 760, 603)]),
+      connections: [],
     },
   ],
   counterexamples: [
     {
-      why: 'without the lens only the middle beam threads the hole',
+      why: 'without the prism the white beam is neither red nor blue, so the toaster never starts',
+      build: { objects: breakfastBuild().filter((x) => x.id !== 's-prism'), connections: [] },
+    },
+    {
+      why: 'without the planks Bolt drops off his shelf long before the pressure plate',
+      build: { objects: breakfastBuild().filter((x) => x.type !== 'plank'), connections: [] },
+    },
+  ],
+};
+
+// ---------------------------------------------------------------- 6-3: strike!
+
+const strike: CampaignEntry = {
+  chapter: 6,
+  level: {
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    id: 'g6-strike',
+    name: 'Laser Bowling',
+    description: 'The ball snaps the mousetrap, the trap rings the bell and the bell switches on the laser. The boxing glove only punches while both light sensors are lit. Share out the beam and bowl a strike.',
+    environment: 'research',
+    world: WORLD(),
+    fixedObjects: [
+      o('g6c-ramp', 'plank', 90, 140, { length: 160 }, 20 * DEG),
+      o('g6c-trap-shelf', 'wall', 270, 320, { w: 120, h: 14, material: 'steel' }),
+      o('g6c-shelf', 'wall', 640, 280, { w: 200, h: 14, material: 'steel' }),
+      o('g6c-wall', 'wall', 480, 480, { w: 30, h: 300, material: 'brick' }),
+    ],
+    startingObjects: [
+      o('g6c-ball', 'ball', 40, 90),
+      o('g6c-trap', 'mousetrap', 268, 309),
+      o('g6c-bell', 'bell', 330, 170),
+      o('g6c-flipflop', 'logic_gate', 160, 400, { mode: 'toggle' }),
+      o('g6c-laser', 'laser', 90, 470, { alwaysOn: false, color: 'red' }),
+      o('g6c-sensor-a', 'light_sensor', 560, 120),
+      o('g6c-sensor-b', 'light_sensor', 1090, 520, {}, -90 * DEG),
+      o('g6c-and', 'logic_gate', 660, 400, { mode: 'and' }),
+      o('g6c-glove', 'boxing_glove', 570, 256, { power: 1200 }),
+      o('g6c-bowl', 'bowling_ball', 620, 253),
+      ...[0, 1, 2, 3, 4, 5].map((k) => o(`g6c-pin-${k + 1}`, 'bowling_pin', 900 + 38 * k, 602)),
+    ],
+    connections: [
+      wire('g6c-w1', 'g6c-bell', 'g6c-flipflop', 'a'),
+      wire('g6c-w2', 'g6c-flipflop', 'g6c-laser'),
+      wire('g6c-w3', 'g6c-sensor-a', 'g6c-and', 'a'),
+      wire('g6c-w4', 'g6c-sensor-b', 'g6c-and', 'b'),
+      wire('g6c-w5', 'g6c-and', 'g6c-glove'),
+    ],
+    inventory: [
+      { type: 'mirror', count: 6 },
+      { type: 'beam_splitter', count: 2 },
+    ],
+    goals: [{ kind: 'activate', target: { type: 'bowling_pin' }, count: 5, label: 'Knock down 5 pins' }],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 6, elegantTime: 3, absurdStages: 28 },
+    hints: [
+      'A beam splitter makes two beams out of one: half goes straight on, half turns like a mirror would.',
+      'Put the splitter in the beam before the brick wall. Send one half up to the high sensor and take the other half up, over and down to the sensor on the far wall.',
+    ],
+    metadata: { chapter: 6, order: 3, author: 'Follyworks', blurb: 'Light up the lanes.' },
+  },
+  solutions: [
+    {
+      objects: [
+        o('s-split', 'beam_splitter', 370, 470, {}, UP),
+        o('s-a1', 'mirror', 370, 120, {}, UP),
+        o('s-b1', 'mirror', 432, 470, {}, UP),
+        o('s-b2', 'mirror', 432, 200, {}, UP),
+        o('s-b3', 'mirror', 820, 200, {}, DOWN),
+        o('s-b4', 'mirror', 820, 520, {}, DOWN),
+      ],
+      connections: [],
+    },
+    // ABSURD: a second splitter skims the rising beam off to the left, into a spare mirror and up into a shelf.
+    {
+      objects: [
+        o('s-split', 'beam_splitter', 370, 470, {}, UP),
+        o('s-a1', 'mirror', 370, 120, {}, UP),
+        o('s-b1', 'mirror', 432, 470, {}, UP),
+        o('s-split-2', 'beam_splitter', 432, 380, {}, DOWN),
+        o('s-spare', 'mirror', 300, 380, {}, DOWN),
+        o('s-b2', 'mirror', 432, 200, {}, UP),
+        o('s-b3', 'mirror', 820, 200, {}, DOWN),
+        o('s-b4', 'mirror', 820, 520, {}, DOWN),
+      ],
+      connections: [],
+    },
+  ],
+  counterexamples: [
+    {
+      why: 'a mirror where the splitter goes lights only one sensor, and the glove wants both',
       build: {
         objects: [
-          o('s-bat', 'battery', 40, 598),
-          o('s-m1', 'mirror', 100, 260, {}, UP),
-          o('s-m2', 'mirror', 170, 310, {}, UP),
-          o('s-m3', 'mirror', 240, 360, {}, UP),
+          o('s-split', 'mirror', 370, 470, {}, UP),
+          o('s-a1', 'mirror', 370, 120, {}, UP),
+          o('s-b1', 'mirror', 432, 470, {}, UP),
+          o('s-b2', 'mirror', 432, 200, {}, UP),
+          o('s-b3', 'mirror', 820, 200, {}, DOWN),
+          o('s-b4', 'mirror', 820, 520, {}, DOWN),
         ],
-        connections: [wire('s-w1', 's-bat', 'g6e-laser-1'), wire('s-w2', 's-bat', 'g6e-laser-2'), wire('s-w3', 's-bat', 'g6e-laser-3')],
+        connections: [],
       },
+    },
+  ],
+};
+
+// ---------------------------------------------------------------- 6-5: party poppers
+
+const partyBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
+  o('s-bat', 'battery', 300, 600),
+  o('s-m1', 'mirror', 400, 560, {}, UP),
+  ...extra,
+  o('s-split-1', 'beam_splitter', 400, 114, {}, UP),
+  o('s-m2', 'mirror', 400, 60, {}, UP),
+  o('s-m3', 'mirror', 700, 60, {}, DOWN),
+  o('s-split-2', 'beam_splitter', 700, 274, {}, DOWN),
+  o('s-m4', 'mirror', 700, 434, {}, DOWN),
+];
+const party: CampaignEntry = {
+  chapter: 6,
+  level: {
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    id: 'g6-party-poppers',
+    name: 'Party Poppers',
+    description: 'The timer sets off the glove, the glove bops the rubber chicken, and the chicken belongs on the pressure plate. Power the plate, then split the laser three ways and pop a balloon on every shelf. Whiskers is asleep in the basement.',
+    environment: 'research',
+    world: WORLD(),
+    fixedObjects: [
+      o('g6e-shelf', 'plank', 190, 250, { length: 260 }),
+      o('g6e-cup-l', 'wall', 446, 610, { w: 8, h: 40, material: 'steel' }),
+      o('g6e-cup-r', 'wall', 534, 610, { w: 8, h: 40, material: 'steel' }),
+      o('g6e-wall', 'wall', 620, 400, { w: 30, h: 460, material: 'brick' }),
+      o('g6e-ceiling', 'wall', 970, 20, { w: 300, h: 40, material: 'concrete' }),
+      o('g6e-floor-1', 'wall', 970, 166, { w: 300, h: 12, material: 'steel' }),
+      o('g6e-floor-2', 'wall', 970, 326, { w: 300, h: 12, material: 'steel' }),
+      o('g6e-floor-3', 'wall', 970, 486, { w: 300, h: 12, material: 'steel' }),
+      o('g6e-basement', 'wall', 826, 561, { w: 12, h: 138, material: 'brick' }),
+      o('g6e-sill-1', 'wall', 976, 145, { w: 8, h: 30, material: 'wood' }),
+      o('g6e-sill-2', 'wall', 976, 305, { w: 8, h: 30, material: 'wood' }),
+      o('g6e-sill-3', 'wall', 976, 465, { w: 8, h: 30, material: 'wood' }),
+      o('g6e-hook-1', 'hook', 1000, 154),
+      o('g6e-hook-2', 'hook', 1000, 314),
+      o('g6e-hook-3', 'hook', 1000, 474),
+    ],
+    startingObjects: [
+      o('g6e-timer', 'timer', 60, 150, { delay: 0.5 }),
+      o('g6e-glove', 'boxing_glove', 92, 226, { power: 550 }),
+      o('g6e-chicken', 'rubber_chicken', 150, 234),
+      o('g6e-plate', 'pressure_plate', 490, 621, { minMass: 0.3 }),
+      o('g6e-laser', 'laser', 90, 560, { alwaysOn: false, color: 'red' }),
+      o('g6e-balloon-1', 'balloon', 1000, 114, { lift: 1.5, color: 'red' }),
+      o('g6e-balloon-2', 'balloon', 1000, 274, { lift: 1.5, color: 'yellow' }),
+      o('g6e-balloon-3', 'balloon', 1000, 434, { lift: 1.5, color: 'teal' }),
+      o('g6e-cat', 'cat', 1000, 617, {}, 0, true),
+    ],
+    connections: [
+      wire('g6e-w1', 'g6e-timer', 'g6e-glove'),
+      wire('g6e-w2', 'g6e-plate', 'g6e-laser'),
+      rope('g6e-r1', 'g6e-hook-1', 'hook', 'g6e-balloon-1', 'string'),
+      rope('g6e-r2', 'g6e-hook-2', 'hook', 'g6e-balloon-2', 'string'),
+      rope('g6e-r3', 'g6e-hook-3', 'hook', 'g6e-balloon-3', 'string'),
+    ],
+    inventory: [
+      { type: 'battery', count: 1 },
+      { type: 'mirror', count: 6 },
+      { type: 'beam_splitter', count: 3 },
+    ],
+    goals: [
+      { kind: 'destroyed', target: { type: 'balloon' }, label: 'Pop all three balloons' },
+      { kind: 'activate', target: { id: 'g6e-cat' }, label: 'Wake up Whiskers' },
+    ],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 7, elegantTime: 3.5, absurdStages: 17 },
+    hints: [
+      'The pressure plate passes power on but makes none of its own: it needs a battery.',
+      'A beam pops a balloon it rests on, but the wooden sills shield the strings. Each shelf needs its own beam at balloon height.',
+      'Two beam splitters turn one beam into three. Go up past the brick wall and drop a splitter or mirror in front of each shelf.',
+    ],
+    metadata: { chapter: 6, order: 5, author: 'Follyworks', blurb: 'Pop, pop, POP. Yowl.' },
+  },
+  solutions: [
+    { objects: partyBuild(), connections: [wire('s-w1', 's-bat', 'g6e-plate')] },
+    // ABSURD: a third splitter on the way up throws a spare beam straight up through the room.
+    {
+      objects: partyBuild([o('s-split-3', 'beam_splitter', 400, 470, {}, UP), o('s-m5', 'mirror', 480, 470, {}, UP)]),
+      connections: [wire('s-w1', 's-bat', 'g6e-plate')],
+    },
+  ],
+  counterexamples: [
+    {
+      why: 'mirrors instead of splitters send the whole beam to one shelf',
+      build: {
+        objects: partyBuild().map((x) => (x.type === 'beam_splitter' ? { ...x, type: 'mirror' } : x)),
+        connections: [wire('s-w1', 's-bat', 'g6e-plate')],
+      },
+    },
+    {
+      why: 'with no battery the chicken sits on a dead plate and the laser stays off',
+      build: { objects: partyBuild().filter((x) => x.type !== 'battery'), connections: [] },
     },
   ],
 };
@@ -761,4 +876,4 @@ const lightShow: CampaignEntry = {
   ],
 };
 
-export const GROUP_6: CampaignEntry[] = [cornerShot, cutTheCord, rainbowLock, payload, pinhole, birthday, colourCoded, relay, tripwire, lightShow];
+export const GROUP_6: CampaignEntry[] = [dingDong, teaTime, strike, breakfast, party, birthday, colourCoded, relay, tripwire, lightShow];
