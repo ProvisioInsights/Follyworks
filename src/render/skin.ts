@@ -17,6 +17,7 @@ export const THEME_ROOM: Record<ThemeId, string | null> = {
   modern: null,
   comic: 'rooftop',
   future: 'neonlab',
+  arcade: null, // TODO arcade room
 };
 
 export const roomFor = (theme: ThemeId, environment: string): string => THEME_ROOM[theme] ?? environment;
@@ -39,6 +40,7 @@ export const RIM_STYLE: Record<ThemeId, RimStyle> = {
   stone: { width: 1.8, color: 'rgba(30, 18, 8, 0.92)' },
   steam: { width: 1.8, color: 'rgba(28, 14, 4, 0.92)' },
   future: { width: 1.3, color: 'rgba(3, 8, 22, 0.94)', glow: { width: 3.6, color: 'rgba(70, 225, 255, 0.34)' } },
+  arcade: { width: 2, color: 'rgba(0, 0, 0, 1)' },
 };
 
 // ------------------------------------------------------------------ colour helpers
