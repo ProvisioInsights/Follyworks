@@ -668,77 +668,97 @@ const colourCoded: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 6-8: three-laser relay
+// ---------------------------------------------------------------- 6-8: pass it on (three-laser relay)
 
 const relayBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
-  o('s-a1', 'mirror', 200, 590, {}, UP),
-  o('s-a2', 'mirror', 200, 300, {}, UP),
-  o('s-b1', 'mirror', 360, 590, {}, DOWN),
-  o('s-b2', 'mirror', 360, 100, {}, DOWN),
-  o('s-filter', 'color_filter', 250, 100, { color: 'green' }),
-  o('s-c1', 'mirror', 740, 590, {}, UP),
-  o('s-c2', 'mirror', 740, 150, {}, UP),
+  o('s-bat', 'battery', 470, 600),
+  o('s-a1', 'mirror', 420, 300, {}, UP),
+  o('s-a2', 'mirror', 420, 60, {}, UP),
+  o('s-a3', 'mirror', 700, 60, {}, DOWN),
+  o('s-green', 'color_filter', 720, 330, { color: 'green' }),
+  o('s-b1', 'mirror', 840, 330, {}, DOWN),
+  o('s-b2', 'mirror', 840, 470, {}, DOWN),
+  o('s-c1', 'mirror', 980, 380, {}, DOWN),
+  o('s-c2', 'mirror', 980, 100, {}, DOWN),
+  o('s-bell', 'bell', 760, 594),
   ...extra,
 ];
+const relayWires = [wire('s-w1', 's-bat', 'g6h-switch'), wire('s-w2', 's-bell', 'g6h-glove')];
 const relay: CampaignEntry = {
   chapter: 6,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g6-relay',
-    name: 'Light Relay',
-    description: 'Three lasers pass the job along. The first must reach sensor 1, which switches on the second; the second must show sensor 2 some green, which switches on the third; the third burns through the rope.',
+    name: 'Pass It On',
+    description: 'The mousetrap alarm wakes Whiskers, who runs over the switch. From there three lasers pass the job along: each one lights a sensor that switches on the next, and the last burns the rope. Put the bell where the crate lands and wire it to the boxing glove for a strike.',
     environment: 'research',
     world: WORLD(),
     fixedObjects: [
-      o('g6h-wall', 'wall', 300, 505, { w: 20, h: 250, material: 'brick' }),
-      o('g6h-pillar', 'wall', 500, 473, { w: 30, h: 314, material: 'brick' }),
+      o('g6h-shelf', 'plank', 150, 200, { length: 300 }),
+      o('g6h-pen', 'wall', 360, 600, { w: 14, h: 60, material: 'steel' }),
+      o('g6h-wall', 'wall', 560, 375, { w: 30, h: 510, material: 'brick' }),
     ],
     startingObjects: [
-      o('g6h-laser-a', 'laser', 90, 590, { alwaysOn: true, color: 'red' }),
-      o('g6h-sensor-1', 'light_sensor', 500, 299),
-      o('g6h-laser-b', 'laser', 440, 590, { alwaysOn: false, color: 'white' }, 0, true),
-      o('g6h-sensor-2', 'light_sensor', 30, 100, { color: 'green' }, -90 * DEG),
-      o('g6h-laser-c', 'laser', 650, 590, { alwaysOn: false, color: 'red' }),
-      o('g6h-hook', 'hook', 860, 40),
-      o('g6h-crate', 'crate', 860, 260),
-      o('g6h-bucket', 'bucket', 860, 590),
+      o('g6h-timer', 'timer', 40, 120, { delay: 0.5 }),
+      o('g6h-trap', 'mousetrap', 40, 188),
+      o('g6h-cat-1', 'cat', 110, 180),
+      o('g6h-switch', 'toggle_switch', 250, 167),
+      o('g6h-laser-a', 'laser', 50, 300, { alwaysOn: false, color: 'red' }),
+      o('g6h-sensor-1', 'light_sensor', 700, 250),
+      o('g6h-laser-b', 'laser', 640, 330, { alwaysOn: false, color: 'white' }),
+      o('g6h-sensor-2', 'light_sensor', 930, 470, { color: 'green' }, 90 * DEG),
+      o('g6h-laser-c', 'laser', 1060, 380, { alwaysOn: false, color: 'red' }, 0, true),
+      o('g6h-hook', 'hook', 760, 30),
+      o('g6h-crate', 'crate', 760, 200),
+      o('g6h-glove', 'boxing_glove', 840, 613, { power: 1200 }),
+      o('g6h-bowl', 'bowling_ball', 890, 610),
+      ...[0, 1, 2, 3, 4].map((k) => o(`g6h-pin-${k + 1}`, 'bowling_pin', 950 + 38 * k, 602)),
     ],
     connections: [
-      wire('g6h-w1', 'g6h-sensor-1', 'g6h-laser-b'),
-      wire('g6h-w2', 'g6h-sensor-2', 'g6h-laser-c'),
+      wire('g6h-w1', 'g6h-timer', 'g6h-trap'),
+      wire('g6h-w2', 'g6h-switch', 'g6h-laser-a'),
+      wire('g6h-w3', 'g6h-sensor-1', 'g6h-laser-b'),
+      wire('g6h-w4', 'g6h-sensor-2', 'g6h-laser-c'),
       rope('g6h-r1', 'g6h-hook', 'hook', 'g6h-crate', 'hook'),
     ],
     inventory: [
+      { type: 'battery', count: 1 },
+      { type: 'bell', count: 1 },
       { type: 'mirror', count: 8 },
-      { type: 'color_filter', count: 1 },
+      { type: 'color_filter', count: 2 },
       { type: 'beam_splitter', count: 1 },
       { type: 'prism', count: 1 },
     ],
-    goals: [{ kind: 'containerCount', container: 'g6h-bucket', count: 1, label: 'Drop the crate in the bucket' }],
-    restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 6, elegantTime: 2, absurdStages: 15 },
+    goals: [
+      { kind: 'activate', target: { type: 'bell' }, label: 'Ring the bell' },
+      { kind: 'activate', target: { type: 'bowling_pin' }, count: 4, label: 'Knock down 4 pins' },
+    ],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 10, elegantTime: 4, absurdStages: 32 },
     hints: [
-      'Do one laser at a time. The first one is already on: get its beam over the brick wall and onto sensor 1.',
-      'The second laser shines white, and sensor 2 only counts green. A green filter, or a prism, takes care of that.',
-      'The third laser comes on once sensor 2 is happy. Send its beam across the rope above the crate.',
+      'Do one laser at a time. The switch needs a battery, and the first beam has to climb over the brick wall to reach sensor 1.',
+      'Laser two shines white, and sensor 2 only counts green: put a green filter in front of it, then two mirrors bring the beam down and across.',
+      'Two mirrors walk the third beam up and back across the rope. The crate drops straight down, so the bell goes right under it, wired to the glove.',
     ],
     metadata: { chapter: 6, order: 8, author: 'Follyworks', blurb: 'Pass it on.' },
   },
   solutions: [
-    { objects: relayBuild(), connections: [] },
-    // ABSURD: the first beam is split, and the spare half pointlessly lights a lens and a prism.
-    {
-      objects: relayBuild([
-        o('s-split', 'beam_splitter', 200, 450, {}, UP),
-        o('s-prism', 'prism', 255, 450),
-      ]),
-      connections: [],
-    },
+    { objects: relayBuild(), connections: relayWires },
+    // ABSURD: tint the red laser red again and skim half of the last beam off sideways
+    { objects: relayBuild([o('s-red', 'color_filter', 300, 300, { color: 'red' }), o('s-split', 'beam_splitter', 980, 240, {}, DOWN)]), connections: relayWires },
   ],
   counterexamples: [
     {
-      why: 'white light does not count as green',
-      build: { objects: relayBuild().filter((x) => x.id !== 's-filter'), connections: [] },
+      why: 'white light does not count as green, so the third laser never comes on',
+      build: { objects: relayBuild().filter((x) => x.id !== 's-green'), connections: relayWires },
+    },
+    {
+      why: 'without a battery the switch has nothing to pass on, so the cat runs over it for nothing',
+      build: { objects: relayBuild().filter((x) => x.id !== 's-bat'), connections: relayWires.filter((w) => w.id !== 's-w1') },
+    },
+    {
+      why: 'a bell that is not wired to the glove just rings, and the pins stay standing',
+      build: { objects: relayBuild(), connections: relayWires.filter((w) => w.id !== 's-w2') },
     },
   ],
 };
