@@ -32,15 +32,15 @@ const dingDong: CampaignEntry = {
     environment: 'research',
     world: WORLD(),
     fixedObjects: [
-      o('g6a-ramp', 'plank', 150, 120, { length: 200 }, -12 * DEG),
+      o('g6a-ramp', 'plank', 150, 120, { length: 200 }, -16 * DEG),
       o('g6a-shelf', 'plank', 300, 300, { length: 160 }),
       o('g6a-cup', 'bucket', 412, 345),
-      o('g6a-wall', 'wall', 520, 400, { w: 30, h: 460, material: 'brick' }),
+      o('g6a-wall', 'wall', 545, 400, { w: 30, h: 460, material: 'brick' }),
       o('g6a-roof', 'wall', 980, 372, { w: 280, h: 16, material: 'steel' }),
       o('g6a-hook', 'hook', 960, 392),
     ],
     startingObjects: [
-      o('g6a-ball', 'ball', 225, 80),
+      o('g6a-ball', 'ball', 200, 81),
       o('g6a-switch', 'toggle_switch', 300, 268),
       o('g6a-battery', 'battery', 100, 600),
       o('g6a-laser', 'laser', 100, 560, { alwaysOn: false, color: 'red' }),
@@ -74,24 +74,24 @@ const dingDong: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('s-plank', 'plank', 110, 235, { length: 200 }, 15 * DEG),
-        o('s-m1', 'mirror', 470, 560, {}, UP),
+        o('s-plank', 'plank', 110, 240, { length: 200 }, 15 * DEG),
+        o('s-m1', 'mirror', 480, 560, {}, UP),
         o('s-m2', 'mirror', 470, 100, {}, UP),
         o('s-m3', 'mirror', 760, 100, {}, DOWN),
-        o('s-m4', 'mirror', 760, 435, {}, DOWN),
+        o('s-m4', 'mirror', 750, 440, {}, DOWN),
       ],
       connections: [],
     },
     // ABSURD: a splitter on the floor sends half the beam up into a spare mirror and off into the brickwork.
     {
       objects: [
-        o('s-plank', 'plank', 110, 235, { length: 200 }, 15 * DEG),
+        o('s-plank', 'plank', 110, 240, { length: 200 }, 15 * DEG),
         o('s-split', 'beam_splitter', 300, 560, {}, UP),
         o('s-m5', 'mirror', 300, 450, {}, UP),
-        o('s-m1', 'mirror', 470, 560, {}, UP),
+        o('s-m1', 'mirror', 480, 560, {}, UP),
         o('s-m2', 'mirror', 470, 100, {}, UP),
         o('s-m3', 'mirror', 760, 100, {}, DOWN),
-        o('s-m4', 'mirror', 760, 435, {}, DOWN),
+        o('s-m4', 'mirror', 750, 440, {}, DOWN),
       ],
       connections: [],
     },
@@ -100,14 +100,14 @@ const dingDong: CampaignEntry = {
     {
       why: 'the ball misses the switch shelf without a plank, so the laser never comes on',
       build: {
-        objects: [o('s-m1', 'mirror', 470, 560, {}, UP), o('s-m2', 'mirror', 470, 100, {}, UP), o('s-m3', 'mirror', 760, 100, {}, DOWN), o('s-m4', 'mirror', 760, 435, {}, DOWN)],
+        objects: [o('s-m1', 'mirror', 480, 560, {}, UP), o('s-m2', 'mirror', 470, 100, {}, UP), o('s-m3', 'mirror', 760, 100, {}, DOWN), o('s-m4', 'mirror', 750, 440, {}, DOWN)],
         connections: [],
       },
     },
     {
       why: 'a beam sent straight down onto the rope is stopped by the roof',
       build: {
-        objects: [o('s-plank', 'plank', 110, 235, { length: 200 }, 15 * DEG), o('s-m1', 'mirror', 470, 560, {}, UP), o('s-m2', 'mirror', 470, 100, {}, UP), o('s-m3', 'mirror', 960, 100, {}, DOWN)],
+        objects: [o('s-plank', 'plank', 110, 240, { length: 200 }, 15 * DEG), o('s-m1', 'mirror', 480, 560, {}, UP), o('s-m2', 'mirror', 470, 100, {}, UP), o('s-m3', 'mirror', 960, 100, {}, DOWN)],
         connections: [],
       },
     },
@@ -129,7 +129,7 @@ const teaTime: CampaignEntry = {
       o('g6b-ramp', 'plank', 80, 320, { length: 130 }, 25 * DEG),
       o('g6b-platform', 'plank', 220, 380, { length: 360 }),
       o('g6b-kerb', 'wall', 196, 361, { w: 8, h: 24, material: 'steel' }),
-      o('g6b-wall', 'wall', 480, 430, { w: 30, h: 400, material: 'brick' }),
+      o('g6b-wall', 'wall', 500, 430, { w: 30, h: 400, material: 'brick' }),
       o('g6b-hood', 'wall', 700, 222, { w: 130, h: 12, material: 'steel' }),
       o('g6b-shelf', 'wall', 700, 300, { w: 120, h: 14, material: 'steel' }),
       o('g6b-ledge', 'wall', 810, 252, { w: 70, h: 12, material: 'steel' }),
@@ -137,8 +137,8 @@ const teaTime: CampaignEntry = {
     startingObjects: [
       o('g6b-bowl', 'bowling_ball', 40, 262),
       o('g6b-d1', 'domino', 176, 344),
-      o('g6b-d4', 'domino', 270, 344),
-      o('g6b-d5', 'domino', 300, 344),
+      o('g6b-d2', 'domino', 210, 344),
+      o('g6b-d3', 'domino', 240, 344),
       o('g6b-toaster', 'toaster', 362, 349, {}, 0, true),
       o('g6b-flipflop', 'logic_gate', 250, 470, { mode: 'toggle' }),
       o('g6b-laser', 'laser', 90, 560, { alwaysOn: false, color: 'red' }),
@@ -165,26 +165,26 @@ const teaTime: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('s-d2', 'domino', 210, 344),
-        o('s-d3', 'domino', 240, 344),
-        o('s-m1', 'mirror', 420, 560, {}, UP),
+        o('s-d4', 'domino', 270, 344),
+        o('s-d5', 'domino', 300, 344),
+        o('s-m1', 'mirror', 430, 560, {}, UP),
         o('s-m2', 'mirror', 420, 150, {}, UP),
         o('s-m3', 'mirror', 590, 150, {}, DOWN),
-        o('s-m4', 'mirror', 590, 274, {}, DOWN),
+        o('s-m4', 'mirror', 580, 270, {}, DOWN),
       ],
       connections: [],
     },
     // ABSURD: a splitter peels half the beam off into a spare mirror, which fires it into the wall.
     {
       objects: [
-        o('s-d2', 'domino', 210, 344),
-        o('s-d3', 'domino', 240, 344),
+        o('s-d4', 'domino', 270, 344),
+        o('s-d5', 'domino', 300, 344),
         o('s-split', 'beam_splitter', 300, 560, {}, UP),
         o('s-m5', 'mirror', 300, 470, {}, UP),
-        o('s-m1', 'mirror', 420, 560, {}, UP),
+        o('s-m1', 'mirror', 430, 560, {}, UP),
         o('s-m2', 'mirror', 420, 150, {}, UP),
         o('s-m3', 'mirror', 590, 150, {}, DOWN),
-        o('s-m4', 'mirror', 590, 274, {}, DOWN),
+        o('s-m4', 'mirror', 580, 270, {}, DOWN),
       ],
       connections: [],
     },
@@ -193,14 +193,14 @@ const teaTime: CampaignEntry = {
     {
       why: 'with the gap in the dominoes the toaster never dings, so the laser stays off',
       build: {
-        objects: [o('s-m1', 'mirror', 420, 560, {}, UP), o('s-m2', 'mirror', 420, 150, {}, UP), o('s-m3', 'mirror', 590, 150, {}, DOWN), o('s-m4', 'mirror', 590, 274, {}, DOWN)],
+        objects: [o('s-m1', 'mirror', 430, 560, {}, UP), o('s-m2', 'mirror', 420, 150, {}, UP), o('s-m3', 'mirror', 590, 150, {}, DOWN), o('s-m4', 'mirror', 580, 270, {}, DOWN)],
         connections: [],
       },
     },
     {
       why: 'a beam dropped straight down onto the teapot hits its lid',
       build: {
-        objects: [o('s-d2', 'domino', 210, 344), o('s-d3', 'domino', 240, 344), o('s-m1', 'mirror', 420, 560, {}, UP), o('s-m2', 'mirror', 420, 150, {}, UP), o('s-m3', 'mirror', 700, 150, {}, DOWN)],
+        objects: [o('s-d4', 'domino', 270, 344), o('s-d5', 'domino', 300, 344), o('s-m1', 'mirror', 430, 560, {}, UP), o('s-m2', 'mirror', 420, 150, {}, UP), o('s-m3', 'mirror', 700, 150, {}, DOWN)],
         connections: [],
       },
     },
@@ -210,13 +210,13 @@ const teaTime: CampaignEntry = {
 // ---------------------------------------------------------------- 6-4: rainbow breakfast
 
 const breakfastBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
-  o('s-p1', 'plank', 220, 160, { length: 78 }),
-  o('s-p2', 'plank', 400, 160, { length: 78 }),
+  o('s-p1', 'plank', 210, 160, { length: 80 }),
+  o('s-p2', 'plank', 410, 160, { length: 80 }),
   o('s-prism', 'prism', 300, 420),
-  o('s-r1', 'mirror', 700, 522, {}, -30 * DEG),
-  o('s-r2', 'mirror', 786, 200, {}, -30 * DEG),
-  o('s-b1', 'mirror', 500, 524),
-  o('s-b2', 'mirror', 620, 446, {}, -15 * DEG),
+  o('s-r1', 'mirror', 690, 520, {}, -30 * DEG),
+  o('s-r2', 'mirror', 770, 190, {}, -30 * DEG),
+  o('s-b1', 'mirror', 480, 510, {}, -30 * DEG),
+  o('s-b2', 'mirror', 470, 250, {}, UP),
   ...extra,
 ];
 const breakfast: CampaignEntry = {
@@ -229,9 +229,12 @@ const breakfast: CampaignEntry = {
     environment: 'research',
     world: WORLD(),
     fixedObjects: [
-      o('g6d-shelf-1', 'plank', 100, 160, { length: 160 }),
+      o('g6d-shelf-1', 'plank', 90, 160, { length: 140 }),
       o('g6d-shelf-2', 'plank', 310, 160, { length: 100 }),
-      o('g6d-shelf-3', 'plank', 490, 160, { length: 100 }),
+      o('g6d-shelf-3', 'plank', 500, 160, { length: 80 }),
+      // a trough under each gap: a plank dropped in roughly still lands level enough for Bolt
+      o('g6d-trough-1', 'wall', 210, 186, { w: 100, h: 12, material: 'steel' }),
+      o('g6d-trough-2', 'wall', 410, 186, { w: 100, h: 12, material: 'steel' }),
       o('g6d-pit-l', 'wall', 556, 318, { w: 8, h: 50, material: 'steel' }),
       o('g6d-pit-r', 'wall', 644, 318, { w: 8, h: 50, material: 'steel' }),
       o('g6d-pit-floor', 'wall', 600, 349, { w: 96, h: 12, material: 'steel' }),
@@ -244,8 +247,8 @@ const breakfast: CampaignEntry = {
       o('g6d-battery', 'battery', 560, 600),
       o('g6d-plate', 'pressure_plate', 600, 334),
       o('g6d-laser', 'laser', 90, 420, { alwaysOn: false, color: 'white' }),
-      o('g6d-red', 'light_sensor', 1050, 271, { color: 'red' }),
-      o('g6d-blue', 'light_sensor', 760, 446, { color: 'blue' }),
+      o('g6d-red', 'light_sensor', 1050, 265, { color: 'red' }, 45 * DEG),
+      o('g6d-blue', 'light_sensor', 700, 252, { color: 'blue' }, 45 * DEG),
       o('g6d-and', 'logic_gate', 900, 300, { mode: 'and' }),
       o('g6d-toaster', 'toaster', 860, 441, { delay: 0.8, power: 500 }, 20 * DEG),
       o('g6d-basket', 'bucket', 1028, 598),
@@ -269,15 +272,15 @@ const breakfast: CampaignEntry = {
     hints: [
       'Bolt cannot cross the gaps in his shelf. Lay a plank in each one.',
       'A prism fans white light into red, green and blue, each bent down toward its base: red least, blue most.',
-      'Catch the red beam with a mirror and send it up and over to the red sensor; catch the blue one lower down and bounce it across to the blue sensor. Hold Shift for fine angles.',
+      'Catch the red beam with a mirror and send it up and over to the red sensor; catch the blue one lower down, bounce it straight up, then across to the blue sensor. Hold Shift for fine angles.',
     ],
     metadata: { chapter: 6, order: 4, author: 'Follyworks', blurb: 'Every colour has its place.' },
   },
   solutions: [
     { objects: breakfastBuild(), connections: [] },
-    // ABSURD: a red filter on the already red beam, and a spare mirror bouncing the green beam into the funnel.
+    // ABSURD: a red filter on the already red beam, and a spare mirror bouncing the stray green beam down to the floor.
     {
-      objects: breakfastBuild([o('s-red', 'color_filter', 900, 242, { color: 'red' }), o('s-green', 'mirror', 760, 603)]),
+      objects: breakfastBuild([o('s-red', 'color_filter', 900, 242, { color: 'red' }), o('s-green', 'mirror', 520, 280)]),
       connections: [],
     },
   ],
@@ -308,7 +311,7 @@ const strike: CampaignEntry = {
       o('g6c-ramp', 'plank', 90, 140, { length: 160 }, 20 * DEG),
       o('g6c-trap-shelf', 'wall', 270, 320, { w: 120, h: 14, material: 'steel' }),
       o('g6c-shelf', 'wall', 640, 280, { w: 200, h: 14, material: 'steel' }),
-      o('g6c-wall', 'wall', 480, 480, { w: 30, h: 300, material: 'brick' }),
+      o('g6c-wall', 'wall', 505, 480, { w: 30, h: 300, material: 'brick' }),
     ],
     startingObjects: [
       o('g6c-ball', 'ball', 40, 90),
@@ -316,8 +319,8 @@ const strike: CampaignEntry = {
       o('g6c-bell', 'bell', 330, 170),
       o('g6c-flipflop', 'logic_gate', 160, 400, { mode: 'toggle' }),
       o('g6c-laser', 'laser', 90, 470, { alwaysOn: false, color: 'red' }),
-      o('g6c-sensor-a', 'light_sensor', 560, 120),
-      o('g6c-sensor-b', 'light_sensor', 1090, 520, {}, -90 * DEG),
+      o('g6c-sensor-a', 'light_sensor', 560, 120, {}, 45 * DEG),
+      o('g6c-sensor-b', 'light_sensor', 1090, 520, {}, 45 * DEG),
       o('g6c-and', 'logic_gate', 660, 400, { mode: 'and' }),
       o('g6c-glove', 'boxing_glove', 570, 256, { power: 1200 }),
       o('g6c-bowl', 'bowling_ball', 620, 253),
@@ -346,26 +349,26 @@ const strike: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('s-split', 'beam_splitter', 370, 470, {}, UP),
-        o('s-a1', 'mirror', 370, 120, {}, UP),
-        o('s-b1', 'mirror', 432, 470, {}, UP),
-        o('s-b2', 'mirror', 432, 200, {}, UP),
+        o('s-split', 'beam_splitter', 390, 470, {}, UP),
+        o('s-a1', 'mirror', 380, 120, {}, UP),
+        o('s-b1', 'mirror', 450, 470, {}, UP),
+        o('s-b2', 'mirror', 440, 200, {}, UP),
         o('s-b3', 'mirror', 820, 200, {}, DOWN),
-        o('s-b4', 'mirror', 820, 520, {}, DOWN),
+        o('s-b4', 'mirror', 810, 520, {}, DOWN),
       ],
       connections: [],
     },
     // ABSURD: a second splitter skims the rising beam off to the left, into a spare mirror and up into a shelf.
     {
       objects: [
-        o('s-split', 'beam_splitter', 370, 470, {}, UP),
-        o('s-a1', 'mirror', 370, 120, {}, UP),
-        o('s-b1', 'mirror', 432, 470, {}, UP),
-        o('s-split-2', 'beam_splitter', 432, 380, {}, DOWN),
+        o('s-split', 'beam_splitter', 390, 470, {}, UP),
+        o('s-a1', 'mirror', 380, 120, {}, UP),
+        o('s-b1', 'mirror', 450, 470, {}, UP),
+        o('s-split-2', 'beam_splitter', 440, 380, {}, DOWN),
         o('s-spare', 'mirror', 300, 380, {}, DOWN),
-        o('s-b2', 'mirror', 432, 200, {}, UP),
+        o('s-b2', 'mirror', 440, 200, {}, UP),
         o('s-b3', 'mirror', 820, 200, {}, DOWN),
-        o('s-b4', 'mirror', 820, 520, {}, DOWN),
+        o('s-b4', 'mirror', 810, 520, {}, DOWN),
       ],
       connections: [],
     },
@@ -375,12 +378,12 @@ const strike: CampaignEntry = {
       why: 'a mirror where the splitter goes lights only one sensor, and the glove wants both',
       build: {
         objects: [
-          o('s-split', 'mirror', 370, 470, {}, UP),
-          o('s-a1', 'mirror', 370, 120, {}, UP),
-          o('s-b1', 'mirror', 432, 470, {}, UP),
-          o('s-b2', 'mirror', 432, 200, {}, UP),
+          o('s-split', 'mirror', 390, 470, {}, UP),
+          o('s-a1', 'mirror', 380, 120, {}, UP),
+          o('s-b1', 'mirror', 450, 470, {}, UP),
+          o('s-b2', 'mirror', 440, 200, {}, UP),
           o('s-b3', 'mirror', 820, 200, {}, DOWN),
-          o('s-b4', 'mirror', 820, 520, {}, DOWN),
+          o('s-b4', 'mirror', 810, 520, {}, DOWN),
         ],
         connections: [],
       },
@@ -391,14 +394,14 @@ const strike: CampaignEntry = {
 // ---------------------------------------------------------------- 6-5: party poppers
 
 const partyBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
-  o('s-bat', 'battery', 300, 600),
+  o('s-bat', 'battery', 260, 600),
   o('s-m1', 'mirror', 400, 560, {}, UP),
   ...extra,
-  o('s-split-1', 'beam_splitter', 400, 114, {}, UP),
-  o('s-m2', 'mirror', 400, 60, {}, UP),
+  o('s-split-1', 'beam_splitter', 390, 110, {}, UP),
+  o('s-m2', 'mirror', 390, 60, {}, UP),
   o('s-m3', 'mirror', 700, 60, {}, DOWN),
-  o('s-split-2', 'beam_splitter', 700, 274, {}, DOWN),
-  o('s-m4', 'mirror', 700, 434, {}, DOWN),
+  o('s-split-2', 'beam_splitter', 700, 280, {}, DOWN),
+  o('s-m4', 'mirror', 690, 430, {}, DOWN),
 ];
 const party: CampaignEntry = {
   chapter: 6,
@@ -419,11 +422,12 @@ const party: CampaignEntry = {
       o('g6e-floor-2', 'wall', 970, 326, { w: 300, h: 12, material: 'steel' }),
       o('g6e-floor-3', 'wall', 970, 486, { w: 300, h: 12, material: 'steel' }),
       o('g6e-basement', 'wall', 826, 561, { w: 12, h: 138, material: 'brick' }),
-      o('g6e-sill-1', 'wall', 976, 145, { w: 8, h: 30, material: 'wood' }),
-      o('g6e-sill-2', 'wall', 976, 305, { w: 8, h: 30, material: 'wood' }),
-      o('g6e-sill-3', 'wall', 976, 465, { w: 8, h: 30, material: 'wood' }),
+      // the sills reach just past each balloon's knot, so a beam anywhere across the balloon still pops it
+      o('g6e-sill-1', 'wall', 976, 148.5, { w: 8, h: 23, material: 'wood' }),
+      o('g6e-sill-2', 'wall', 976, 309, { w: 8, h: 22, material: 'wood' }),
+      o('g6e-sill-3', 'wall', 976, 468.5, { w: 8, h: 23, material: 'wood' }),
       o('g6e-hook-1', 'hook', 1000, 154),
-      o('g6e-hook-2', 'hook', 1000, 314),
+      o('g6e-hook-2', 'hook', 1000, 315),
       o('g6e-hook-3', 'hook', 1000, 474),
     ],
     startingObjects: [
@@ -431,9 +435,9 @@ const party: CampaignEntry = {
       o('g6e-glove', 'boxing_glove', 92, 226, { power: 550 }),
       o('g6e-chicken', 'rubber_chicken', 150, 234),
       o('g6e-plate', 'pressure_plate', 490, 621, { minMass: 0.3 }),
-      o('g6e-laser', 'laser', 90, 560, { alwaysOn: false, color: 'red' }),
+      o('g6e-laser', 'laser', 90, 559, { alwaysOn: false, color: 'red' }),
       o('g6e-balloon-1', 'balloon', 1000, 114, { lift: 1.5, color: 'red' }),
-      o('g6e-balloon-2', 'balloon', 1000, 274, { lift: 1.5, color: 'yellow' }),
+      o('g6e-balloon-2', 'balloon', 1000, 275, { lift: 1.5, color: 'yellow' }),
       o('g6e-balloon-3', 'balloon', 1000, 434, { lift: 1.5, color: 'teal' }),
       o('g6e-cat', 'cat', 1000, 617, {}, 0, true),
     ],
@@ -488,15 +492,15 @@ const party: CampaignEntry = {
 // ---------------------------------------------------------------- 6-6: make a wish
 
 const wishBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
-  o('s-chicken', 'rubber_chicken', 235, 602),
+  o('s-chicken', 'rubber_chicken', 240, 602),
   o('s-ramp', 'plank', 384, 599, { length: 110 }, -25 * DEG),
   o('s-bat', 'battery', 40, 600),
-  o('s-m1', 'mirror', 120, 193, {}, UP),
-  o('s-m2', 'mirror', 170, 161, {}, UP),
-  o('s-m3', 'mirror', 220, 129, {}, UP),
-  o('s-m4', 'mirror', 270, 97, {}, UP),
+  o('s-m1', 'mirror', 120, 190, {}, UP),
+  o('s-m2', 'mirror', 170, 160, {}, UP),
+  o('s-m3', 'mirror', 220, 130, {}, UP),
+  o('s-m4', 'mirror', 270, 100, {}, UP),
   ...extra,
-  o('s-lens', 'lens', 480, 151, { focal: 200 }),
+  o('s-lens', 'lens', 390, 160, { focal: 290 }),
 ];
 const wishWires = [wire('s-w1', 's-bat', 'g6f-switch')];
 const wish: CampaignEntry = {
@@ -513,25 +517,24 @@ const wish: CampaignEntry = {
       o('g6f-laser-shelf', 'wall', 195, 330, { w: 220, h: 12, material: 'steel' }),
       o('g6f-switch-shelf', 'wall', 520, 580, { w: 160, h: 12, material: 'steel' }),
       o('g6f-pen', 'wall', 604, 608, { w: 8, h: 44, material: 'steel' }),
-      o('g6f-wall-top', 'wall', 680, 65, { w: 20, h: 130, material: 'brick' }),
-      o('g6f-wall-bottom', 'wall', 680, 395, { w: 20, h: 470, material: 'brick' }),
-      o('g6f-tier-1', 'wall', 1000, 98, { w: 40, h: 6, material: 'wood' }),
-      o('g6f-tier-2', 'wall', 900, 157, { w: 40, h: 6, material: 'wood' }),
-      o('g6f-tier-3', 'wall', 960, 197, { w: 40, h: 6, material: 'wood' }),
-      o('g6f-tier-4', 'wall', 1040, 261, { w: 40, h: 6, material: 'wood' }),
-      o('g6f-grill', 'wall', 1050, 212, { w: 80, h: 6, material: 'steel' }),
+      o('g6f-wall-top', 'wall', 680, 70, { w: 20, h: 140, material: 'brick' }),
+      o('g6f-wall-bottom', 'wall', 680, 405, { w: 20, h: 450, material: 'brick' }),
+      // the candles stand in a rising staircase, each one just above the next beam down, so a
+      // beam that lands a little high or low still finds its own wick and never a neighbour's
+      o('g6f-tier-4', 'wall', 1030, 242.8, { w: 40, h: 6, material: 'wood' }),
+      o('g6f-grill', 'wall', 1040, 193.8, { w: 80, h: 6, material: 'steel' }),
     ],
     startingObjects: [
       o('g6f-ball', 'ball', 40, 385),
-      o('g6f-catch', 'bucket', 235, 598),
+      o('g6f-catch', 'bucket', 240, 598),
       o('g6f-cat', 'cat', 300, 617),
       o('g6f-switch', 'toggle_switch', 520, 555),
-      ...[0, 1, 2, 3].map((k) => o(`g6f-laser-${k + 1}`, 'laser', 120 + 50 * k, 296, { alwaysOn: false, color: 'red' }, -90 * DEG)),
-      o('g6f-candle-1', 'candle', 1000, 66, { lit: false }),
-      o('g6f-candle-2', 'candle', 900, 125, { lit: false }),
-      o('g6f-candle-3', 'candle', 960, 165, { lit: false }),
-      o('g6f-candle-4', 'candle', 1040, 229, { lit: false }),
-      o('g6f-teapot', 'teapot', 1046, 188),
+      ...[110, 164, 212, 258].map((x, k) => o(`g6f-laser-${k + 1}`, 'laser', x, 296, { alwaysOn: false, color: 'red' }, -90 * DEG)),
+      o('g6f-candle-1', 'candle', 930, 114, { lit: false }),
+      o('g6f-candle-2', 'candle', 960, 141.1, { lit: false }),
+      o('g6f-candle-3', 'candle', 990, 169, { lit: false }),
+      o('g6f-candle-4', 'candle', 1030, 210.8, { lit: false }),
+      o('g6f-teapot', 'teapot', 1036, 169.8),
     ],
     connections: [0, 1, 2, 3].map((k) => wire(`g6f-w${k + 1}`, 'g6f-switch', `g6f-laser-${k + 1}`, 'in', 'out')),
     inventory: [
@@ -558,7 +561,7 @@ const wish: CampaignEntry = {
   solutions: [
     { objects: wishBuild(), connections: wishWires },
     // ABSURD: a splitter skims half of one beam off underneath the lens, into a spare mirror and down onto the plank.
-    { objects: wishBuild([o('s-split', 'beam_splitter', 120, 235, {}, UP), o('s-m5', 'mirror', 400, 235, {}, DOWN)]), connections: wishWires },
+    { objects: wishBuild([o('s-split', 'beam_splitter', 120, 240, {}, UP), o('s-m5', 'mirror', 400, 240, {}, DOWN)]), connections: wishWires },
   ],
   counterexamples: [
     {
@@ -673,13 +676,13 @@ const colourCoded: CampaignEntry = {
 const relayBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
   o('s-bat', 'battery', 470, 600),
   o('s-a1', 'mirror', 420, 300, {}, UP),
-  o('s-a2', 'mirror', 420, 60, {}, UP),
+  o('s-a2', 'mirror', 410, 60, {}, UP),
   o('s-a3', 'mirror', 700, 60, {}, DOWN),
   o('s-green', 'color_filter', 720, 330, { color: 'green' }),
   o('s-b1', 'mirror', 840, 330, {}, DOWN),
-  o('s-b2', 'mirror', 840, 470, {}, DOWN),
+  o('s-b2', 'mirror', 830, 470, {}, DOWN),
   o('s-c1', 'mirror', 980, 380, {}, DOWN),
-  o('s-c2', 'mirror', 980, 100, {}, DOWN),
+  o('s-c2', 'mirror', 990, 100, {}, DOWN),
   o('s-bell', 'bell', 760, 594),
   ...extra,
 ];
@@ -704,9 +707,9 @@ const relay: CampaignEntry = {
       o('g6h-cat-1', 'cat', 110, 180),
       o('g6h-switch', 'toggle_switch', 250, 167),
       o('g6h-laser-a', 'laser', 50, 300, { alwaysOn: false, color: 'red' }),
-      o('g6h-sensor-1', 'light_sensor', 700, 250),
+      o('g6h-sensor-1', 'light_sensor', 696, 250, {}, 45 * DEG),
       o('g6h-laser-b', 'laser', 640, 330, { alwaysOn: false, color: 'white' }),
-      o('g6h-sensor-2', 'light_sensor', 930, 470, { color: 'green' }, 90 * DEG),
+      o('g6h-sensor-2', 'light_sensor', 930, 469, { color: 'green' }, 45 * DEG),
       o('g6h-laser-c', 'laser', 1060, 380, { alwaysOn: false, color: 'red' }, 0, true),
       o('g6h-hook', 'hook', 760, 30),
       o('g6h-crate', 'crate', 760, 200),
@@ -765,15 +768,15 @@ const relay: CampaignEntry = {
 // ---------------------------------------------------------------- 6-9: tripwire
 
 const tripBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
-  o('s-plank', 'plank', 285, 206, { length: 86 }),
+  o('s-plank', 'plank', 290, 220, { length: 80 }),
   o('s-bat', 'battery', 250, 601),
   o('s-t1', 'mirror', 200, 560, {}, UP),
-  o('s-t2', 'mirror', 200, 420, {}, UP),
-  o('s-green', 'color_filter', 270, 431, { color: 'green' }),
+  o('s-t2', 'mirror', 190, 420, {}, UP),
+  o('s-green', 'color_filter', 270, 421, { color: 'green' }),
   o('s-l1', 'mirror', 800, 450, {}, UP),
   o('s-split', 'beam_splitter', 800, 300, {}, UP),
-  o('s-l2', 'mirror', 800, 80, {}, UP),
-  o('s-l3', 'mirror', 1090, 300, {}, UP),
+  o('s-l2', 'mirror', 790, 80, {}, UP),
+  o('s-l3', 'mirror', 1090, 310, {}, UP),
   o('s-l4', 'mirror', 1090, 80, {}, DOWN),
   o('s-chicken', 'rubber_chicken', 900, 619),
   ...extra,
@@ -790,7 +793,8 @@ const tripwire: CampaignEntry = {
     world: WORLD(),
     fixedObjects: [
       o('g6i-shelf', 'plank', 130, 200, { length: 220 }),
-      o('g6i-ledge', 'plank', 390, 216, { length: 120 }),
+      // the ledge sits a step below the shelf, so a bridging plank anywhere in between carries the ball down
+      o('g6i-ledge', 'plank', 390, 240, { length: 120 }),
       o('g6i-wall', 'wall', 620, 395, { w: 30, h: 470, material: 'brick' }),
       o('g6i-toast-shelf', 'wall', 700, 172, { w: 110, h: 12, material: 'steel' }),
       o('g6i-toast-lip', 'wall', 752, 154, { w: 6, h: 24, material: 'steel' }),
@@ -801,14 +805,14 @@ const tripwire: CampaignEntry = {
       o('g6i-glove', 'boxing_glove', 50, 176, { power: 450 }),
       o('g6i-ball', 'basketball', 110, 177),
       o('g6i-laser-t', 'laser', 40, 560, { alwaysOn: false, color: 'white' }),
-      o('g6i-sensor', 'light_sensor', 580, 431, { color: 'green' }, 90 * DEG),
+      o('g6i-sensor', 'light_sensor', 580, 421, { color: 'green' }, 45 * DEG),
       o('g6i-not', 'logic_gate', 300, 290, { mode: 'not' }),
       o('g6i-arm', 'timer', 300, 360, { delay: 0 }),
       o('g6i-and', 'logic_gate', 390, 320, { mode: 'and' }),
       o('g6i-hoop', 'basketball_hoop', 530, 320, {}, 0, true),
       o('g6i-toaster', 'toaster', 690, 142, { delay: 0.6, power: 300 }),
       o('g6i-latch', 'timer', 720, 250, { delay: 0 }),
-      o('g6i-laser-2', 'laser', 690, 450, { alwaysOn: false, color: 'red' }),
+      o('g6i-laser-2', 'laser', 690, 447, { alwaysOn: false, color: 'red' }),
       o('g6i-hook-1', 'hook', 900, 20),
       o('g6i-crate-1', 'crate', 900, 200),
       o('g6i-hook-2', 'hook', 1030, 20),
@@ -878,15 +882,15 @@ const showBuild = (extra: ObjectDef[] = []): ObjectDef[] => [
   o('s-split-1', 'beam_splitter', 200, 300, {}, DOWN),
   o('s-red', 'color_filter', 260, 300, { color: 'red' }),
   o('s-r1', 'mirror', 520, 300, {}, UP),
-  o('s-r2', 'mirror', 520, 40, {}, UP),
+  o('s-r2', 'mirror', 510, 40, {}, UP),
   o('s-split-2', 'beam_splitter', 200, 430, {}, DOWN),
-  o('s-green', 'color_filter', 260, 441, { color: 'green' }),
-  o('s-g1', 'mirror', 600, 430, {}, UP),
-  o('s-g2', 'mirror', 600, 90, {}, UP),
+  o('s-green', 'color_filter', 260, 420, { color: 'green' }),
+  o('s-g1', 'mirror', 600, 420, {}, UP),
+  o('s-g2', 'mirror', 590, 90, {}, UP),
   o('s-g3', 'mirror', 900, 90, {}, DOWN),
-  o('s-w1', 'mirror', 200, 560, {}, DOWN),
-  o('s-w2', 'mirror', 780, 560, {}, UP),
-  o('s-w3', 'mirror', 780, 459, {}, UP),
+  o('s-w1', 'mirror', 190, 570, {}, DOWN),
+  o('s-w2', 'mirror', 780, 570, {}, UP),
+  o('s-w3', 'mirror', 770, 470, {}, UP),
   ...extra,
 ];
 const lightShow: CampaignEntry = {
@@ -914,8 +918,9 @@ const lightShow: CampaignEntry = {
       o('g6j-bell', 'bell', 362, 112),
       o('g6j-latch', 'timer', 420, 200, { delay: 0 }),
       o('g6j-laser', 'laser', 60, 300, { alwaysOn: false, color: 'white' }),
-      o('g6j-red', 'light_sensor', 800, 51, { color: 'red' }, 90 * DEG),
-      o('g6j-green', 'light_sensor', 900, 190, { color: 'green' }),
+      // both sensors stand on a corner so a beam can land anywhere across a 48px face
+      o('g6j-red', 'light_sensor', 800, 41, { color: 'red' }, 45 * DEG),
+      o('g6j-green', 'light_sensor', 897, 190, { color: 'green' }, 45 * DEG),
       o('g6j-glove', 'boxing_glove', 755, 306, { power: 300 }),
       o('g6j-ball', 'basketball', 810, 307),
       o('g6j-hoop', 'basketball_hoop', 1080, 480, {}, 0, true),
