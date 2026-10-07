@@ -17,7 +17,14 @@ const rope = (id: string, from: string, fromPort: string, to: string, toPort: st
 const WORLD = { ...STANDARD_WORLD };
 const DEG = Math.PI / 180;
 
-// ---------------------------------------------------------------- 4-1: burn the tether, breeze the balloon
+// ---------------------------------------------------------------- 4-1: balloon rings the breakfast bell, the toaster wakes the cat
+
+const M1_BUILD = {
+  candle: o('s-candle', 'candle', 172, 601),
+  fan: o('s-fan', 'fan', 60, 122, { strength: 5, range: 700 }),
+  battery: o('s-battery', 'battery', 60, 601),
+  bridge: o('s-bridge', 'plank', 940, 557, { length: 110 }),
+};
 
 const upUpAndAway: CampaignEntry = {
   chapter: 4,
@@ -25,272 +32,262 @@ const upUpAndAway: CampaignEntry = {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g4-up-up-and-away',
     name: 'Up, Up and Away',
-    description: 'The prize balloon is tied down, and the greenhouse roof is in the way. Set it free, then breeze it across into the drying loft.',
+    description: 'Whiskers is sleeping through breakfast. Free the balloon and breeze it along the ceiling into the breakfast bell. The bell starts the toaster, nobody sleeps through a toaster DING, and Whiskers will want to cross to the mat.',
     environment: 'greenhouse',
     world: WORLD,
     fixedObjects: [
-      o('g4a-roof', 'wall', 430, 72, { w: 860, h: 24, material: 'steel' }),
-      o('g4a-loft-cap', 'wall', 990, 34, { w: 260, h: 20, material: 'steel' }),
-      o('g4a-loft-end', 'wall', 1080, 92, { w: 12, h: 96, material: 'wood' }),
-      o('g4a-planter', 'wall', 980, 610, { w: 200, h: 40, material: 'wood' }),
-      o('g4a-tether-hook', 'hook', 420, 610),
-      o('g4a-cactus', 'cactus', 960, 562),
+      o('g4a-ceiling', 'wall', 560, 80, { w: 1120, h: 20, material: 'steel' }),
+      o('g4a-hook', 'hook', 170, 612),
+      o('g4a-bell', 'bell', 720, 114),
+      o('g4a-counter', 'wall', 720, 590, { w: 320, h: 80, material: 'wood' }),
+      o('g4a-counter-notch', 'wall', 890, 597, { w: 20, h: 66, material: 'wood' }),
+      o('g4a-toaster', 'toaster', 620, 526, { delay: 1 }),
+      o('g4a-bed-l', 'wall', 666, 535, { w: 16, h: 30, material: 'wood' }),
+      o('g4a-bed-r', 'wall', 734, 545, { w: 16, h: 10, material: 'wood' }),
+      o('g4a-pit-cactus', 'cactus', 940, 601),
+      o('g4a-landing-notch', 'wall', 990, 597, { w: 20, h: 66, material: 'wood' }),
+      o('g4a-landing', 'wall', 1060, 590, { w: 120, h: 80, material: 'wood' }),
+      o('g4a-mat', 'pressure_plate', 1038, 543, { minMass: 2 }),
+      o('g4a-lamp', 'light_bulb', 1050, 440),
+      o('g4a-lamp-battery', 'battery', 1100, 522),
     ],
-    startingObjects: [o('g4a-balloon', 'balloon', 420, 380, { lift: 1, color: 'yellow' })],
-    connections: [rope('g4a-tether', 'g4a-tether-hook', 'hook', 'g4a-balloon', 'string')],
+    startingObjects: [o('g4a-balloon', 'balloon', 170, 400, { lift: 1, color: 'yellow' }), o('g4a-cat', 'cat', 700, 537)],
+    connections: [
+      rope('g4a-tether', 'g4a-hook', 'hook', 'g4a-balloon', 'string'),
+      wire('g4a-w1', 'g4a-bell', 'out', 'g4a-toaster', 'in'),
+      wire('g4a-w2', 'g4a-lamp-battery', 'out', 'g4a-mat', 'in'),
+      wire('g4a-w3', 'g4a-mat', 'out', 'g4a-lamp', 'in'),
+    ],
     inventory: [
       { type: 'candle', count: 1 },
       { type: 'fan', count: 1 },
       { type: 'battery', count: 1 },
-      { type: 'ball', count: 1 },
-    ],
-    goals: [
-      {
-        kind: 'enterRegion',
-        target: { id: 'g4a-balloon' },
-        region: { x: 862, y: 44, w: 212, h: 86 },
-        hold: 0.5,
-        label: 'Float the balloon into the drying loft',
-      },
-    ],
-    restrictions: { timeLimit: 20 },
-    bonus: { elegantParts: 3, elegantTime: 6, absurdStages: 4 },
-    hints: [
-      'A candle flame burns through any rope that passes right over it. Keep it away from the balloon itself.',
-      'Once it is free the balloon just bumps against the roof. A fan pushes light things a long way.',
-      'Mount the fan up by the roof, left of the balloon, pointing right, and turn its Reach up. Fans need a battery.',
-    ],
-    guide: [
-      {
-        text: 'The balloon is tied to the floor. Drag the Candle right under its rope: a flame burns through rope.',
-        point: { bin: 'candle' },
-        ghost: { type: 'candle', x: 420, y: 601 },
-        until: { kind: 'place', type: 'candle', at: { x: 420, y: 601 }, radius: 40 },
-      },
-      {
-        text: 'Free balloons stop at the roof. Put the Fan up by the roof, left of the balloon, blowing right.',
-        point: { bin: 'fan' },
-        ghost: { type: 'fan', x: 300, y: 122 },
-        until: { kind: 'place', type: 'fan' },
-      },
-      {
-        text: 'Fans need power. Place the Battery, pick the Wire tool, then click the battery terminal and the fan socket.',
-        point: { bin: 'battery' },
-        until: { kind: 'connect', connection: 'wire' },
-      },
-      { text: 'Press RUN and watch it go.', point: { hud: 'run' }, until: { kind: 'run' } },
-    ],
-    metadata: { chapter: 4, order: 1, author: 'Follyworks', blurb: 'Snip, float, whoosh.' },
-  },
-  solutions: [
-    {
-      objects: [o('s-candle', 'candle', 422, 601), o('s-fan', 'fan', 300, 122, { strength: 6, range: 700 }), o('s-battery', 'battery', 120, 601)],
-      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
-    },
-    // ABSURD: the same, plus a rubber ball dropped on the balloon on its way up.
-    {
-      objects: [
-        o('s-candle', 'candle', 422, 601),
-        o('s-fan', 'fan', 300, 122, { strength: 6, range: 700 }),
-        o('s-battery', 'battery', 120, 601),
-        o('s-ball', 'ball', 428, 300),
-      ],
-      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
-    },
-  ],
-  counterexamples: [
-    {
-      why: 'the fan has no power',
-      build: { objects: [o('s-candle', 'candle', 422, 601), o('s-fan', 'fan', 300, 122, { strength: 6, range: 700 })], connections: [] },
-    },
-  ],
-};
-
-// ---------------------------------------------------------------- 4-2: Bolt parks himself on the dock plate
-
-const dockLights: CampaignEntry = {
-  chapter: 4,
-  level: {
-    schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g4-dock-lights',
-    name: 'Dock Lights',
-    description: 'Bolt is out of juice. Power him up, get him across the gap, and park him on the plate so the dock lamp stays lit for five seconds.',
-    environment: 'basement',
-    world: WORLD,
-    fixedObjects: [
-      o('g4b-left-wall', 'wall', 66, 520, { w: 16, h: 140, material: 'brick' }),
-      o('g4b-floor-l', 'wall', 260, 610, { w: 420, h: 40, material: 'concrete' }),
-      o('g4b-ledge-l', 'wall', 485, 617, { w: 30, h: 26, material: 'concrete' }),
-      o('g4b-ledge-r', 'wall', 655, 617, { w: 30, h: 26, material: 'concrete' }),
-      o('g4b-floor-r', 'wall', 885, 610, { w: 430, h: 40, material: 'concrete' }),
-      o('g4b-dock-back', 'wall', 1072, 480, { w: 16, h: 220, material: 'steel' }),
-      o('g4b-plate', 'pressure_plate', 968, 583, { minMass: 2 }),
-      o('g4b-lamp', 'light_bulb', 1010, 430),
-    ],
-    startingObjects: [o('g4b-bolt', 'robot', 160, 566, { speed: 70, awake: false })],
-    connections: [wire('g4b-w1', 'g4b-plate', 'out', 'g4b-lamp', 'in')],
-    inventory: [
-      { type: 'battery', count: 1 },
-      { type: 'toggle_switch', count: 1 },
       { type: 'plank', count: 1 },
       { type: 'magnet', count: 1 },
     ],
-    goals: [{ kind: 'activate', target: { id: 'g4b-lamp' }, duration: 5, label: 'Keep the dock lamp lit for 5 seconds' }],
-    restrictions: { timeLimit: 30 },
-    bonus: { elegantParts: 3, absurdStages: 6 },
+    goals: [{ kind: 'activate', target: { id: 'g4a-lamp' }, label: 'Get Whiskers onto the mat to light the GOOD MORNING lamp' }],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 4, elegantTime: 6, absurdStages: 9 },
     hints: [
-      'Bolt cannot jump. Lay a plank across the gap, resting on the little ledges, so he can walk over it.',
-      'The plate only passes power along if it gets some: wire your battery to the plate as well as to Bolt.',
-      'Left powered, Bolt bumps the back wall, turns round and wanders off. Put a flipped toggle switch (starts ON) between the battery and Bolt, right over the plate, so walking through it turns him OFF.',
+      'A candle flame burns through any rope that passes right over it. Once it is free, the balloon floats up to the ceiling.',
+      'A fan up by the ceiling, wired to the battery, blows the balloon along it into the bell. Cats run off the way they face once awake.',
+      'Candle on the floor right under the tether, fan high on the far left, and a plank across the cactus pit, resting on both ledges, so Whiskers can trot over to the mat.',
     ],
-    metadata: { chapter: 4, order: 2, author: 'Follyworks', blurb: 'Power on. Power off. Good robot.' },
+    metadata: { chapter: 4, order: 1, author: 'Follyworks', blurb: 'Snip, float, DING, toast, yowl, trot.' },
   },
   solutions: [
     {
-      objects: [
-        o('s-battery', 'battery', 108, 561),
-        o('s-bridge', 'plank', 570, 597, { length: 200 }),
-        o('s-switch', 'toggle_switch', 962, 556, { on: true }, 0, true),
-      ],
-      connections: [
-        wire('s-w1', 's-battery', 'out', 's-switch', 'in'),
-        wire('s-w2', 's-switch', 'out', 'g4b-bolt', 'in'),
-        wire('s-w3', 's-battery', 'out', 'g4b-plate', 'in'),
-      ],
+      objects: [M1_BUILD.candle, M1_BUILD.fan, M1_BUILD.battery, M1_BUILD.bridge],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
     },
+    // ABSURD: the same, plus an electromagnet humming away for no reason at all.
     {
-      // A full-strength magnet behind the dock holds Bolt on the plate instead of a switch.
-      objects: [
-        o('s-battery', 'battery', 108, 561),
-        o('s-bridge', 'plank', 570, 597, { length: 200 }),
-        o('s-magnet', 'magnet', 1034, 567, { strength: 10, reach: 200 }, 0, true),
-      ],
-      connections: [
-        wire('s-w1', 's-battery', 'out', 'g4b-bolt', 'in'),
-        wire('s-w2', 's-battery', 'out', 's-magnet', 'in'),
-        wire('s-w3', 's-battery', 'out', 'g4b-plate', 'in'),
-      ],
-    },
-    // ABSURD: belt and braces: the switch turns Bolt off and the magnet grabs him too.
-    {
-      objects: [
-        o('s-battery', 'battery', 108, 561),
-        o('s-bridge', 'plank', 570, 597, { length: 200 }),
-        o('s-switch', 'toggle_switch', 962, 556, { on: true }, 0, true),
-        o('s-magnet', 'magnet', 1034, 567, { strength: 10, reach: 200 }, 0, true),
-      ],
-      connections: [
-        wire('s-w1', 's-battery', 'out', 's-switch', 'in'),
-        wire('s-w2', 's-switch', 'out', 'g4b-bolt', 'in'),
-        wire('s-w3', 's-battery', 'out', 'g4b-plate', 'in'),
-        wire('s-w4', 's-battery', 'out', 's-magnet', 'in'),
-      ],
+      objects: [M1_BUILD.candle, M1_BUILD.fan, M1_BUILD.battery, M1_BUILD.bridge, o('s-magnet', 'magnet', 300, 560)],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 's-magnet', 'in')],
     },
   ],
   counterexamples: [
     {
-      why: 'Bolt is powered straight from the battery and never stops',
-      build: {
-        objects: [o('s-battery', 'battery', 108, 561), o('s-bridge', 'plank', 570, 597, { length: 200 })],
-        connections: [wire('s-w1', 's-battery', 'out', 'g4b-bolt', 'in'), wire('s-w3', 's-battery', 'out', 'g4b-plate', 'in')],
-      },
+      why: 'there is no bridge, so Whiskers runs straight into the cactus pit',
+      build: { objects: [M1_BUILD.candle, M1_BUILD.fan, M1_BUILD.battery], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
     },
     {
-      why: 'there is no bridge over the gap',
-      build: {
-        objects: [o('s-battery', 'battery', 108, 561), o('s-switch', 'toggle_switch', 962, 556, { on: true }, 0, true)],
-        connections: [
-          wire('s-w1', 's-battery', 'out', 's-switch', 'in'),
-          wire('s-w2', 's-switch', 'out', 'g4b-bolt', 'in'),
-          wire('s-w3', 's-battery', 'out', 'g4b-plate', 'in'),
-        ],
-      },
+      why: 'the fan has no power',
+      build: { objects: [M1_BUILD.candle, M1_BUILD.fan, M1_BUILD.battery, M1_BUILD.bridge], connections: [] },
+    },
+    {
+      why: 'the candle is put right beside the cat bed to warm Whiskers up',
+      build: { objects: [o('s-candle', 'candle', 765, 521), M1_BUILD.bridge], connections: [] },
+    },
+    {
+      why: 'the fan blows straight at the sleeping cat',
+      build: { objects: [o('s-fan', 'fan', 700, 440, { strength: 10, range: 300 }, 90 * DEG), M1_BUILD.battery, M1_BUILD.bridge], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
     },
   ],
 };
 
-// ---------------------------------------------------------------- 4-3: balloons vs a wooden crate
+// ---------------------------------------------------------------- 4-2: teapot steam, bell, toaster, mousetrap: dunk the toast
 
-const lighterThanAir: CampaignEntry = {
+const M2_BUILD = {
+  candle: o('s-candle', 'candle', 150, 190),
+  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 22 * DEG),
+  plankB: o('s-plank-b', 'plank', 717, 350, { length: 100 }, 20 * DEG),
+  trap: o('s-trap', 'mousetrap', 295, 625),
+};
+
+const toastDunk: CampaignEntry = {
   chapter: 4,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g4-lighter-than-air',
-    name: 'Lighter Than Air',
-    description: 'Float the crate up through the hatch into the attic. One balloon will not cut it. A couple might, if you puff them up. Mind the cacti.',
-    environment: 'research',
+    id: 'g4-tea-off',
+    name: 'Tea-Off',
+    description: 'Put the kettle on! A boiling teapot blows the ball off its perch, down the track to the bell, and the bell starts the toaster. Mend the track and catch the toast on a mousetrap to slam-dunk it through the hoop.',
+    environment: 'basement',
     world: WORLD,
     fixedObjects: [
-      o('g4c-attic-l', 'wall', 230, 300, { w: 460, h: 20, material: 'wood' }),
-      o('g4c-attic-r', 'wall', 890, 300, { w: 460, h: 20, material: 'wood' }),
-      o('g4c-attic-roof', 'wall', 560, 48, { w: 1120, h: 16, material: 'wood' }),
-      o('g4c-cactus-l', 'cactus', 436, 262),
-      o('g4c-cactus-r', 'cactus', 684, 262),
+      o('g4b-hob', 'wall', 130, 170, { w: 150, h: 14, material: 'steel' }),
+      o('g4b-perch', 'wall', 232, 126, { w: 44, h: 12, material: 'wood' }),
+      o('g4b-backstop', 'wall', 352, 125, { w: 12, h: 130, material: 'wood' }),
+      o('g4b-track-1', 'plank', 325, 230, { length: 194 }, 12 * DEG),
+      o('g4b-track-2', 'plank', 602, 324, { length: 120 }, 6 * DEG),
+      o('g4b-track-3', 'plank', 826, 384, { length: 110 }, 6 * DEG),
+      o('g4b-bell', 'bell', 912, 374),
+      o('g4b-toaster', 'toaster', 150, 606, { delay: 0.8, slices: 1 }, 15 * DEG),
+      o('g4b-sign', 'light_bulb', 60, 470),
+      o('g4b-hoop', 'basketball_hoop', 572, 416, {}, 0, true),
     ],
-    startingObjects: [o('g4c-crate', 'crate', 560, 608)],
-    connections: [],
+    startingObjects: [o('g4b-teapot', 'teapot', 150, 142), o('g4b-ball', 'ball', 232, 106), o('g4b-cat', 'cat', 580, 617, {}, 0, true)],
+    connections: [wire('g4b-w1', 'g4b-bell', 'out', 'g4b-toaster', 'in'), wire('g4b-w2', 'g4b-toaster', 'out', 'g4b-sign', 'in')],
     inventory: [
-      { type: 'balloon', count: 3 },
-      { type: 'rope', count: 3 },
+      { type: 'candle', count: 1 },
+      { type: 'plank', count: 2 },
+      { type: 'mousetrap', count: 1 },
       { type: 'fan', count: 1 },
       { type: 'battery', count: 1 },
     ],
-    goals: [{ kind: 'height', target: { id: 'g4c-crate' }, maxY: 262, label: 'Float the crate up into the attic' }],
-    restrictions: { timeLimit: 25 },
-    bonus: { elegantParts: 4, elegantTime: 5, absurdStages: 4 },
+    goals: [{ kind: 'containerCount', container: 'g4b-hoop', count: 1, filter: { type: 'toast' }, label: 'Slam-dunk the toast through the hoop' }],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 4, elegantTime: 8, absurdStages: 8 },
     hints: [
-      'Tie balloons to the crate’s top hook with ropes. Each balloon lifts a little under a kilo at normal size; the crate weighs three.',
-      'Turn up a balloon’s Lift in its properties to make it pull harder.',
-      'Two balloons at full Lift, tied short and straight above the crate, sail right up through the middle of the hatch.',
+      'A teapot on a flame boils in a second or two and blows steam out of its spout. A candle under the hob will do it.',
+      'The ball rolls down the track to the bell, but two pieces of track are missing. Fill each gap with a plank, sloping down a little.',
+      'The bell starts the toaster, and its toast lands just to the right. Put the mousetrap right there: SNAP, and the toast flies off to the hoop.',
     ],
-    metadata: { chapter: 4, order: 3, author: 'Follyworks', blurb: 'Party supplies as heavy machinery.' },
+    metadata: { chapter: 4, order: 2, author: 'Follyworks', blurb: 'Breakfast, with a jump shot.' },
   },
   solutions: [
     {
-      // Two maxed-out balloons.
-      objects: [o('s-b1', 'balloon', 535, 490, { lift: 2.5 }), o('s-b2', 'balloon', 585, 490, { lift: 2.5 })],
-      connections: [rope('s-r1', 's-b1', 'string', 'g4c-crate', 'hook'), rope('s-r2', 's-b2', 'string', 'g4c-crate', 'hook')],
+      objects: [M2_BUILD.candle, M2_BUILD.plankA, M2_BUILD.plankB, M2_BUILD.trap],
+      connections: [],
     },
+    // ABSURD: the same, plus a desk fan cheering the whole thing on from the corner.
     {
-      // Three well-inflated balloons.
-      objects: [
-        o('s-b1', 'balloon', 515, 500, { lift: 1.6 }),
-        o('s-b2', 'balloon', 560, 470, { lift: 1.6 }),
-        o('s-b3', 'balloon', 605, 500, { lift: 1.6 }),
-      ],
-      connections: [
-        rope('s-r1', 's-b1', 'string', 'g4c-crate', 'hook'),
-        rope('s-r2', 's-b2', 'string', 'g4c-crate', 'hook'),
-        rope('s-r3', 's-b3', 'string', 'g4c-crate', 'hook'),
-      ],
-    },
-    // ABSURD: three balloons stacked up the middle, with a floor fan giving the crate a shove.
-    {
-      objects: [
-        o('s-b1', 'balloon', 535, 500, { lift: 2.5 }),
-        o('s-b2', 'balloon', 585, 500, { lift: 2 }),
-        o('s-b3', 'balloon', 560, 440, { lift: 1 }),
-        o('s-fan', 'fan', 300, 590, { strength: 3, range: 400 }),
-        o('s-battery', 'battery', 200, 601),
-      ],
-      connections: [
-        rope('s-r1', 's-b1', 'string', 'g4c-crate', 'hook'),
-        rope('s-r2', 's-b2', 'string', 'g4c-crate', 'hook'),
-        rope('s-r3', 's-b3', 'string', 'g4c-crate', 'hook'),
-        wire('s-w1', 's-battery', 'out', 's-fan', 'in'),
-      ],
+      objects: [M2_BUILD.candle, M2_BUILD.plankA, M2_BUILD.plankB, M2_BUILD.trap, o('s-fan', 'fan', 1000, 560, { strength: 3, range: 120 }), o('s-battery', 'battery', 1080, 601)],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
     },
   ],
   counterexamples: [
     {
-      why: 'three balloons at normal size are not enough',
+      why: 'nothing heats the teapot',
+      build: { objects: [M2_BUILD.plankA, M2_BUILD.plankB, M2_BUILD.trap], connections: [] },
+    },
+    {
+      why: 'the second gap in the track is left open',
+      build: { objects: [M2_BUILD.candle, M2_BUILD.plankA, M2_BUILD.trap], connections: [] },
+    },
+    {
+      why: 'the toast has no mousetrap to land on',
+      build: { objects: [M2_BUILD.candle, M2_BUILD.plankA, M2_BUILD.plankB], connections: [] },
+    },
+  ],
+};
+
+// ---------------------------------------------------------------- 4-3: fan, ball, bell, toaster flicks the switch, the magnet drops Bolt into the pins
+
+const M3_PINS = [874, 904, 934, 964].map((x, i) => o(`g4c-pin-${i + 1}`, 'bowling_pin', x, 415));
+
+const M3_BUILD = {
+  fan: o('s-fan', 'fan', 56, 118, { strength: 2, range: 160 }),
+  battery: o('s-battery', 'battery', 40, 601),
+  gap: o('s-gap', 'plank', 440, 272, { length: 90 }, 15 * DEG),
+  bumper: o('s-bumper', 'plank', 612, 410, { length: 60 }, 90 * DEG),
+  bridge: o('s-bridge', 'plank', 810, 450, { length: 58 }),
+};
+
+const strike: CampaignEntry = {
+  chapter: 4,
+  level: {
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    id: 'g4-strike',
+    name: 'Bolt Bowls a Strike',
+    description: 'Bolt is stuck to the electromagnet, dreaming of bowling. Breeze the ball down to the bell, and the bell starts the toaster, whose toast flicks the magnet switch off. Then see that Bolt marches through the pins and onto the STRIKE plate.',
+    environment: 'garage',
+    world: WORLD,
+    fixedObjects: [
+      o('g4c-shelf', 'wall', 120, 162, { w: 180, h: 12, material: 'wood' }),
+      o('g4c-track', 'plank', 300, 240, { length: 200 }, 10 * DEG),
+      o('g4c-bell', 'bell', 510, 284),
+      o('g4c-toaster', 'toaster', 300, 606, { delay: 0.8, slices: 1 }, 15 * DEG),
+      o('g4c-switch', 'toggle_switch', 330, 505, { on: true }, 90 * DEG),
+      o('g4c-battery', 'battery', 200, 601),
+      o('g4c-divider', 'wall', 556, 315, { w: 12, h: 630, material: 'steel' }),
+      o('g4c-beam', 'wall', 680, 80, { w: 120, h: 16, material: 'steel' }),
+      o('g4c-magnet', 'magnet', 680, 116, { strength: 10, reach: 100 }, 90 * DEG),
+      o('g4c-chute-l', 'wall', 658, 176, { w: 8, h: 52, material: 'steel' }),
+      o('g4c-chute-r', 'wall', 702, 176, { w: 8, h: 52, material: 'steel' }),
+      o('g4c-lane-l', 'wall', 690, 450, { w: 180, h: 14, material: 'wood' }),
+      o('g4c-lane-r', 'wall', 912, 450, { w: 144, h: 14, material: 'wood' }),
+      o('g4c-plate', 'pressure_plate', 1022, 448, { minMass: 2.9 }),
+      o('g4c-sign', 'light_bulb', 1020, 300),
+    ],
+    startingObjects: [o('g4c-ball', 'ball', 180, 142), o('g4c-bolt', 'robot', 680, 170, { speed: 160 }, 0, true), ...M3_PINS],
+    connections: [
+      wire('g4c-w1', 'g4c-bell', 'out', 'g4c-toaster', 'in'),
+      wire('g4c-w2', 'g4c-battery', 'out', 'g4c-switch', 'in'),
+      wire('g4c-w3', 'g4c-switch', 'out', 'g4c-magnet', 'in'),
+      wire('g4c-w4', 'g4c-battery', 'out', 'g4c-plate', 'in'),
+      wire('g4c-w5', 'g4c-plate', 'out', 'g4c-sign', 'in'),
+    ],
+    inventory: [
+      { type: 'fan', count: 1 },
+      { type: 'battery', count: 1 },
+      { type: 'plank', count: 3 },
+      { type: 'candle', count: 2 },
+    ],
+    goals: [{ kind: 'activate', target: { id: 'g4c-sign' }, label: 'Bowl Bolt through the pins onto the plate to light the STRIKE! sign' }],
+    restrictions: { timeLimit: 25 },
+    bonus: { elegantParts: 5, elegantTime: 10, absurdStages: 14 },
+    hints: [
+      'A fan on the shelf, wired to a battery, nudges the ball off the edge. A gentle breeze is plenty. Then the track needs one more plank down to the bell.',
+      'The bell starts the toaster, and toast flying up through the switch flicks it OFF. No power, no magnet: down comes Bolt, facing the wrong way.',
+      'Bolt lands facing left and turns round when he bumps into something. Stand a plank up at the left end of his lane, and lay another one flat across the gap on the right.',
+    ],
+    metadata: { chapter: 4, order: 3, author: 'Follyworks', blurb: 'Robot bowling. He is the ball.' },
+  },
+  solutions: [
+    {
+      objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bumper, M3_BUILD.bridge],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
+    },
+    // ABSURD: two candles floating in the breeze, purely so the fan can blow them out on the way.
+    {
+      objects: [
+        o('s-fan', 'fan', 56, 118, { strength: 2, range: 360 }),
+        M3_BUILD.battery,
+        M3_BUILD.gap,
+        M3_BUILD.bumper,
+        M3_BUILD.bridge,
+        o('s-candle', 'candle', 300, 100),
+        o('s-candle-2', 'candle', 380, 100),
+      ],
+      connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
+    },
+  ],
+  counterexamples: [
+    {
+      why: 'no plank across the gap, so Bolt marches straight into it',
+      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bumper], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
+    },
+    {
+      why: 'no bumper, so Bolt marches off the left end of his lane',
+      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bridge], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
+    },
+    {
+      why: 'the fan is not wired up',
+      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bumper, M3_BUILD.bridge], connections: [] },
+    },
+    {
+      why: 'a fan tries to blow Bolt across the gap instead of bridging it',
       build: {
-        objects: [o('s-b1', 'balloon', 515, 500), o('s-b2', 'balloon', 560, 470), o('s-b3', 'balloon', 605, 500)],
-        connections: [
-          rope('s-r1', 's-b1', 'string', 'g4c-crate', 'hook'),
-          rope('s-r2', 's-b2', 'string', 'g4c-crate', 'hook'),
-          rope('s-r3', 's-b3', 'string', 'g4c-crate', 'hook'),
-        ],
+        objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bumper, o('s-fan-2', 'fan', 700, 400, { strength: 10, range: 400 })],
+        connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 's-fan-2', 'in')],
+      },
+    },
+    {
+      why: 'a full-blast fan tries to blow Bolt off the magnet',
+      build: {
+        objects: [o('s-fan', 'fan', 600, 166, { strength: 10, range: 300 }), M3_BUILD.battery, M3_BUILD.bumper, M3_BUILD.bridge],
+        connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
       },
     },
   ],
@@ -908,4 +905,4 @@ const grandOpening: CampaignEntry = {
   ],
 };
 
-export const GROUP_4: CampaignEntry[] = [upUpAndAway, dockLights, lighterThanAir, outOfReach, popGoesTheParty, heavyMetal, cleanSweep, goingUp, specialDelivery, grandOpening];
+export const GROUP_4: CampaignEntry[] = [upUpAndAway, toastDunk, strike, outOfReach, popGoesTheParty, heavyMetal, cleanSweep, goingUp, specialDelivery, grandOpening];
