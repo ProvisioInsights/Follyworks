@@ -6,6 +6,7 @@ import './defs/chaos';
 import './defs/control';
 import './defs/creature';
 import './defs/optics';
+import './defs/goofy';
 
 export * from './registry';
 

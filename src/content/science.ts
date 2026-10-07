@@ -32,7 +32,10 @@ export type ConceptId =
   | 'refraction'
   | 'lens'
   | 'colour'
-  | 'light_sensor';
+  | 'light_sensor'
+  | 'sound'
+  | 'steam'
+  | 'balance';
 
 export interface ConceptCard {
   id: ConceptId;
@@ -338,6 +341,43 @@ export const CONCEPTS: Record<ConceptId, ConceptCard> = {
     realWorld: 'Street lights switch on by themselves at dusk, and burglar alarms trip when someone breaks an invisible beam.',
     tryIt: 'Point a beam at a light sensor and wire the sensor to a bulb.',
   }),
+  sound: card({
+    id: 'sound',
+    title: 'Sound',
+    body: [
+      'Sound is a vibration that travels through the air as a wave of squashed and stretched air. In air it covers about 343 metres every second.',
+      'Faster vibrations sound higher in pitch and bigger ones sound louder. Sound spreads out as it travels, so it gets quieter the further away you are.',
+    ],
+    formula: 'speed of sound in air ≈ 343 m/s',
+    realWorld: 'Count the seconds between a lightning flash and its thunder, then divide by three: that is roughly how many kilometres away the storm is.',
+    inGame: 'In the workshop a sound reaches everything within earshot at once, and each noisy part has a fixed earshot.',
+    tryIt: 'Drop a rubber chicken near a sleeping cat, then move the cat further away and try again.',
+  }),
+  steam: card({
+    id: 'steam',
+    title: 'Boiling & steam',
+    body: [
+      'Heat water to 100 °C (at sea level) and it boils into steam, an invisible gas that takes up about 1,700 times more room than the water did.',
+      'All that extra gas has to go somewhere. Squeezed through a narrow spout it rushes out fast enough to whistle and push things.',
+    ],
+    formula: '1 cup of water → about 1,700 cups of steam',
+    realWorld: 'A kettle whistle is just steam forced through a small hole, and the same push once drove steam trains and ships.',
+    inGame: 'The teapot boils after about a second and a half over a flame and keeps steaming for a few seconds after the heat goes. A real kettle takes minutes.',
+    tryIt: 'Set a teapot over a candle and put a balloon in front of its spout.',
+  }),
+  balance: card({
+    id: 'balance',
+    title: 'Balance & toppling',
+    body: [
+      'Every object acts as if all its weight sits at one point, its centre of gravity.',
+      'It stays upright while that point is above its base. Tip it far enough that the point passes beyond the edge of the base and it falls over.',
+      'Tall, narrow things like bowling pins need only a small tip to topple.',
+    ],
+    formula: 'stays up while the centre of gravity is over the base',
+    realWorld: 'Racing cars are built low and wide so they do not roll over in fast corners.',
+    inGame: 'Pins get a small helping nudge, so a struck row topples like real pins instead of sliding along as one block.',
+    tryIt: 'Roll a bowling ball into a row of bowling pins.',
+  }),
 };
 
 /**
@@ -389,6 +429,16 @@ export const PART_CONCEPTS: Record<string, ConceptId[]> = {
   color_filter: ['colour'],
   colour_filter: ['colour'],
   light_sensor: ['light_sensor'],
+  basketball: ['bounce', 'gravity'],
+  basketball_hoop: ['gravity', 'bounce'],
+  rubber_chicken: ['sound', 'bounce'],
+  mousetrap: ['spring', 'lever'],
+  toaster: ['spring', 'heat', 'circuit'],
+  toast: ['heat'],
+  teapot: ['steam', 'heat'],
+  bowling_pin: ['balance', 'momentum'],
+  cat: ['sound'],
+  bell: ['sound', 'circuit'],
 };
 
 export const conceptsForType = (type: string): ConceptCard[] => (PART_CONCEPTS[type] ?? []).map((id) => CONCEPTS[id]);
