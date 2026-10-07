@@ -201,7 +201,7 @@ const strike: CampaignEntry = {
     id: 'g4-strike',
     name: 'Bolt Bowls a Strike',
     description: 'Bolt is stuck to the electromagnet, dreaming of bowling. Breeze the ball down to the bell, and the bell starts the toaster, whose toast flicks the magnet switch off. Then see that Bolt marches through the pins and onto the STRIKE plate.',
-    environment: 'garage',
+    environment: 'research',
     world: WORLD,
     fixedObjects: [
       o('g4c-shelf', 'wall', 120, 162, { w: 180, h: 12, material: 'wood' }),
@@ -317,7 +317,7 @@ const partyPooper: CampaignEntry = {
     id: 'g4-party-pooper',
     name: 'Party Pooper',
     description: 'Whiskers hates balloons, and his favourite mat starts the party fan. Get the toast popping, ring the bell to wake him, and see him safely to the mat: the fan does the rest.',
-    environment: 'greenhouse',
+    environment: 'garage',
     world: WORLD,
     fixedObjects: [
       o('g4d-ceiling', 'wall', 560, 80, { w: 1120, h: 20, material: 'steel' }),
@@ -407,7 +407,7 @@ const birthdaySurprise: CampaignEntry = {
     id: 'g4-birthday-surprise',
     name: 'Birthday Surprise',
     description: 'It is Bolt’s birthday, and nobody trusts him with matches. Set him marching: his ball should end up starting the toaster, and the toast should ring the bell that fires the rocket past the cake.',
-    environment: 'basement',
+    environment: 'maintenance',
     world: WORLD,
     fixedObjects: [
       o('g4e-shelf-a', 'wall', 55, 177, { w: 110, h: 14, material: 'wood' }),
@@ -494,87 +494,97 @@ const birthdaySurprise: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 4-6: two iron balls, two plates in series
+// ---------------------------------------------------------------- 4-6: teapot steam sends one ball through three switches and onto a plate: four lamps
 
-const heavyMetal: CampaignEntry = {
+const M6_BUILD = {
+  candle: o('s-candle', 'candle', 150, 190),
+  plankA: o('s-plank-a', 'plank', 480, 282, { length: 130 }, 22 * DEG),
+  plankB: o('s-plank-b', 'plank', 717, 350, { length: 100 }, 20 * DEG),
+  gap: o('s-gap', 'plank', 920, 400, { length: 70 }, 8 * DEG),
+  stop: o('s-stop', 'plank', 1064, 374, { length: 70 }, 90 * DEG),
+  battery: o('s-battery', 'battery', 40, 601),
+};
+
+const vaultLights: CampaignEntry = {
   chapter: 4,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g4-heavy-metal',
-    name: 'Heavy Metal',
-    description: 'The vault lamp is wired through BOTH plates on the plinth, but nothing powers the circuit yet, and the only things heavy enough for the plates are two iron balls on the far side of the gaps.',
+    id: 'g4-vault-lights',
+    name: 'Switched On',
+    description: 'The vault has four lamps and one very busy ball. Boil the kettle so its steam sends the ball down the line, flicking every switch on the way, and park it on the plate at the end of the line.',
     environment: 'underground',
     world: WORLD,
     fixedObjects: [
-      o('g4f-ledge-l', 'wall', 205, 595, { w: 310, h: 70, material: 'concrete' }),
-      o('g4f-notch-l', 'wall', 375, 602, { w: 30, h: 56, material: 'concrete' }),
-      o('g4f-notch-pl', 'wall', 465, 602, { w: 30, h: 56, material: 'concrete' }),
-      o('g4f-plinth', 'wall', 560, 595, { w: 160, h: 70, material: 'concrete' }),
-      o('g4f-notch-pr', 'wall', 655, 602, { w: 30, h: 56, material: 'concrete' }),
-      o('g4f-notch-r', 'wall', 745, 602, { w: 30, h: 56, material: 'concrete' }),
-      o('g4f-ledge-r', 'wall', 915, 595, { w: 310, h: 70, material: 'concrete' }),
-      o('g4f-plate-a', 'pressure_plate', 520, 553, { minMass: 5 }),
-      o('g4f-plate-b', 'pressure_plate', 600, 553, { minMass: 5 }),
-      o('g4f-lamp', 'light_bulb', 700, 380),
+      o('g4f-hob', 'wall', 130, 170, { w: 150, h: 14, material: 'steel' }),
+      o('g4f-perch', 'wall', 232, 126, { w: 44, h: 12, material: 'wood' }),
+      o('g4f-backstop', 'wall', 352, 125, { w: 12, h: 130, material: 'wood' }),
+      o('g4f-track-1', 'plank', 325, 230, { length: 194 }, 12 * DEG),
+      o('g4f-track-2', 'plank', 602, 324, { length: 120 }, 6 * DEG),
+      o('g4f-track-3', 'plank', 826, 384, { length: 110 }, 6 * DEG),
+      o('g4f-track-4', 'plank', 976, 415, { length: 36 }, 4 * DEG),
+      o('g4f-switch-1', 'toggle_switch', 602, 309),
+      o('g4f-switch-2', 'toggle_switch', 826, 369),
+      o('g4f-switch-3', 'toggle_switch', 930, 384),
+      o('g4f-plate', 'pressure_plate', 1036, 420, { minMass: 0.8 }),
+      o('g4f-lamp-1', 'light_bulb', 640, 160),
+      o('g4f-lamp-2', 'light_bulb', 720, 160),
+      o('g4f-lamp-3', 'light_bulb', 800, 160),
+      o('g4f-lamp-4', 'light_bulb', 880, 160),
+      o('g4f-battery', 'battery', 1080, 250),
     ],
-    startingObjects: [o('g4f-iron-a', 'bowling_ball', 220, 540), o('g4f-iron-b', 'bowling_ball', 900, 540)],
+    startingObjects: [o('g4f-teapot', 'teapot', 150, 142), o('g4f-ball', 'ball', 232, 106)],
     connections: [
-      wire('g4f-w2', 'g4f-plate-a', 'out', 'g4f-plate-b', 'in'),
-      wire('g4f-w3', 'g4f-plate-b', 'out', 'g4f-lamp', 'in'),
+      wire('g4f-w1', 'g4f-battery', 'out', 'g4f-switch-1', 'in'),
+      wire('g4f-w2', 'g4f-battery', 'out', 'g4f-switch-2', 'in'),
+      wire('g4f-w3', 'g4f-switch-1', 'out', 'g4f-lamp-1', 'in'),
+      wire('g4f-w4', 'g4f-switch-2', 'out', 'g4f-lamp-2', 'in'),
+      wire('g4f-w5', 'g4f-switch-3', 'out', 'g4f-lamp-3', 'in'),
+      wire('g4f-w6', 'g4f-battery', 'out', 'g4f-plate', 'in'),
+      wire('g4f-w7', 'g4f-plate', 'out', 'g4f-lamp-4', 'in'),
     ],
     inventory: [
+      { type: 'candle', count: 1 },
+      { type: 'plank', count: 4 },
       { type: 'battery', count: 1 },
-      { type: 'magnet', count: 1 },
-      { type: 'plank', count: 2 },
-      { type: 'crate', count: 2 },
-      { type: 'ball', count: 2 },
+      { type: 'fan', count: 1 },
     ],
-    goals: [{ kind: 'activate', target: { id: 'g4f-lamp' }, duration: 3, label: 'Keep the vault lamp lit for 3 seconds' }],
-    restrictions: { timeLimit: 20 },
-    bonus: { elegantParts: 4, elegantTime: 7, absurdStages: 8 },
+    goals: [{ kind: 'activate', target: { type: 'light_bulb' }, count: 4, duration: 1, label: 'Keep all four vault lamps lit for a second' }],
+    restrictions: { timeLimit: 25 },
+    bonus: { elegantParts: 6, elegantTime: 12, absurdStages: 10 },
     hints: [
-      'Wire a battery to the first plate. A plate passes power on only while something heavy enough sits on it, and these two are wired one after the other, so both must be pressed at once.',
-      'Crates and rubber balls are too light. An electromagnet drags iron towards its face from a long way off, and your battery can power it too.',
-      'Hang the magnet right between the two plates with its Reach turned up, and lay a plank across each gap, resting on the little ledges, so the balls can roll over.',
+      'A candle under the hob boils the teapot, and its steam blows the ball off the perch. The top track is missing two pieces.',
+      'Anything rolling right through a switch flicks it ON. The track has two more gaps further along: one after the second switch, and nothing at all to stop the ball once it reaches the plate.',
+      'The third switch has no power of its own: wire it to a battery, or its lamp stays dark however hard the ball flicks it.',
     ],
-    metadata: { chapter: 4, order: 6, author: 'Follyworks', blurb: 'Magnetic personality required.' },
+    metadata: { chapter: 4, order: 6, author: 'Follyworks', blurb: 'One ball, four lamps, zero electricians.' },
   },
   solutions: [
     {
-      objects: [
-        o('s-battery', 'battery', 100, 531),
-        o('s-magnet', 'magnet', 560, 504, { strength: 10, reach: 420 }),
-        o('s-bridge-a', 'plank', 420, 567, { length: 110 }),
-        o('s-bridge-b', 'plank', 700, 567, { length: 110 }),
-      ],
-      connections: [wire('s-w1', 's-battery', 'out', 's-magnet', 'in'), wire('s-w2', 's-battery', 'out', 'g4f-plate-a', 'in')],
+      objects: [M6_BUILD.candle, M6_BUILD.plankA, M6_BUILD.plankB, M6_BUILD.gap, M6_BUILD.stop, M6_BUILD.battery],
+      connections: [wire('s-w1', 's-battery', 'out', 'g4f-switch-3', 'in')],
     },
-    // ABSURD: the same, with a rubber ball dropped on each iron ball to send them on their way.
+    // ABSURD: the same, plus a fan on the battery, cooling the cellar for no reason at all.
     {
-      objects: [
-        o('s-battery', 'battery', 100, 531),
-        o('s-magnet', 'magnet', 560, 504, { strength: 10, reach: 420 }),
-        o('s-bridge-a', 'plank', 420, 567, { length: 110 }),
-        o('s-bridge-b', 'plank', 700, 567, { length: 110 }),
-        o('s-ball-a', 'ball', 214, 490),
-        o('s-ball-b', 'ball', 906, 490),
-      ],
-      connections: [wire('s-w1', 's-battery', 'out', 's-magnet', 'in'), wire('s-w2', 's-battery', 'out', 'g4f-plate-a', 'in')],
+      objects: [M6_BUILD.candle, M6_BUILD.plankA, M6_BUILD.plankB, M6_BUILD.gap, M6_BUILD.stop, M6_BUILD.battery, o('s-fan', 'fan', 60, 400, { strength: 3, range: 200 }, -90 * DEG)],
+      connections: [wire('s-w1', 's-battery', 'out', 'g4f-switch-3', 'in'), wire('s-w2', 's-battery', 'out', 's-fan', 'in')],
     },
   ],
   counterexamples: [
     {
-      why: 'there are no bridges over the gaps',
-      build: {
-        objects: [o('s-battery', 'battery', 100, 531), o('s-magnet', 'magnet', 560, 504, { strength: 10, reach: 420 })],
-        connections: [wire('s-w1', 's-battery', 'out', 's-magnet', 'in'), wire('s-w2', 's-battery', 'out', 'g4f-plate-a', 'in')] },
+      why: 'there is no flame under the teapot',
+      build: { objects: [M6_BUILD.plankA, M6_BUILD.plankB, M6_BUILD.gap, M6_BUILD.stop, M6_BUILD.battery], connections: [wire('s-w1', 's-battery', 'out', 'g4f-switch-3', 'in')] },
     },
     {
-      why: 'crates are used as weights',
-      build: {
-        objects: [o('s-battery', 'battery', 100, 531), o('s-c1', 'crate', 520, 522), o('s-c2', 'crate', 600, 522)],
-        connections: [wire('s-w2', 's-battery', 'out', 'g4f-plate-a', 'in')],
-      },
+      why: 'the third switch has no power',
+      build: { objects: [M6_BUILD.candle, M6_BUILD.plankA, M6_BUILD.plankB, M6_BUILD.gap, M6_BUILD.stop, M6_BUILD.battery], connections: [] },
+    },
+    {
+      why: 'nothing stops the ball, so it rolls straight over the plate and off the end',
+      build: { objects: [M6_BUILD.candle, M6_BUILD.plankA, M6_BUILD.plankB, M6_BUILD.gap, M6_BUILD.battery], connections: [wire('s-w1', 's-battery', 'out', 'g4f-switch-3', 'in')] },
+    },
+    {
+      why: 'the gap after the second switch is left open',
+      build: { objects: [M6_BUILD.candle, M6_BUILD.plankA, M6_BUILD.plankB, M6_BUILD.stop, M6_BUILD.battery], connections: [wire('s-w1', 's-battery', 'out', 'g4f-switch-3', 'in')] },
     },
   ],
 };
@@ -946,4 +956,4 @@ const grandOpening: CampaignEntry = {
   ],
 };
 
-export const GROUP_4: CampaignEntry[] = [upUpAndAway, toastDunk, strike, partyPooper, birthdaySurprise, heavyMetal, cleanSweep, goingUp, specialDelivery, grandOpening];
+export const GROUP_4: CampaignEntry[] = [upUpAndAway, toastDunk, strike, partyPooper, birthdaySurprise, vaultLights, cleanSweep, goingUp, specialDelivery, grandOpening];
