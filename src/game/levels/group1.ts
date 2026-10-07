@@ -144,7 +144,7 @@ const g1c: CampaignEntry = {
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g1-bowled-over',
-    name: 'Bowled Over',
+    name: 'Mind the Gutter',
     description: 'The bowling ball is waiting on its shelf, the pins are waiting on the lane, and the gutter is waiting for both. Nudge the ball, bridge the gutter, knock down four pins.',
     environment: 'research',
     world: world(),
@@ -676,6 +676,7 @@ const g1i: CampaignEntry = {
       o('g1i-seesaw', 'seesaw', 645, 594, { length: 220, tilt: -15 }),
       slope('g1i-funnel-l', 770, 430, 840, 490, 'steel', 8),
       slope('g1i-funnel-r', 960, 420, 888, 490, 'steel', 8),
+      block('g1i-backboard', 966, 368, 8, 110, 'steel'),
       block('g1i-chute-l', 840, 503, 8, 26, 'steel'),
       block('g1i-chute-r', 888, 503, 8, 26, 'steel'),
       o('g1i-hoop', 'basketball_hoop', 864, 535),
