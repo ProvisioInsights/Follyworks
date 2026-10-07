@@ -19,6 +19,7 @@ import {
   gauge,
   hGrad,
   hangingCable,
+  leafCluster,
   led,
   lightCone,
   metalPanel,
@@ -55,14 +56,15 @@ import {
   floorPerspective,
   timber,
 } from './environment';
+import { FESTIVE, PASTEL, balloon, bigPlant, bunting, cloud, doodle, flowerPot, skyPane, sun, sunbeam, sunnyWindow } from './envCheer';
 
 /** Display info for the theme rooms (not offered as level environments). */
 export const THEME_ROOMS: EnvironmentInfo[] = [
   { id: 'cave', name: 'Quarry Cave', blurb: 'Cut rock, torchlight and a wall of handprints.', accent: 0xe08a46 },
   { id: 'foundry', name: 'Brass Foundry', blurb: 'Riveted plate, copper pipe and a furnace that never quite goes out.', accent: 0xd6a04e },
   { id: 'toolbox', name: 'Toolbox', blurb: 'Flat colours, a tiled wall and a chunky grey frame.', accent: 0x5fb0c8 },
-  { id: 'rooftop', name: 'Rooftop Panel', blurb: 'A city at night, printed in four colours.', accent: 0xf0c83c },
-  { id: 'neonlab', name: 'Neon Lab', blurb: 'Glass, glow strips and a hum you feel in your teeth.', accent: 0x5ff0ff },
+  { id: 'rooftop', name: 'Rooftop Panel', blurb: 'A sunny city, printed in four colours.', accent: 0xf0c83c },
+  { id: 'neonlab', name: 'Neon Lab', blurb: 'A pastel space station with glow strips and a big round window on a friendly planet.', accent: 0x5ff0ff },
 ];
 
 // ---------------------------------------------------------------------------
@@ -182,7 +184,7 @@ const cave: EnvDef = {
   theme: {
     soil: { top: 0x4a3b2c, mid: 0x3b2e23, deep: 0x1e1712, rock: 0x7a7066, root: 0x2e2216 },
     grass: 0x5f6b34,
-    sky: [0x1d1a2a, 0x5a3a30],
+    sky: [0x5aaef0, 0xc4e8fb],
     concrete: 0x6a6056,
     side: 0x463b31,
     ceiling: 0x3a312a,
@@ -425,6 +427,65 @@ const cave: EnvDef = {
     g.lineTo(G.w * 0.46 + 40, G.by1 - 10);
     g.stroke();
   },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // a sunny cave mouth high in the back wall: blue sky, clouds, green hills
+    const mouth = new Path2D();
+    const cx = 520, cy = 120;
+    for (let i = 0; i <= 20; i++) {
+      const a = (i / 20) * Math.PI * 2;
+      const r = 1 + Math.sin(a * 3 + 1) * 0.08 + Math.sin(a * 5) * 0.05;
+      const px = cx + Math.cos(a) * 125 * r, py = cy + Math.sin(a) * 92 * r;
+      i ? mouth.lineTo(px, py) : mouth.moveTo(px, py);
+    }
+    mouth.closePath();
+    g.save();
+    g.lineWidth = 22;
+    g.strokeStyle = css(0x7a5a3c);
+    g.stroke(mouth);
+    g.lineWidth = 8;
+    g.strokeStyle = css(0xb08a5c);
+    g.stroke(mouth);
+    g.clip(mouth);
+    skyPane(g, rng, cx - 140, cy - 100, 280, 200, { sun: [0.72, 0.3], clouds: 2, hills: true });
+    g.restore();
+    blob(P.light, cx, cy + 110, 170, 60, 0xfff2c8, 0.1, 0.3);
+    sunbeam(P, cx, cy + 92, 200, 420, G.by1 - cy - 92, 140, 0.14);
+    // vines and flowers tumbling in round the mouth
+    for (const [vx, vl] of [[410, 120], [470, 80], [600, 110], [640, 70]] as const) {
+      g.strokeStyle = css(0x4f7a32);
+      g.lineWidth = 2.5;
+      g.beginPath();
+      g.moveTo(vx, cy - 60);
+      g.quadraticCurveTo(vx + 10, cy - 60 + vl * 0.6, vx - 6, cy - 60 + vl);
+      g.stroke();
+      for (let ly = cy - 50; ly < cy - 60 + vl; ly += 22) leafCluster(g, rng, vx + rng.range(-6, 6), ly, 16, [0x5f9a3e, 0x7cb850], 2, 0, Math.PI);
+    }
+    // leaf-and-feather garlands, a pot of wild flowers and a happy cave painting
+    bunting(g, 60, 34, 360, 44, 14, [0x6cc87a, 0xf2c043, 0xe0603c, 0x8fd0f5], 20, 'leaf');
+    bunting(g, 690, 44, 1060, 34, 14, [0xe0603c, 0x6cc87a, 0xf2c043, 0xe07ab8], 20, 'leaf');
+    flowerPot(g, rng, 600, G.by1, 30, 0xb8683e);
+    g.save();
+    g.globalAlpha = 0.75;
+    sun(g, 500, 330, 18, true);
+    g.strokeStyle = css(0xb8502a);
+    g.lineWidth = 3;
+    g.lineCap = 'round';
+    for (const fx of [450, 560, 600]) {
+      g.beginPath();
+      g.arc(fx, 352, 6, 0, Math.PI * 2);
+      g.moveTo(fx, 358);
+      g.lineTo(fx, 380);
+      g.moveTo(fx - 12, 362);
+      g.lineTo(fx, 368);
+      g.lineTo(fx + 12, 360);
+      g.moveTo(fx - 8, 396);
+      g.lineTo(fx, 380);
+      g.lineTo(fx + 8, 396);
+      g.stroke();
+    }
+    g.restore();
+  },
   lights(P) {
     const { G, amb } = P;
     torch(P, G.bx0 + 200, G.by0 + 170);
@@ -509,7 +570,7 @@ const foundry: EnvDef = {
   theme: {
     soil: { top: 0x4a3a2c, mid: 0x3a2c22, deep: 0x1e1612, rock: 0x6d6258, root: 0x2f2318 },
     grass: 0x55602f,
-    sky: [0x1a1614, 0x4a3a2e],
+    sky: [0x5aaef0, 0xc4e8fb],
     concrete: 0x6e5e50,
     side: 0x45372b,
     ceiling: 0x372b21,
@@ -621,6 +682,15 @@ const foundry: EnvDef = {
     }
     cylinder(g, G.w * 0.52, G.by1, 44, 90, 0x6a4a30, BRASS);
   },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // a tall arched works window full of sunshine between the gas lamps
+    sunnyWindow(P, 404, 70, 212, 270, { arch: true, cols: 3, rows: 4, frame: 0xd8b878, sun: [0.7, 0.26], clouds: 2, beam: 160 });
+    bunting(g, 60, 62, 1060, 62, 12, [0xc8402e, 0xf4ead0, 0x2e5a8a, 0xe0b040]);
+    flowerPot(g, rng, 300, 414, 24, 0xb06a40);
+    doodle(g, rng, 676, 236, 66, 80, 'machine', 0.05, 0xf4e8cc);
+    bigPlant(g, rng, 700, G.by1, 120, 0xb88a44);
+  },
   lights(P) {
     const { far: g, light, G, amb } = P;
     const fx = G.bx1 - 300;
@@ -675,8 +745,8 @@ const toolbox: EnvDef = {
     grass: 0x1f4f55,
     sky: [0x1f4f55, 0x1f4f55],
     concrete: 0x8a8a8a,
-    side: 0x2e3e4c,
-    ceiling: 0x26323e,
+    side: 0x5aa6cc,
+    ceiling: 0x4a96bc,
     veil: 0x0e1820,
     veilAlpha: 0.18,
     key: 0xffffff,
@@ -753,11 +823,11 @@ const toolbox: EnvDef = {
     const { far: g, G } = P;
     const x = G.bx0, y = G.by0, w = G.bx1 - G.bx0, h = G.by1 - G.by0;
     // plain flat wall with big square tiles
-    g.fillStyle = css(0x3a4c5e);
+    g.fillStyle = css(0x86c8e8);
     g.fillRect(x, y, w, h);
-    g.fillStyle = css(0x34465a);
+    g.fillStyle = css(0x92d0ee);
     for (let ty = y; ty < G.by1; ty += 64) for (let tx = x + (((ty - y) / 64) % 2 ? 32 : 0); tx < x + w; tx += 64) g.fillRect(tx + 2, ty + 2, 28, 28);
-    g.strokeStyle = css(0x2a3848);
+    g.strokeStyle = css(0x62a8cc);
     g.lineWidth = 2;
     g.beginPath();
     for (let ty = y; ty <= G.by1; ty += 64) {
@@ -777,20 +847,20 @@ const toolbox: EnvDef = {
   },
   sideWalls(P) {
     const { far: g, G } = P;
-    g.fillStyle = css(0x2c3a48);
+    g.fillStyle = css(0x5aa6cc);
     g.fillRect(0, G.ceilY, G.bx0, G.h - G.ceilY);
     g.fillRect(G.bx1, G.ceilY, G.w - G.bx1, G.h - G.ceilY);
   },
   ceiling(P) {
     const { far: g, G } = P;
-    g.fillStyle = css(0x24303c);
+    g.fillStyle = css(0x4a96bc);
     g.fillRect(0, G.ceilY, G.w, G.by0 - G.ceilY);
   },
   floor(P) {
     const { far: g, G } = P;
-    g.fillStyle = css(0x6b4f33);
+    g.fillStyle = css(0x9a7048);
     g.fillRect(0, G.by1, G.w, G.h - G.by1);
-    g.fillStyle = css(0x5e442a);
+    g.fillStyle = css(0x8a6440);
     g.fillRect(0, G.by1, G.w, (G.h - G.by1) * 0.4);
     g.strokeStyle = css(0x000000, 0.7);
     g.lineWidth = 2;
@@ -854,6 +924,37 @@ const toolbox: EnvDef = {
     box(G.bx0 + 30, G.by1 - 70, 90, 70, 0xb8863c);
     box(G.bx0 + 124, G.by1 - 54, 70, 54, 0xa0742e);
     box(G.bx0 + 50, G.by1 - 126, 70, 56, 0xc8964a);
+  },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // the window gets a proper summer sky (flat colours, chunky outline)
+    const wx = G.bx0 + 60, wy = G.by0 + 70, ww = 180, wh = 130;
+    g.fillStyle = css(0xd8d0b8);
+    g.fillRect(wx - 10, wy - 10, ww + 20, wh + 20);
+    g.fillStyle = css(0x58b4f0);
+    g.fillRect(wx, wy, ww, wh);
+    g.fillStyle = css(0x8ed2f8);
+    g.fillRect(wx, wy + wh * 0.55, ww, wh * 0.45);
+    sun(g, wx + ww * 0.78, wy + 34, 18, true);
+    cloud(g, rng, wx + 64, wy + 52, 46);
+    g.fillStyle = css(0x6cc05a);
+    g.beginPath();
+    g.moveTo(wx, wy + wh);
+    g.quadraticCurveTo(wx + ww * 0.3, wy + wh - 40, wx + ww * 0.6, wy + wh - 16);
+    g.quadraticCurveTo(wx + ww * 0.8, wy + wh - 32, wx + ww, wy + wh - 20);
+    g.lineTo(wx + ww, wy + wh);
+    g.closePath();
+    g.fill();
+    g.fillStyle = css(0xd8d0b8);
+    g.fillRect(wx + ww / 2 - 4, wy, 8, wh);
+    g.fillRect(wx, wy + wh / 2 - 4, ww, 8);
+    ink(g, rect(wx, wy, ww, wh), 3, 0x000000);
+    ink(g, rect(wx - 10, wy - 10, ww + 20, wh + 20), 3, 0x000000);
+    bunting(g, 60, 30, 1060, 30, 14, [0xe83c2c, 0xf8d030, 0x2c8ae8, 0x3cc84c, 0xffffff]);
+    flowerPot(g, rng, 140, 446, 26);
+    doodle(g, rng, 452, 236, 70, 84, 'robot', -0.05, 0xffffff);
+    doodle(g, rng, 556, 262, 66, 58, 'rainbow', 0.06, 0xffffff);
+    bigPlant(g, rng, 730, G.by1, 130);
   },
   lights(P) {
     const { far: g, light, G } = P;
@@ -919,8 +1020,8 @@ const rooftop: EnvDef = {
     grass: 0x1a1e34,
     sky: [0x161a2e, 0x161a2e],
     concrete: 0x2c3046,
-    side: 0x2a2e48,
-    ceiling: 0x1c2038,
+    side: 0x9a6a64,
+    ceiling: 0x6aaee0,
     veil: 0x161a34,
     veilAlpha: 0.34,
     key: 0x9fb0ff,
@@ -931,9 +1032,9 @@ const rooftop: EnvDef = {
     const { far: g, G } = P;
     const W = fullW(P), H = fullH(P);
     // a dark printed page with a coarse halftone, then the panel's gutter and ink border
-    g.fillStyle = css(0x14182a);
+    g.fillStyle = css(0xf6e2a0);
     g.fillRect(X0(), Y0(), W, H);
-    halftone(g, X0(), Y0(), W, H, 9, 0x2a3258, 1, (x, y) => 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(x * 0.004 + y * 0.003)));
+    halftone(g, X0(), Y0(), W, H, 9, 0xeec46a, 1, (x, y) => 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(x * 0.004 + y * 0.003)));
     const t = G.wallT;
     g.fillStyle = css(0xe8e0c8);
     g.fillRect(-t, G.ceilY - t, G.w + 2 * t, G.h - G.ceilY + 2 * t);
@@ -944,29 +1045,43 @@ const rooftop: EnvDef = {
     const { far: g, rng, G } = P;
     const x = G.bx0, y = G.by0, w = G.bx1 - G.bx0;
     const horizon = G.by1 - 46;
-    // night sky in flat bands with a halftone fade
-    g.fillStyle = vGrad(g, y, horizon, [[0, 0x1a2048], [0.6, 0x2a2a5a], [1, 0x4a3460]]);
+    // a bright day sky in flat bands with a halftone fade
+    g.fillStyle = vGrad(g, y, horizon, [[0, 0x3e9ee8], [0.6, 0x78c4f2], [1, 0xbfe6fa]]);
     g.fillRect(x, y, w, G.by1 - y);
-    halftone(g, x, y, w, horizon - y, 8, 0x5a4a8a, 0.55, (_x, yy) => Math.max(0, (yy - y) / (horizon - y) - 0.3) * 0.9);
-    // moon with a printed crescent shadow
+    halftone(g, x, y, w, horizon - y, 8, 0xffffff, 0.45, (_x, yy) => Math.max(0, (yy - y) / (horizon - y) - 0.3) * 0.9);
+    // the sun with printed rays, and two inked clouds
     const mx = x + w * 0.78, my = y + 110, mr = 50;
-    g.fillStyle = css(0xcfc490, 0.6);
+    g.save();
+    g.strokeStyle = css(INK);
+    g.lineWidth = 3;
+    g.fillStyle = css(0xffcc3a);
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      const ray = poly([[mx + Math.cos(a - 0.12) * (mr + 8), my + Math.sin(a - 0.12) * (mr + 8)], [mx + Math.cos(a) * (mr + 34), my + Math.sin(a) * (mr + 34)], [mx + Math.cos(a + 0.12) * (mr + 8), my + Math.sin(a + 0.12) * (mr + 8)]]);
+      g.fill(ray);
+      g.stroke(ray);
+    }
+    g.restore();
+    g.fillStyle = css(0xffe46a);
     g.beginPath();
     g.arc(mx, my, mr, 0, Math.PI * 2);
     g.fill();
-    halftone(g, mx - mr, my - mr, mr * 2, mr * 2, 6, 0x8a7a50, 0.6, (xx, yy) => ((xx - mx + 16) ** 2 + (yy - my + 10) ** 2 > mr * mr * 0.8 && (xx - mx) ** 2 + (yy - my) ** 2 < mr * mr ? 0.85 : 0));
+    halftone(g, mx - mr, my - mr, mr * 2, mr * 2, 6, 0xf0a030, 0.7, (xx, yy) => ((xx - mx + 16) ** 2 + (yy - my + 10) ** 2 > mr * mr * 0.8 && (xx - mx) ** 2 + (yy - my) ** 2 < mr * mr ? 0.85 : 0));
     ink(g, (() => { const p = new Path2D(); p.arc(mx, my, mr, 0, Math.PI * 2); return p; })(), 3, INK);
+    for (const [cx, cy, cs] of [[x + w * 0.2, y + 90, 70], [x + w * 0.5, y + 60, 56]] as const) {
+      cloud(g, rng, cx, cy, cs);
+    }
     // skyline: far row lighter, near row darker, all inked
     let bx = x - 10;
     while (bx < x + w) {
       const bw = rng.range(50, 110);
-      building(g, rng, bx, horizon, bw, rng.range(110, 260), 0x2e2c56, 0xc8b45a, 0.35);
+      building(g, rng, bx, horizon, bw, rng.range(110, 260), 0x9ab4dc, 0xeef8ff, 0.85);
       bx += bw + rng.range(-6, 10);
     }
     bx = x - 30;
     while (bx < x + w) {
       const bw = rng.range(70, 140);
-      building(g, rng, bx, horizon, bw, rng.range(60, 170), 0x221e40, 0xd8c060, 0.45);
+      building(g, rng, bx, horizon, bw, rng.range(60, 170), 0xe0a07a, 0xfff4d0, 0.9);
       bx += bw + rng.range(10, 60);
     }
     // a water tower on stilts
@@ -980,33 +1095,33 @@ const rooftop: EnvDef = {
     g.lineTo(tx + 64, horizon - 100);
     g.stroke();
     const tank = rect(tx, ty, 60, 62);
-    g.fillStyle = css(0x3a2a40);
+    g.fillStyle = css(0xd06a48);
     g.fill(tank);
     ink(g, tank, 3, INK);
     const roof = poly([[tx - 6, ty], [tx + 66, ty], [tx + 30, ty - 26]]);
-    g.fillStyle = css(0x2a1e30);
+    g.fillStyle = css(0x9a4632);
     g.fill(roof);
     ink(g, roof, 3, INK);
     // the roof's own brick parapet along the back line
     const pTop = G.by1 - 46;
-    bricks(g, rng, x, pTop, w, 46, 0x5a2e2a, 0x2a1416, 40, 16);
+    bricks(g, rng, x, pTop, w, 46, 0xb85a48, 0x7a3428, 40, 16);
     g.fillStyle = css(0x6a6878);
     g.fillRect(x, pTop - 8, w, 10);
     ink(g, rect(x, pTop - 8, w, 54), 3, INK);
   },
   sideWalls(P) {
     const { far: g, rng, G } = P;
-    bricks(g, rng, 0, G.ceilY, G.bx0, G.h - G.ceilY, 0x3a2430, 0x1a1018, 30, 14);
-    bricks(g, rng, G.bx1, G.ceilY, G.w - G.bx1, G.h - G.ceilY, 0x3a2430, 0x1a1018, 30, 14);
-    g.fillStyle = css(0x0a0a18, 0.35);
+    bricks(g, rng, 0, G.ceilY, G.bx0, G.h - G.ceilY, 0xa8584a, 0x6a3028, 30, 14);
+    bricks(g, rng, G.bx1, G.ceilY, G.w - G.bx1, G.h - G.ceilY, 0xa8584a, 0x6a3028, 30, 14);
+    g.fillStyle = css(0x0a0a18, 0.12);
     g.fillRect(0, G.ceilY, G.w, G.h - G.ceilY);
   },
   ceiling(P) {
     const { far: g, G } = P;
-    g.fillStyle = css(0x161a3a);
+    g.fillStyle = css(0x5aa8e4);
     g.fillRect(0, G.ceilY, G.w, G.by0 - G.ceilY);
     // action lines streaming in from the top edge
-    g.strokeStyle = css(0x3a3a7a, 0.6);
+    g.strokeStyle = css(0xffffff, 0.5);
     g.lineWidth = 1.5;
     g.beginPath();
     for (let i = 0; i < 40; i++) {
@@ -1018,8 +1133,8 @@ const rooftop: EnvDef = {
   },
   floor(P) {
     const { far: g, rng, G } = P;
-    floorPerspective(P, 0x34343f, { cols: 8, rows: 2, line: INK, lineAlpha: 0.6 });
-    halftone(g, 0, G.by1, G.w, G.h - G.by1, 6, 0x1a1a24, 0.6, (_x, y) => 0.6 - ((y - G.by1) / (G.h - G.by1)) * 0.5);
+    floorPerspective(P, 0x8a8a9c, { cols: 8, rows: 2, line: INK, lineAlpha: 0.6 });
+    halftone(g, 0, G.by1, G.w, G.h - G.by1, 6, 0x5a5a6c, 0.6, (_x, y) => 0.6 - ((y - G.by1) / (G.h - G.by1)) * 0.5);
     for (let i = 0; i < 4; i++) stain(g, rng, rng.range(G.bx0, G.bx1), rng.range(G.by1 + 10, G.h - 6), rng.range(20, 40), 0x14141c, 0.4, 0.3);
   },
   props(P) {
@@ -1073,14 +1188,20 @@ const rooftop: EnvDef = {
     g.stroke();
     contactShadow(g, G.w * 0.5, G.by1, 120);
   },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // a rooftop party: bunting from the aerial to the chimney, potted flowers, balloons on the hut
+    bunting(g, G.bx0 + 286, G.by1 - 184, G.bx1 - 200, G.by1 - 300, 30, [0xe83c3c, 0xf8d030, 0x2c8ae8, 0xffffff]);
+    bunting(g, G.bx0 + 10, G.by1 - 150, G.bx0 + 280, G.by1 - 186, 14, [0xf8d030, 0x2c8ae8, 0xe83c3c]);
+    flowerPot(g, rng, 480, G.by1, 26, 0xc8603c);
+    flowerPot(g, rng, 530, G.by1, 22, 0x3c7ac8);
+    balloon(g, G.bx1 - 60, G.by1 - 300, 18, 0xe83c3c, 70);
+    balloon(g, G.bx1 - 30, G.by1 - 285, 16, 0xf8d030, 60);
+  },
   lights(P) {
     const { far: g, light, G, amb } = P;
-    // searchlight from the city, sweeping up the sky
-    g.save();
-    g.globalCompositeOperation = 'screen';
-    lightCone(g, G.bx0 + 380, G.by1 - 60, 16, 220, -(G.by1 - G.by0 - 60), 0x8a9ad8, 0.08, -160);
-    g.restore();
-    lightCone(light, G.bx0 + 380, G.by1 - 60, 16, 220, -(G.by1 - G.by0 - 60), 0x8a9ad8, 0.18, -160);
+    // warm sunshine slanting across the roof from the upper right
+    lightCone(light, G.bx1 - 240, G.by0, 160, 520, G.by1 - G.by0, 0xfff0c0, 0.12, -220);
     // the door's lamp
     blob(light, G.bx1 - 135, G.by1 - 150, 60, 30, 0xffd870, 0.6, 0.2);
     // red aircraft light on the aerial
@@ -1137,10 +1258,10 @@ const neonlab: EnvDef = {
   theme: {
     soil: { top: 0x1a2030, mid: 0x141a28, deep: 0x0a0e18, rock: 0x2a3244, root: 0x1a2030 },
     grass: 0x1a2030,
-    sky: [0x04060e, 0x0c1426],
+    sky: [0x2a2a6a, 0x5a4a9a],
     concrete: 0x343c50,
-    side: 0x1c2638,
-    ceiling: 0x141c2c,
+    side: 0xa49cd4,
+    ceiling: 0xaca4dc,
     veil: 0x0c1424,
     veilAlpha: 0.4,
     key: 0x7fe0ff,
@@ -1159,11 +1280,11 @@ const neonlab: EnvDef = {
     // hull plating around the lab
     const t = G.wallT;
     const hx = -t - 20, hy = G.slabTop - 30, hw = G.w + 2 * t + 40, hh = G.h + G.floorSlab - G.slabTop + 60;
-    g.fillStyle = vGrad(g, hy, hy + hh, [[0, 0x2a3246], [1, 0x161c2a]]);
+    g.fillStyle = vGrad(g, hy, hy + hh, [[0, 0xe4e6f6], [1, 0xc0c4e4]]);
     g.beginPath();
     g.roundRect(hx, hy, hw, hh, 40);
     g.fill();
-    g.strokeStyle = css(0x0a0e18);
+    g.strokeStyle = css(0xa0a6cc);
     g.lineWidth = 2;
     for (let px = hx + 60; px < hx + hw; px += 120) {
       g.beginPath();
@@ -1180,17 +1301,17 @@ const neonlab: EnvDef = {
   backWall(P) {
     const { far: g, G } = P;
     const x = G.bx0, y = G.by0, w = G.bx1 - G.bx0;
-    g.fillStyle = css(0x111827);
+    g.fillStyle = css(0xb8b2e2);
     g.fillRect(x, y, w, G.by1 - y);
     // glossy panels
     const pw = 120, ph = 96;
     for (let py = y + 4; py < G.by1; py += ph) {
       for (let px = x + 4; px < x + w; px += pw) {
-        g.fillStyle = vGrad(g, py, py + ph, [[0, 0x1e2a3c], [0.5, 0x182232], [1, 0x141c2a]]);
+        g.fillStyle = vGrad(g, py, py + ph, [[0, 0xe6e2fa], [0.5, 0xdcd6f6], [1, 0xd0caf0]]);
         g.beginPath();
         g.roundRect(px, py, pw - 8, ph - 8, 10);
         g.fill();
-        g.fillStyle = css(0xffffff, 0.035);
+        g.fillStyle = css(0xffffff, 0.3);
         g.beginPath();
         g.roundRect(px + 4, py + 4, pw - 16, 14, 6);
         g.fill();
@@ -1206,14 +1327,14 @@ const neonlab: EnvDef = {
   },
   ceiling(P) {
     const { far: g, G } = P;
-    g.fillStyle = css(0x0e1422);
+    g.fillStyle = css(0xb0a8dc);
     g.fillRect(0, G.ceilY, G.w, G.by0 - G.ceilY);
     g.fillStyle = css(NEON, 0.35);
     for (let k = 0; k < 4; k++) g.fillRect(G.w * (0.15 + k * 0.22), G.ceilY + 10, G.w * 0.12, 3);
   },
   floor(P) {
     const { far: g, G } = P;
-    floorPerspective(P, 0x1a2232, { cols: 18, rows: 3, line: NEON, lineAlpha: 0.16 });
+    floorPerspective(P, 0xb4c0e0, { cols: 18, rows: 3, line: 0x7a86b8, lineAlpha: 0.3 });
     g.fillStyle = vGrad(g, G.by1, G.h, [[0, 0x4fe8ff, 0.06], [1, 0x4fe8ff, 0]]);
     g.fillRect(0, G.by1, G.w, G.h - G.by1);
   },
@@ -1223,12 +1344,12 @@ const neonlab: EnvDef = {
     for (let k = 0; k < 3; k++) {
       const rx = G.bx0 + 24 + k * 74, rw = 66, rh = 300 - k * 30, ry = G.by1 - rh;
       contactShadow(g, rx + rw / 2, G.by1, rw);
-      g.fillStyle = css(0x0a0e16);
+      g.fillStyle = css(0x8890b8);
       g.fillRect(rx - 2, ry - 2, rw + 4, rh + 2);
-      g.fillStyle = vGrad(g, ry, G.by1, [[0, 0x283246], [1, 0x161c2a]]);
+      g.fillStyle = vGrad(g, ry, G.by1, [[0, 0xf0f2fc], [1, 0xd4d8ee]]);
       g.fillRect(rx, ry, rw, rh);
       for (let sy = ry + 10; sy < G.by1 - 10; sy += 18) {
-        g.fillStyle = css(0x0e141e);
+        g.fillStyle = css(0xbcc2e0);
         g.fillRect(rx + 6, sy, rw - 12, 12);
         g.fillStyle = css(rng.chance(0.5) ? NEON : 0x7cf09a, 0.8);
         g.fillRect(rx + 10, sy + 5, 3, 3);
@@ -1267,12 +1388,66 @@ const neonlab: EnvDef = {
       i ? hex.lineTo(hx + Math.cos(a) * hr, hy + Math.sin(a) * hr) : hex.moveTo(hx + Math.cos(a) * hr, hy + Math.sin(a) * hr);
     }
     hex.closePath();
-    g.strokeStyle = css(0x2a3650);
+    g.strokeStyle = css(0xc4bee8);
     g.lineWidth = 16;
     g.stroke(hex);
     g.strokeStyle = css(PINK, 0.25);
     g.lineWidth = 2;
     g.stroke(hex);
+  },
+  cheer(P) {
+    const { far: g, rng, G } = P;
+    // a big round window on a friendly blue planet, a ringed moon and the sun
+    const cx = 560, cy = 168, r = 92;
+    const port = new Path2D();
+    port.arc(cx, cy, r, 0, Math.PI * 2);
+    g.save();
+    g.clip(port);
+    g.fillStyle = vGrad(g, cy - r, cy + r, [[0, 0x3a3a8e], [1, 0x7a62c4]]);
+    g.fillRect(cx - r, cy - r, r * 2, r * 2);
+    for (let i = 0; i < 40; i++) {
+      g.fillStyle = css(0xffffff, rng.range(0.4, 0.9));
+      g.fillRect(rng.range(cx - r, cx + r), rng.range(cy - r, cy + r), 1.6, 1.6);
+    }
+    sun(g, cx + r * 0.55, cy - r * 0.5, 14, false);
+    const pr = r * 0.9, px = cx - r * 0.35, py = cy + r * 0.6;
+    const pg = g.createRadialGradient(px - pr * 0.3, py - pr * 0.4, pr * 0.1, px, py, pr);
+    pg.addColorStop(0, css(0x9ae0ff));
+    pg.addColorStop(1, css(0x2a7ad0));
+    g.fillStyle = pg;
+    g.beginPath();
+    g.arc(px, py, pr, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = css(0x6cc87a);
+    for (const [ox, oy, rr] of [[-20, -30, 24], [30, -10, 18], [-40, 10, 14]] as const) {
+      g.beginPath();
+      g.ellipse(px + ox, py + oy, rr * 1.4, rr, 0.3, 0, Math.PI * 2);
+      g.fill();
+    }
+    cloud(g, rng, px + 10, py - 52, 40, 0.85);
+    // a little pink ringed moon
+    g.fillStyle = css(0xf2a6d8);
+    g.beginPath();
+    g.arc(cx + r * 0.3, cy + r * 0.05, 14, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = css(0xffe4a0);
+    g.lineWidth = 3;
+    g.beginPath();
+    g.ellipse(cx + r * 0.3, cy + r * 0.05, 26, 7, -0.3, 0, Math.PI * 2);
+    g.stroke();
+    g.restore();
+    g.lineWidth = 14;
+    g.strokeStyle = css(0xf4f2ff);
+    g.stroke(port);
+    g.lineWidth = 2;
+    g.strokeStyle = css(0x9a94c8);
+    g.stroke(port);
+    blob(P.light, cx, cy, r * 1.4, r * 1.4, 0xd8e8ff, 0.2, 0.4);
+    bunting(g, 60, 64, 1060, 64, 12, PASTEL, 20, 'square');
+    flowerPot(g, rng, 104, G.by1 - 300, 22, 0xf2a6d8);
+    doodle(g, rng, 730, 300, 64, 78, 'rocket', -0.05, 0xfdfcff);
+    doodle(g, rng, 812, 320, 62, 74, 'robot', 0.06, 0xfdfcff);
+    bigPlant(g, rng, 860, G.by1, 120, 0x9be3a5);
   },
   lights(P) {
     const { far: g, light, G, amb } = P;
@@ -1315,3 +1490,4 @@ export const THEMED_ENVS: Record<string, EnvDef> = { cave, foundry, toolbox, roo
 // Keep imported helpers referenced even when a room stops using one.
 void flange;
 void mix;
+void FESTIVE;
