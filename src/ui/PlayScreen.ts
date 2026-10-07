@@ -157,7 +157,7 @@ export class PlayScreen {
     });
     this.ctl.editor.snap = app.settings.snap;
     this.build();
-    this.goalTags = new GoalMarkers({ root: this.root, canvas: app.canvas, ctl: this.ctl, scene: app.scene });
+    this.goalTags = new GoalMarkers({ root: this.root, canvas: app.canvas, ctl: this.ctl, scene: app.scene, solution: cfg.solution });
     this.selBar = new SelectionBar({ root: this.root, canvas: app.canvas, ctl: this.ctl, scene: app.scene });
     if (cfg.level.guide?.length && (cfg.kind === 'campaign' || cfg.kind === 'test')) {
       this.guide = new GuideCoach(cfg.level, {
