@@ -189,7 +189,6 @@ const M3_PINS = [874, 904, 934, 964].map((x, i) => o(`g4c-pin-${i + 1}`, 'bowlin
 const M3_BUILD = {
   fan: o('s-fan', 'fan', 56, 118, { strength: 2, range: 160 }),
   battery: o('s-battery', 'battery', 40, 601),
-  gap: o('s-gap', 'plank', 440, 272, { length: 90 }, 15 * DEG),
   bumper: o('s-bumper', 'plank', 612, 410, { length: 60 }, 90 * DEG),
   bridge: o('s-bridge', 'plank', 810, 450, { length: 58 }),
 };
@@ -206,6 +205,7 @@ const strike: CampaignEntry = {
     fixedObjects: [
       o('g4c-shelf', 'wall', 120, 162, { w: 180, h: 12, material: 'wood' }),
       o('g4c-track', 'plank', 300, 240, { length: 200 }, 10 * DEG),
+      o('g4c-track-2', 'plank', 440, 272, { length: 90 }, 15 * DEG),
       o('g4c-bell', 'bell', 510, 284),
       o('g4c-toaster', 'toaster', 300, 606, { delay: 0.8, slices: 1 }, 15 * DEG),
       o('g4c-switch', 'toggle_switch', 330, 505, { on: true }, 90 * DEG),
@@ -231,14 +231,14 @@ const strike: CampaignEntry = {
     inventory: [
       { type: 'fan', count: 1 },
       { type: 'battery', count: 1 },
-      { type: 'plank', count: 3 },
+      { type: 'plank', count: 2 },
       { type: 'candle', count: 2 },
     ],
     goals: [{ kind: 'activate', target: { id: 'g4c-sign' }, label: 'Bowl Bolt through the pins onto the plate to light the STRIKE! sign' }],
     restrictions: { timeLimit: 25 },
-    bonus: { elegantParts: 5, elegantTime: 10, absurdStages: 14 },
+    bonus: { elegantParts: 4, elegantTime: 10, absurdStages: 14 },
     hints: [
-      'A fan on the shelf, wired to a battery, nudges the ball off the edge. A gentle breeze is plenty. Then the track needs one more plank down to the bell.',
+      'A fan on the shelf, wired to a battery, nudges the ball off the edge. A gentle breeze is plenty: the track takes it straight to the bell.',
       'The bell starts the toaster, and toast flying up through the switch flicks it OFF. No power, no magnet: down comes Bolt, facing the wrong way.',
       'Bolt lands facing left and turns round when he bumps into something. Stand a plank up at the left end of his lane, and lay another one flat across the gap on the right.',
     ],
@@ -246,7 +246,7 @@ const strike: CampaignEntry = {
   },
   solutions: [
     {
-      objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bumper, M3_BUILD.bridge],
+      objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.bumper, M3_BUILD.bridge],
       connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')],
     },
     // ABSURD: two candles floating in the breeze, purely so the fan can blow them out on the way.
@@ -254,7 +254,6 @@ const strike: CampaignEntry = {
       objects: [
         o('s-fan', 'fan', 56, 118, { strength: 2, range: 360 }),
         M3_BUILD.battery,
-        M3_BUILD.gap,
         M3_BUILD.bumper,
         M3_BUILD.bridge,
         o('s-candle', 'candle', 300, 100),
@@ -266,20 +265,20 @@ const strike: CampaignEntry = {
   counterexamples: [
     {
       why: 'no plank across the gap, so Bolt marches straight into it',
-      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bumper], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
+      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.bumper], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
     },
     {
       why: 'no bumper, so Bolt marches off the left end of his lane',
-      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bridge], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
+      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.bridge], connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in')] },
     },
     {
       why: 'the fan is not wired up',
-      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bumper, M3_BUILD.bridge], connections: [] },
+      build: { objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.bumper, M3_BUILD.bridge], connections: [] },
     },
     {
       why: 'a fan tries to blow Bolt across the gap instead of bridging it',
       build: {
-        objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.gap, M3_BUILD.bumper, o('s-fan-2', 'fan', 700, 400, { strength: 10, range: 400 })],
+        objects: [M3_BUILD.fan, M3_BUILD.battery, M3_BUILD.bumper, o('s-fan-2', 'fan', 700, 400, { strength: 10, range: 400 })],
         connections: [wire('s-w1', 's-battery', 'out', 's-fan', 'in'), wire('s-w2', 's-battery', 'out', 's-fan-2', 'in')],
       },
     },
@@ -334,6 +333,7 @@ const partyPooper: CampaignEntry = {
       o('g4d-battery', 'battery', 1090, 480),
       o('g4d-timer', 'timer', 1000, 470, { delay: 0.3, hold: 0 }),
       o('g4d-sign', 'light_bulb', 980, 300),
+      o('g4d-disco', 'light_bulb', 900, 300),
     ],
     startingObjects: [...M4_BALLOONS, o('g4d-cat', 'cat', 760, 547, {}, 0, true)],
     connections: [
@@ -341,6 +341,7 @@ const partyPooper: CampaignEntry = {
       wire('g4d-w2', 'g4d-mat', 'out', 'g4d-timer', 'in'),
       wire('g4d-w3', 'g4d-timer', 'out', 'g4d-fan', 'in'),
       wire('g4d-w4', 'g4d-timer', 'out', 'g4d-sign', 'in'),
+      wire('g4d-w5', 'g4d-timer', 'out', 'g4d-disco', 'in'),
     ],
     inventory: [
       { type: 'battery', count: 1 },
@@ -350,7 +351,7 @@ const partyPooper: CampaignEntry = {
     ],
     goals: [{ kind: 'destroyed', target: { type: 'balloon' }, label: 'Pop every balloon' }],
     restrictions: { timeLimit: 25 },
-    bonus: { elegantParts: 5, elegantTime: 10, absurdStages: 14 },
+    bonus: { elegantParts: 5, elegantTime: 10, absurdStages: 15 },
     hints: [
       'The toaster needs power: wire a battery to it. Its toast lands just to the right, so catch it on the mousetrap and SNAP, off it flies toward the bell.',
       'The DING wakes Whiskers, who bolts left. Stand a plank up at the end of his counter so he turns round instead of falling off.',
@@ -395,8 +396,7 @@ const M5_BUILD = {
   battery: o('s-battery', 'battery', 40, 601),
   bridgeA: o('s-bridge-a', 'plank', 140, 177, { length: 58 }),
   bridgeB: o('s-bridge-b', 'plank', 250, 177, { length: 58 }),
-  gapA: o('s-gap-a', 'plank', 505, 270, { length: 70 }, 10 * DEG),
-  gapB: o('s-gap-b', 'plank', 735, 330, { length: 70 }, 10 * DEG),
+  gapB: o('s-gap-b', 'plank', 735, 333, { length: 70 }, 10 * DEG),
   trap: o('s-trap', 'mousetrap', 265, 625),
 };
 
@@ -414,6 +414,7 @@ const birthdaySurprise: CampaignEntry = {
       o('g4e-shelf-m', 'wall', 195, 177, { w: 50, h: 14, material: 'wood' }),
       o('g4e-shelf-b', 'wall', 305, 177, { w: 50, h: 14, material: 'wood' }),
       o('g4e-track-1', 'plank', 400, 240, { length: 140 }, 10 * DEG),
+      o('g4e-track-1b', 'plank', 505, 270, { length: 70 }, 10 * DEG),
       o('g4e-track-2', 'plank', 620, 300, { length: 120 }, 10 * DEG),
       o('g4e-ledge', 'wall', 850, 380, { w: 120, h: 14, material: 'wood' }),
       o('g4e-ledge-stop', 'wall', 904, 350, { w: 12, h: 46, material: 'wood' }),
@@ -445,47 +446,47 @@ const birthdaySurprise: CampaignEntry = {
     ],
     inventory: [
       { type: 'battery', count: 1 },
-      { type: 'plank', count: 4 },
+      { type: 'plank', count: 3 },
       { type: 'mousetrap', count: 1 },
       { type: 'magnet', count: 1 },
     ],
     goals: [{ kind: 'activate', target: { type: 'candle' }, count: 3, label: 'Light all three birthday candles' }],
     restrictions: { timeLimit: 25 },
-    bonus: { elegantParts: 6, elegantTime: 10, absurdStages: 12 },
+    bonus: { elegantParts: 5, elegantTime: 10, absurdStages: 12 },
     hints: [
       'Wire a battery to Bolt’s antenna and he marches right, as long as there are planks across the gaps in his shelf. He shoves the ball off the end.',
-      'The ball’s track has two missing pieces. Once it lands on the plate, the toaster starts.',
+      'The ball’s track has a missing piece. Once it lands on the plate, the toaster starts.',
       'Toast lands just right of the toaster: a mousetrap there flings it at the bell, and the bell fires the rocket right past the candles.',
     ],
     metadata: { chapter: 4, order: 5, author: 'Follyworks', blurb: 'Make a wish. Stand well back.' },
   },
   solutions: [
     {
-      objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapA, M5_BUILD.gapB, M5_BUILD.trap],
+      objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapB, M5_BUILD.trap],
       connections: [wire('s-w1', 's-battery', 'out', 'g4e-bolt', 'in')],
     },
     // ABSURD: the same, plus an electromagnet buzzing over the cake for atmosphere.
     {
-      objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapA, M5_BUILD.gapB, M5_BUILD.trap, o('s-magnet', 'magnet', 700, 120)],
+      objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapB, M5_BUILD.trap, o('s-magnet', 'magnet', 700, 120)],
       connections: [wire('s-w1', 's-battery', 'out', 'g4e-bolt', 'in'), wire('s-w2', 's-battery', 'out', 's-magnet', 'in')],
     },
   ],
   counterexamples: [
     {
       why: 'Bolt is not wired up, so he never moves',
-      build: { objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapA, M5_BUILD.gapB, M5_BUILD.trap], connections: [] },
+      build: { objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapB, M5_BUILD.trap], connections: [] },
     },
     {
       why: 'one gap in Bolt’s shelf is left open',
-      build: { objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.gapA, M5_BUILD.gapB, M5_BUILD.trap], connections: [wire('s-w1', 's-battery', 'out', 'g4e-bolt', 'in')] },
+      build: { objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.gapB, M5_BUILD.trap], connections: [wire('s-w1', 's-battery', 'out', 'g4e-bolt', 'in')] },
     },
     {
       why: 'the ball’s track is missing a piece',
-      build: { objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapA, M5_BUILD.trap], connections: [wire('s-w1', 's-battery', 'out', 'g4e-bolt', 'in')] },
+      build: { objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.trap], connections: [wire('s-w1', 's-battery', 'out', 'g4e-bolt', 'in')] },
     },
     {
       why: 'there is no mousetrap to fling the toast',
-      build: { objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapA, M5_BUILD.gapB], connections: [wire('s-w1', 's-battery', 'out', 'g4e-bolt', 'in')] },
+      build: { objects: [M5_BUILD.battery, M5_BUILD.bridgeA, M5_BUILD.bridgeB, M5_BUILD.gapB], connections: [wire('s-w1', 's-battery', 'out', 'g4e-bolt', 'in')] },
     },
     {
       why: 'an electromagnet tries to haul the unlit rocket up past the candles',
