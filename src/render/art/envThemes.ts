@@ -56,6 +56,7 @@ import {
   floorPerspective,
   timber,
 } from './environment';
+import { arcade } from './envArcade';
 import { FESTIVE, PASTEL, balloon, bigPlant, bunting, cloud, doodle, flowerPot, skyPane, sun, sunbeam, sunnyWindow } from './envCheer';
 
 /** Display info for the theme rooms (not offered as level environments). */
@@ -1484,7 +1485,7 @@ const neonlab: EnvDef = {
 };
 
 /** Theme rooms by id, looked up by paintEnvironment alongside the workshop rooms. */
-export const THEMED_ENVS: Record<string, EnvDef> = { cave, foundry, toolbox, rooftop, neonlab };
+export const THEMED_ENVS: Record<string, EnvDef> = { cave, foundry, toolbox, rooftop, neonlab, arcade };
 
 // Keep imported helpers referenced even when a room stops using one.
 void flange;

@@ -4,6 +4,7 @@ import { AudioEngine, SFX_NAMES, LOOP_NAMES } from '../src/audio/AudioEngine';
 import { chordTones } from '../src/audio/music';
 import { STYLES } from '../src/audio/styles';
 import { MUSIC_THEMES, normTheme } from '../src/audio/themes';
+import { THEMES } from '../src/core/themes';
 
 describe('music themes', () => {
   it('normalises theme ids, falling back to modern', () => {
@@ -33,6 +34,23 @@ describe('music themes', () => {
     }
   });
 
+  it('has a music theme for every visual theme, including the secret arcade one', () => {
+    for (const t of THEMES) expect(normTheme(t.id)).toBe(t.id);
+    expect(MUSIC_THEMES).toContain('arcade');
+  });
+
+  it('gives the arcade theme an upbeat chiptune in a major / mixolydian flavour', () => {
+    const s = STYLES.arcade;
+    expect(s.bpm[0]).toBeGreaterThanOrEqual(140);
+    expect(s.bpm[1]).toBeLessThanOrEqual(150);
+    expect(s.mode).toBe('major');
+    expect(s.melody).toContain(10); // the flat seventh
+    expect([...s.progA, ...s.progB].flat()).toContain(7); // bVII chords
+    // calibrated like the others (offline-render loudness), not left at a default
+    expect(s.level).toBeGreaterThan(0.4);
+    expect(s.level).toBeLessThan(1.5);
+  });
+
   it('builds chords from scale degrees and borrowed chords', () => {
     expect(chordTones(0, 'major', false)).toEqual([0, 4, 7]);
     expect(chordTones(0, 'major', true)).toEqual([0, 4, 7, 11]);
@@ -49,6 +67,7 @@ describe('audio engine without Web Audio', () => {
       a.unlock();
       a.setMusicTheme('stone');
       a.setMusicTheme('not-a-theme');
+      a.setMusicTheme('arcade');
       a.setMusicTheme('future');
       a.startMusic();
       a.setMusicIntensity(0.75);
@@ -63,6 +82,12 @@ describe('audio engine without Web Audio', () => {
       a.stopMusic();
     }).not.toThrow();
     expect(a.musicTheme).toBe('future');
+  });
+
+  it('exposes the secret-unlock jingle', () => {
+    expect(SFX_NAMES).toContain('secret');
+    const a = new AudioEngine();
+    expect(() => a.play('secret')).not.toThrow();
   });
 
   it('exposes the optics sounds', () => {

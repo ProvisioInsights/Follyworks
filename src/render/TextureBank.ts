@@ -5,11 +5,13 @@
 import type Phaser from 'phaser';
 import type { ThemeId } from '../core/themes';
 import { paintPart } from './art/parts';
-import { RIM_STYLE, skinCanvas } from './skin';
+import { RIM_STYLE, arcadeCell, skinCanvas } from './skin';
 
 export const ART_SCALE = 2;
 /** Width of the contrast halo around part art, in world px. */
 export const RIM = 1.6;
+/** Phaser.Textures.FilterMode.NEAREST (Phaser is only imported as a type here). */
+const FILTER_NEAREST = 1;
 
 export interface TexInfo {
   key: string;
@@ -76,6 +78,8 @@ export class TextureBank {
       const painted = paintPart(key, params, ART_SCALE);
       if (skinned) skinCanvas(painted.canvas, this._theme, key, ART_SCALE);
       this.scene.textures.addCanvas(cacheKey, painted.canvas);
+      // chunky sprite pixels stay hard-edged when scaled (arcade skin)
+      if (skinned && this._theme === 'arcade') this.scene.textures.get(cacheKey).setFilter(FILTER_NEAREST);
       if (!key.startsWith('fx_')) this.painted.add(cacheKey);
       const w = painted.canvas.width / ART_SCALE;
       const h = painted.canvas.height / ART_SCALE;
@@ -107,11 +111,17 @@ export class TextureBank {
       t.width = c.width;
       t.height = c.height;
       const tg = t.getContext('2d')!;
-      const r = width * ART_SCALE;
-      const n = width > 2 ? 16 : 12;
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        tg.drawImage(src, pad + Math.cos(a) * r, pad + Math.sin(a) * r);
+      if (this._theme === 'arcade') {
+        // a sprite outline: the chunky art shifted one of its own pixels in each of 4 directions
+        const r = Math.min(pad, arcadeCell(src.width, src.height, ART_SCALE));
+        for (const [dx, dy] of [[r, 0], [-r, 0], [0, r], [0, -r]]) tg.drawImage(src, pad + dx, pad + dy);
+      } else {
+        const r = width * ART_SCALE;
+        const n = width > 2 ? 16 : 12;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * Math.PI * 2;
+          tg.drawImage(src, pad + Math.cos(a) * r, pad + Math.sin(a) * r);
+        }
       }
       tg.globalCompositeOperation = 'source-in';
       tg.fillStyle = color;
@@ -125,6 +135,7 @@ export class TextureBank {
     }
     g.drawImage(halo(style.width, style.color), 0, 0);
     this.scene.textures.addCanvas(rimKey, c);
+    if (this._theme === 'arcade') this.scene.textures.get(rimKey).setFilter(FILTER_NEAREST);
     this.painted.add(rimKey);
     const info: TexInfo = {
       key: rimKey,

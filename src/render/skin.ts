@@ -4,6 +4,11 @@
 // (sockets, ports and hit shapes are drawn elsewhere and unchanged); it only regrades colour and
 // adds an edge treatment inside the shape. Pure pixel maths lives in `gradePixels` so it can be
 // unit-tested without a canvas.
+//
+// The one exception to "silhouette exactly as painted" is the secret arcade skin: it re-renders the
+// art as chunky sprite pixels, so its alpha is snapped to that pixel grid (each edge moves by less
+// than one chunky pixel, at most ~2 world px). Hit shapes come from the physics bodies, never
+// from texture alpha, so gameplay is unaffected.
 
 import type { ThemeId } from '../core/themes';
 
@@ -17,7 +22,7 @@ export const THEME_ROOM: Record<ThemeId, string | null> = {
   modern: null,
   comic: 'rooftop',
   future: 'neonlab',
-  arcade: null, // TODO arcade room
+  arcade: 'arcade',
 };
 
 export const roomFor = (theme: ThemeId, environment: string): string => THEME_ROOM[theme] ?? environment;
@@ -40,7 +45,8 @@ export const RIM_STYLE: Record<ThemeId, RimStyle> = {
   stone: { width: 1.8, color: 'rgba(30, 18, 8, 0.92)' },
   steam: { width: 1.8, color: 'rgba(28, 14, 4, 0.92)' },
   future: { width: 1.3, color: 'rgba(3, 8, 22, 0.94)', glow: { width: 3.6, color: 'rgba(70, 225, 255, 0.34)' } },
-  arcade: { width: 2, color: 'rgba(0, 0, 0, 1)' },
+  // a crisp 1-pixel sprite outline (the art itself is chunky, so this reads as a hard black edge)
+  arcade: { width: 1.6, color: 'rgba(0, 0, 0, 1)' },
 };
 
 // ------------------------------------------------------------------ colour helpers
@@ -194,11 +200,12 @@ export interface GradeOpts {
 }
 
 /**
- * Regrade RGBA pixels in place for a theme. Alpha is never changed, so silhouettes, sizes and
- * origins stay exactly as painted. 'modern' is the identity.
+ * Regrade RGBA pixels in place for a theme. Alpha is never changed (except by the arcade skin,
+ * see `pixelate`), so silhouettes, sizes and origins stay as painted. 'modern' is the identity.
  */
 export function gradePixels(theme: ThemeId, data: Uint8ClampedArray, w: number, h: number, o: GradeOpts): void {
   if (theme === 'modern') return;
+  if (theme === 'arcade') return pixelate(data, w, h, o);
   const s = o.scale;
   const seed = o.seed ?? 1;
   const dist = o.noEdge ? null : edgeDistance(data, w, h);
@@ -330,6 +337,151 @@ export function gradePixels(theme: ThemeId, data: Uint8ClampedArray, w: number, 
       data[i] = r < 0 ? 0 : r > 255 ? 255 : r;
       data[i + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
       data[i + 2] = b < 0 ? 0 : b > 255 ? 255 : b;
+    }
+  }
+}
+
+// ------------------------------------------------------------------ arcade: chunky sprite pixels
+
+/**
+ * An original limited palette in the spirit of late-80s / early-90s sprite hardware: a grey ramp
+ * plus three-step ramps (shadow, base, light) of saturated hues and a couple of earth tones.
+ */
+export const ARCADE_PALETTE: readonly number[] = [
+  0x14141e, 0x3c3c54, 0x74748c, 0xb4b4c4, 0xf4f4f8,
+  0x881020, 0xdc2c2c, 0xff8070,
+  0x9c4000, 0xf47c14, 0xffbc64,
+  0x8c7000, 0xf8cc10, 0xfff08c,
+  0x1c6414, 0x30b430, 0x9ce85c,
+  0x006c70, 0x10b8b0, 0x7cf0dc,
+  0x102c98, 0x2c74f0, 0x80bcff,
+  0x501c98, 0x8c4cec, 0xc8a4ff,
+  0x8c1464, 0xe44cac, 0xffacdc,
+  0x4c2c14, 0x8c5c2c, 0xd4a46c, 0xffd8b0,
+];
+
+const PAL_RGB = ARCADE_PALETTE.map((c) => [(c >> 16) & 255, (c >> 8) & 255, c & 255] as const);
+
+/** Index of the nearest palette colour ("redmean" weighted distance, close to perceptual). */
+function nearestPal(r: number, g: number, b: number): number {
+  let best = 0;
+  let bd = Infinity;
+  for (let i = 0; i < PAL_RGB.length; i++) {
+    const [pr, pg, pb] = PAL_RGB[i];
+    const rm = (r + pr) / 2;
+    const dr = r - pr, dg = g - pg, db = b - pb;
+    const d = (2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db;
+    if (d < bd) (bd = d), (best = i);
+  }
+  return best;
+}
+
+/** Chunky pixel size in canvas px for a texture: ~2 world px (a bit more on parts-bin icons), smaller on tiny art. */
+export function arcadeCell(w: number, h: number, scale: number, icon = false): number {
+  const base = Math.max(2, Math.round((icon ? 2.5 : 2) * scale));
+  return Math.max(1, Math.min(base, Math.floor(Math.min(w, h) / 6)));
+}
+
+/**
+ * Arcade skin: re-render the art as chunky sprite pixels. Each cell of `arcadeCell` px takes the
+ * alpha-weighted mean colour of the painted pixels under it, saturated a little and snapped to
+ * ARCADE_PALETTE; cells at the top-left of the silhouette get the lighter step of their ramp and
+ * cells at the bottom-right the darker one, the hand-shaded sprite look. Alpha becomes hard: a
+ * cell is solid when at least ~40 % covered, so edges move by less than one cell. Icons keep a
+ * hard translucent drop shadow where the painter drew a soft one. Size and origin never change.
+ */
+function pixelate(data: Uint8ClampedArray, w: number, h: number, o: GradeOpts): void {
+  const c = arcadeCell(w, h, o.scale, o.softShadow);
+  const cw = Math.ceil(w / c);
+  const chh = Math.ceil(h / c);
+  const n = cw * chh;
+  const solid = new Uint8Array(n);
+  const shadow = new Uint8Array(n);
+  const col = new Int16Array(n).fill(-1);
+  const rgb = new Float32Array(n * 3);
+  const glass = new Uint8Array(n);
+  for (let cy = 0; cy < chh; cy++) {
+    for (let cx = 0; cx < cw; cx++) {
+      let sr = 0, sg = 0, sb = 0, sa = 0, cnt = 0, opaque = 0, soft = 0;
+      for (let y = cy * c; y < Math.min(h, cy * c + c); y++) {
+        for (let x = cx * c; x < Math.min(w, cx * c + c); x++) {
+          const i = (y * w + x) * 4;
+          const a = data[i + 3];
+          cnt++;
+          if (a >= 128) opaque++;
+          else if (a > 10) soft++;
+          if (!a) continue;
+          // colour from the solid art only, so antialiased fringes do not muddy it
+          const wgt = o.softShadow && a < 128 ? 0 : a;
+          sr += data[i] * wgt;
+          sg += data[i + 1] * wgt;
+          sb += data[i + 2] * wgt;
+          sa += wgt;
+        }
+      }
+      const k = cy * cw + cx;
+      const cover = o.softShadow ? opaque / cnt : (opaque + soft * 0.5) / cnt;
+      if (o.noEdge) {
+        // translucent overlays (shines, flames): blocky, with alpha in a few hard steps
+        const ma = sa / cnt;
+        glass[k] = Math.min(255, Math.round(ma / 64) * 64);
+        if (glass[k] > 0) {
+          rgb[k * 3] = sr / sa;
+          rgb[k * 3 + 1] = sg / sa;
+          rgb[k * 3 + 2] = sb / sa;
+        }
+        continue;
+      }
+      if (cover >= 0.4 && sa > 0) {
+        solid[k] = 1;
+        rgb[k * 3] = sr / sa;
+        rgb[k * 3 + 1] = sg / sa;
+        rgb[k * 3 + 2] = sb / sa;
+      } else if (o.softShadow && (soft + opaque) / cnt >= 0.4) shadow[k] = 1;
+    }
+  }
+  // palette snap with a saturation push, then edge shading along the silhouette
+  const isSolid = (x: number, y: number) => x >= 0 && y >= 0 && x < cw && y < chh && solid[y * cw + x] === 1;
+  for (let cy = 0; cy < chh; cy++) {
+    for (let cx = 0; cx < cw; cx++) {
+      const k = cy * cw + cx;
+      if (!solid[k]) continue;
+      let [hh, ss, ll] = rgbToHsl(rgb[k * 3], rgb[k * 3 + 1], rgb[k * 3 + 2]);
+      if (ss > 0.12) ss = Math.min(1, ss * 1.35 + 0.1);
+      // lift the darks so dark metal still reads against a night-sky stage
+      ll = ll < 0.4 ? 0.14 + ll * 0.64 : clamp01(0.4 + (ll - 0.4) * 1.1);
+      let [r, g, b] = hslToRgb(hh, ss, ll);
+      const lit = !isSolid(cx, cy - 1) || !isSolid(cx - 1, cy);
+      const dark = !isSolid(cx, cy + 1) || !isSolid(cx + 1, cy);
+      if (lit && !dark) (r = r + (255 - r) * 0.3), (g = g + (255 - g) * 0.3), (b = b + (255 - b) * 0.3);
+      else if (dark && !lit) (r *= 0.66), (g *= 0.66), (b *= 0.7);
+      col[k] = nearestPal(r, g, b);
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    const cy = Math.floor(y / c);
+    for (let x = 0; x < w; x++) {
+      const k = cy * cw + Math.floor(x / c);
+      const i = (y * w + x) * 4;
+      if (glass[k]) {
+        data[i] = rgb[k * 3];
+        data[i + 1] = rgb[k * 3 + 1];
+        data[i + 2] = rgb[k * 3 + 2];
+        data[i + 3] = Math.min(255, glass[k]);
+      } else if (solid[k]) {
+        const [r, g, b] = PAL_RGB[col[k]];
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+        data[i + 3] = 255;
+      } else if (shadow[k]) {
+        data[i] = 10;
+        data[i + 1] = 8;
+        data[i + 2] = 24;
+        data[i + 3] = 84;
+      } else {
+        data[i] = data[i + 1] = data[i + 2] = data[i + 3] = 0;
+      }
     }
   }
 }

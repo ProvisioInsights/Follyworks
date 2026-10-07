@@ -24,7 +24,8 @@ export type SfxName =
   | 'punch' | 'cannon' | 'ding' | 'switch' | 'plate' | 'robotStep' | 'robotBeep'
   | 'success' | 'goal' | 'rewind' | 'tick' | 'connect' | 'disconnect' | 'ignite' | 'splash'
   | 'laserOn' | 'beamHit' | 'sensorOn'
-  | 'squawk' | 'trapSnap' | 'toasterLever' | 'toasterDing' | 'kettle' | 'yowl' | 'meow' | 'bell' | 'swish';
+  | 'squawk' | 'trapSnap' | 'toasterLever' | 'toasterDing' | 'kettle' | 'yowl' | 'meow' | 'bell' | 'swish'
+  | 'secret';
 export type LoopName = 'motor' | 'fan' | 'conveyor' | 'rocket' | 'flame' | 'magnet' | 'laserHum' | 'steam';
 
 export interface Volumes { master: number; sfx: number; music: number } // 0..1 each
@@ -36,6 +37,7 @@ export const SFX_NAMES: readonly SfxName[] = [
   'success', 'goal', 'rewind', 'tick', 'connect', 'disconnect', 'ignite', 'splash',
   'laserOn', 'beamHit', 'sensorOn',
   'squawk', 'trapSnap', 'toasterLever', 'toasterDing', 'kettle', 'yowl', 'meow', 'bell', 'swish',
+  'secret',
 ];
 export const LOOP_NAMES: readonly LoopName[] = ['motor', 'fan', 'conveyor', 'rocket', 'flame', 'magnet', 'laserHum', 'steam'];
 
@@ -98,6 +100,8 @@ const SPEC: Record<SfxName, SfxSpec> = {
   meow: { g: 0.5, wet: 0.12, gap: 0.3, prio: 0, jit: 0.08 },
   bell: { g: 0.6, wet: 0.35, gap: 0.12, prio: 1, jit: 0.01 },
   swish: { g: 0.65, wet: 0.25, gap: 0.2, prio: 1, jit: 0.03 },
+  // secret theme unlocked: a ~1 s chiptune power-up jingle
+  secret: { g: 0.7, wet: 0.15, gap: 1.0, prio: 2, jit: 0.0 },
 };
 
 /** Per-loop-kind level trims so that vol=1 loops sit well under the sfx. */
@@ -410,7 +414,7 @@ export class AudioEngine {
       this.voices.push({ end: t + dur, gain: voice.node, prio: spec.prio, impact: false });
       this.later(() => voice.node.disconnect(), dur + 0.3);
 
-      if (name === 'success' || name === 'goal') this.duckMusic(t, name === 'goal' ? 2.4 : 1.6);
+      if (name === 'success' || name === 'goal' || name === 'secret') this.duckMusic(t, name === 'goal' ? 2.4 : name === 'secret' ? 1.3 : 1.6);
     } catch { /* never throw */ }
   }
 
@@ -643,7 +647,7 @@ export class AudioEngine {
 
   /**
    * Crossfade the generative music to the style for a theme ('retro', 'stone', 'steam', 'modern',
-   * 'comic', 'future'; unknown ids fall back to 'modern'). Also picks the themed stingers.
+   * 'comic', 'future', 'arcade'; unknown ids fall back to 'modern'). Also picks the themed stingers.
    * Safe to call before unlock(): the choice is remembered.
    */
   setMusicTheme(id: string): void {
