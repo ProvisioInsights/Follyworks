@@ -432,7 +432,7 @@ const teaTime: CampaignEntry = {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g3-tea-time',
     name: 'Tea Time',
-    description: 'The teapot is parked on two dead conveyors and the stove has gone out. Roll the pot onto the stove and light it: the steam will shoot the basketball, the whistle will wake Whiskers, and Whiskers will want to bowl.',
+    description: 'The teapot is parked on three dead conveyors and the stove has gone out. Roll the pot onto the stove and light it: the steam will shoot the basketball, the whistle will wake Whiskers, and Whiskers will want to bowl.',
     environment: 'basement',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
@@ -545,7 +545,7 @@ const doubleShift: CampaignEntry = {
       o('g3g-conveyor', 'conveyor', 410, 400, { length: 420, speed: 110, dir: 'right' }),
       o('g3g-cat', 'cat', 225, FLOOR - 13),
       ...[0, 1, 2, 3].map((i) => o(`g3g-pin${i + 1}`, 'bowling_pin', 640 + i * 36, FLOOR - 28)),
-      o('g3g-bell', 'bell', 840, 598),
+      o('g3g-bell', 'bell', 885, 598),
     ],
     connections: [wire('g3g-w1', 'g3g-battery', 'g3g-motor')],
     inventory: [
@@ -890,7 +890,7 @@ const theWorks: CampaignEntry = {
     bonus: { elegantParts: 8, elegantTime: 13, absurdStages: 27 },
     hints: [
       'Follow the ball: bridge the gap in Bolt’s shelf, turn him round, ramp the ball onto the upper conveyor, run both conveyors to the right and reel the plug up out of the bucket.',
-      'Every job here needs a clockwise turn, but the motor runs anticlockwise. Mesh one gear on the motor and take every belt from that gear. The plug rises right past the bell’s left side: hang the toaster there with its lever in the plug’s way.',
+      'Every job here needs a clockwise turn, but the motor runs anticlockwise. Mesh one gear on the motor and take every belt from that gear. The plug rises just right of the bell: hang the toaster under the bell with its lever in the plug’s way.',
       'A short plank across the gap, an upright plank at the left end of the shelf, a ramp under its right end. Gear on the motor, belts to both conveyors and the winch. Toaster just below the bell.',
     ],
     metadata: { chapter: 3, order: 10, author: 'Follyworks', blurb: 'Everything you know, in a row.' },
