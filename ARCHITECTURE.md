@@ -116,12 +116,15 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - `EditorController.handles()` gives the rotate knob, end/edge grips and corner turn zones of the selected part; `Overlays` draws them (plus the pivot and the 0/45/90° snap guide from `EditorController.manip`), and the controller's `reshape` drag edits them with the pure geometry in `game/manipulation.ts` (`endDrag`, `rotateAbout`), committing once through `Session.reshapeObject`. `ui/SelectionBar.ts` is the floating toolbar by the selection and the angle/length badge by the pointer, both DOM placed every frame inside the HUD insets.
 - `GuideCoach` draws tutorial guidance: a DOM card and arrow, plus the ghost outline through `PlayController.guideOverlay`.
 - `ui/science.ts` builds the "How it works" section in the properties panel and the "Physics in your machine" chips on the results card; `ui/lab.ts` has the lab list and lesson intro (passed to `PlayScreen` as `briefIntro`). Their styles are in `ui/science.css`.
+- `ui/difficulty.ts` has the one-time difficulty chooser (`App.playCampaign` shows it while `settings.difficultyChosen` is false), the Settings picker and the read-only badge used in the briefing, HUD and results. The badge opens Settings at the Difficulty control (`openSettings('difficulty')`); a change applies when a mission is next opened, or at once through Settings' "Restart it on …" (`App.restartMission`).
+- `tests/css.test.ts` checks every UI stylesheet's braces balance: browsers parse CSS nesting, so one unclosed rule silently nests (and kills) every later rule in the bundle.
 - The level editor adds `EditorPanel` with three tabs: level settings, parts bin (inventory) and goals.
 
 ## Persistence
 
 `persistence/save.ts` keeps one JSON document, `follyworks.save`, with a `version` field. It holds settings, per-level progress, the autosaved build for each level, custom levels, sandbox slots, the level last open in the editor and the lab lesson last played (`lab`, absent in older saves and filled in on load). Lab lessons keep their progress and builds under their `lab-` level ids like any level.
 
+- `settings.difficulty` is the one difficulty every campaign mission is derived for; `settings.difficultyChosen` records that the player picked it (first-time chooser in `ui/difficulty.ts`, or the Settings control). Older saves that stored a difficulty load as chosen.
 - Progress is kept per difficulty (`byDifficulty.easy/normal/hard`) beside the aggregate fields; saves from before difficulties load as Normal. Builds for Easy and Hard autosave under `<id>@easy` / `<id>@hard`.
 - Loading never throws. Unknown or broken fields fall back to defaults field by field (an unknown `settings.theme` becomes `'auto'`).
 - An unreadable document is copied aside to `follyworks.save.corrupt-<time>` before defaults are used.

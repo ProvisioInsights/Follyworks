@@ -1597,15 +1597,24 @@ body.reduced * {
 .diff-badge {
   display: inline-block;
   margin-left: 8px;
-  padding: 1px 7px;
+  padding: 1px 8px;
   border-radius: 9px;
-  border: 1px solid currentColor;
+  border: 1px solid rgba(0, 0, 0, 0.35);
   font-family: var(--font-head);
   font-size: calc(12px * var(--ts));
   font-weight: 700;
+  line-height: 1.4;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   vertical-align: 3px;
+}
+button.diff-badge {
+  cursor: pointer;
+}
+button.diff-badge:hover,
+button.diff-badge:focus-visible {
+  outline: 2px solid var(--dc);
+  outline-offset: 1px;
 }
 .diff-badge.easy,
 .diff-btn.easy,
@@ -1623,7 +1632,9 @@ body.reduced * {
   --dc: var(--diff-hard);
 }
 .diff-badge {
-  color: var(--dc);
+  /* Filled, with dark text: readable on the dark HUD and on the light retro / comic panels. */
+  background: var(--dc);
+  color: #1a120c;
 }
 .diff-pick {
   display: grid;
@@ -1649,7 +1660,8 @@ body.reduced * {
   font-size: calc(17px * var(--ts));
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--dc);
+  /* Mixed toward the text colour so the label stays readable on light theme panels too. */
+  color: color-mix(in srgb, var(--dc) 65%, var(--cream));
 }
 .diff-btn small {
   font-size: calc(12px * var(--ts));
@@ -1724,17 +1736,6 @@ body.reduced * {
   color: var(--muted);
   font-size: calc(11px * var(--ts));
 }
-.result-notes {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin: -4px 0 10px;
-}
-.result-notes .diff-badge {
-  margin-left: 0;
-  vertical-align: 0;
-}
 .hint-note {
   font-family: var(--font-head);
   letter-spacing: 0.06em;
@@ -1744,6 +1745,280 @@ body.reduced * {
   border: 1px dashed var(--brass);
   border-radius: 6px;
   padding: 2px 8px;
+}
+
+/* Briefing: the difficulty is a read-only badge plus a link to Settings. */
+.brief-diff {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: calc(14px * var(--ts));
+}
+.brief-diff .diff-badge {
+  margin-left: 0;
+  vertical-align: 0;
+}
+.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--brass-hi);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font-size: inherit;
+}
+.linkish:hover {
+  color: var(--cream);
+}
+.pill.elegant {
+  color: color-mix(in srgb, #7fdcff 70%, var(--cream));
+  border-color: color-mix(in srgb, #3a9ec0 70%, var(--edge-hi));
+}
+.pill.absurd {
+  color: color-mix(in srgb, #ffb08e 70%, var(--cream));
+  border-color: color-mix(in srgb, #d0603e 70%, var(--edge-hi));
+}
+
+/* Settings: the Difficulty control sits first, full width. */
+.settings-diff {
+  margin: 0 0 18px;
+  padding: 12px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.14);
+}
+.settings-diff .diff-pick {
+  margin-top: 8px;
+}
+.settings-diff.flash {
+  animation: diffFlash 1.4s ease-out;
+}
+@keyframes diffFlash {
+  0%,
+  40% {
+    border-color: var(--brass-hi);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass-hi) 35%, transparent);
+  }
+}
+.sd-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.sd-label {
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: calc(16px * var(--ts));
+}
+.sd-head .muted {
+  font-size: calc(13px * var(--ts));
+}
+.sd-note:not(:empty) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 10px;
+  font-size: calc(13px * var(--ts));
+  color: var(--cream-dim);
+}
+
+/* The one-time "How tricky do you like it?" chooser. */
+.diff-choose .dc-body {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px 40px;
+}
+.dc-panel {
+  width: min(900px, 100%);
+  padding: 30px 32px 34px;
+  text-align: center;
+  animation: popIn 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.dc-panel h1 {
+  font-size: calc(42px * var(--ts));
+  color: var(--brass-hi);
+  margin: 0;
+}
+.dc-sub {
+  margin: 8px 0 24px;
+  color: var(--cream-dim);
+  font-size: calc(16px * var(--ts));
+}
+.dc-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.diff-card {
+  --dc: var(--diff-normal);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 18px 22px;
+  border-radius: 14px;
+  border: 2px solid var(--edge-hi);
+  background: color-mix(in srgb, var(--dc) 10%, transparent);
+  color: var(--cream);
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.12s, border-color 0.12s, background 0.12s, box-shadow 0.12s;
+}
+.diff-card.easy {
+  --dc: var(--diff-easy);
+}
+.diff-card.hard {
+  --dc: var(--diff-hard);
+}
+.diff-card.recommended {
+  border-color: var(--dc);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dc) 30%, transparent), 0 10px 26px rgba(0, 0, 0, 0.3);
+}
+.diff-card:hover,
+.diff-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--dc);
+  background: color-mix(in srgb, var(--dc) 20%, transparent);
+  outline: none;
+}
+.diff-card b {
+  font-family: var(--font-head);
+  font-size: calc(34px * var(--ts));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: color-mix(in srgb, var(--dc) 60%, var(--cream));
+}
+.dc-blurb {
+  font-size: calc(15px * var(--ts));
+  line-height: 1.4;
+  color: var(--cream-dim);
+}
+.dc-tag {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: var(--dc);
+  color: #1a120c;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: calc(12px * var(--ts));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.diff-ladder {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 34px;
+}
+.diff-ladder .bar {
+  width: 14px;
+  border-radius: 3px;
+  border: 1.5px solid var(--edge-hi);
+  background: rgba(0, 0, 0, 0.2);
+}
+.diff-ladder .b0 {
+  height: 14px;
+}
+.diff-ladder .b1 {
+  height: 24px;
+}
+.diff-ladder .b2 {
+  height: 34px;
+}
+.diff-ladder .bar.lit {
+  background: var(--dc);
+  border-color: var(--dc);
+}
+@media (max-width: 720px) {
+  .dc-cards {
+    grid-template-columns: 1fr;
+  }
+  .dc-panel h1 {
+    font-size: calc(32px * var(--ts));
+  }
+}
+
+/* Results: big stars and the result line first; the way forward is the first, biggest button. */
+.result-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: -4px 0 12px;
+}
+.stars {
+  display: flex;
+  gap: 10px;
+  font-size: calc(48px * var(--ts));
+  line-height: 1;
+}
+.star {
+  color: rgba(128, 112, 96, 0.35);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+.star.on {
+  color: #ffd34d;
+  text-shadow: 0 3px 0 #a8651a, 0 0 18px rgba(255, 200, 80, 0.55);
+  animation: starIn 0.45s cubic-bezier(0.2, 1.8, 0.4, 1) both;
+}
+@keyframes starIn {
+  from {
+    transform: scale(0.2) rotate(-40deg);
+    opacity: 0;
+  }
+}
+.result-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: calc(16px * var(--ts));
+  color: var(--cream-dim);
+}
+.result-line .diff-badge {
+  margin-left: 0;
+  vertical-align: 0;
+}
+.result-hero .hint-note {
+  margin-top: 4px;
+}
+.modal.results .stamps {
+  margin: 0 0 12px;
+}
+.modal.results .stamp {
+  padding: 6px 8px;
+}
+.modal.results .stamp b {
+  font-size: calc(20px * var(--ts));
+}
+.modal.results .receipt {
+  max-height: 170px;
+  mask-image: none;
+}
+.modal.results .modal-foot {
+  justify-content: flex-start;
+}
+.modal.results .modal-foot .btn.primary {
+  flex: 1 1 200px;
+  min-height: 48px;
+  font-size: calc(21px * var(--ts));
+}
+body.reduced .star.on {
+  animation: none;
+}
+
 /* ================================================================== themes
    The HUD follows the visual theme (src/core/themes.ts) through [data-theme] on <html>.
    'modern' is the default look above. Each theme only overrides tokens and the surfaces that

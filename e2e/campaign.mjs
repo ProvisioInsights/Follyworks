@@ -17,6 +17,7 @@ page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
 await page.goto(url);
 await page.waitForFunction(() => !!window.__follyworks, null, { timeout: 30000 });
 const n = await page.evaluate(() => window.__follyworks.campaignLength);
+await page.evaluate(() => window.__follyworks.updateSettings({ difficultyChosen: true })); // skip the one-time difficulty chooser
 const rows = [];
 for (let i = from; i < Math.min(n, to + 1); i++) {
   await page.evaluate((i) => window.__follyworks.playCampaign(i), i);

@@ -11,7 +11,7 @@ import type { SessionKind } from '../editor/Session';
 import { PlayController } from '../game/PlayController';
 import { invalidPlacements } from '../game/placement';
 import type { AttemptResult } from '../game/scoring';
-import { DIFFICULTIES, DIFFICULTY_BLURBS, DIFFICULTY_LABELS, type Difficulty } from '../game/difficulty';
+import type { Difficulty } from '../game/difficulty';
 import { applyHintPenalty, ghostEntities, GHOST_TIER, HintLadder, hintTierLabel, type HintView } from '../game/hints';
 import type { Entity } from '../sim/Entity';
 import { THEMES, type ThemeId, type ThemeSetting } from '../core/themes';
@@ -27,6 +27,7 @@ import { GuideCoach } from './GuideCoach';
 import { conceptsInRun } from '../content/runConcepts';
 import type { ConceptId } from '../content/science';
 import { physicsInMachine, scienceSection } from './science';
+import { difficultyBadge } from './difficulty';
 
 export interface PlayConfig {
   kind: SessionKind;
@@ -42,6 +43,8 @@ export interface PlayConfig {
   concepts?: ConceptId[];
   onExit: () => void;
   onNext?: () => void;
+  /** Label of the results card's next button (default "Next puzzle"). */
+  nextLabel?: string;
   /** Called with the attempt; return true if this was a first solve (for messaging). */
   onSolved?: (r: AttemptResult) => void;
   onBuildChanged?: (build: BuildDef, level: LevelDef) => void;
@@ -51,10 +54,8 @@ export interface PlayConfig {
   onReturn?: () => void;
   exitLabel?: string;
   sandbox?: { onSave: (name: string, build: BuildDef, env: string) => void; onLoad: () => void; onEnv: (env: string) => void };
-  /** Campaign: the difficulty this level was derived for (shown in the HUD and briefing). */
+  /** Campaign: the difficulty this level was derived for (a read-only badge in the HUD, briefing and results; set in Settings). */
   difficulty?: Difficulty;
-  /** Campaign: the player picked another difficulty in the briefing. */
-  onDifficulty?: (d: Difficulty) => void;
   /** Reference solution for the hint ladder's parts list and ghosts (campaign only). */
   solution?: BuildDef | null;
   /** Sandbox / editor: a theme picker in the top bar for this visit. */
@@ -119,8 +120,8 @@ export class PlayScreen {
   private binCat: Category | 'all' = 'all';
   private hints: HintLadder;
   private hintGhostSet: { n: number; ents: Entity[] } = { n: 0, ents: [] };
-  private switchingDifficulty = false;
   private resultModal: { close: () => void } | null = null;
+  private dockRunning: boolean | null = null;
   private timeUpEl: HTMLElement | null = null;
   private editorPanel: EditorPanel | null = null;
   private keyHandler: (e: KeyboardEvent) => void;
@@ -228,7 +229,7 @@ export class PlayScreen {
     const title = h(
       'div',
       { class: 'title' },
-      h('span', { class: 't' }, cfg.title, cfg.difficulty ? h('span', { class: `diff-badge ${cfg.difficulty}`, 'data-diff': cfg.difficulty, tip: DIFFICULTY_BLURBS[cfg.difficulty] }, DIFFICULTY_LABELS[cfg.difficulty]) : null),
+      h('span', { class: 't' }, cfg.title, cfg.difficulty ? difficultyBadge(cfg.difficulty, this.app) : null),
       h('span', { class: 'c' }, cfg.subtitle),
     );
     this.els.goals = h('div', { class: 'goals' });
@@ -380,6 +381,21 @@ export class PlayScreen {
     const bin = this.els.leftCol.getBoundingClientRect();
     const right = this.cfg.kind === 'editor' ? 320 : 20;
     this.app.scene.setInsets({ top: 58, left: bin.right + 6, right, bottom: 78 });
+    this.placeDock();
+  }
+
+  /** Keep the dock centred, unless that would cover the edit tools (narrow windows): then sit just right of them. */
+  private placeDock() {
+    const dock = this.els.dock;
+    dock.style.left = '';
+    dock.style.transform = '';
+    if (this.els.tools.style.display === 'none') return;
+    const t = this.els.tools.getBoundingClientRect();
+    const d = dock.getBoundingClientRect();
+    if (d.left < t.right + 10) {
+      dock.style.left = `${t.right + 10}px`;
+      dock.style.transform = 'none';
+    }
   }
 
   // ------------------------------------------------------------------ rendering
@@ -400,6 +416,10 @@ export class PlayScreen {
     this.els.runControls.style.display = running ? 'flex' : 'none';
     this.els.buildInfo.style.display = running ? 'none' : 'flex';
     this.els.tools.style.display = running ? 'none' : 'flex';
+    if (running !== this.dockRunning) {
+      this.dockRunning = running;
+      this.placeDock();
+    }
     this.els.binList.style.opacity = running ? '0.55' : '1';
     this.els.bin.style.pointerEvents = running ? 'none' : 'auto';
     const lim = this.session.level.restrictions?.timeLimit;
@@ -876,45 +896,28 @@ export class PlayScreen {
         inv.length ? h('span', { class: 'pill' }, (() => { const n = inv.reduce((n, r) => n + (r.total < 0 ? 0 : r.total), 0); return n ? `${plural(n, 'part')} in the bin` : '∞ parts in the bin'; })()) : h('span', { class: 'pill' }, 'No parts: just watch'),
         l.restrictions?.timeLimit ? h('span', { class: 'pill' }, `${l.restrictions.timeLimit}s time limit`) : null,
         l.restrictions?.maxParts !== undefined && inv.length ? h('span', { class: 'pill' }, `at most ${plural(l.restrictions.maxParts, 'part')}`) : null,
-        l.bonus?.elegantParts !== undefined ? h('span', { class: 'pill', style: { color: '#a6ecff' } }, `ELEGANT: ≤ ${plural(l.bonus.elegantParts, 'part')}`) : null,
-        l.bonus?.elegantTime !== undefined ? h('span', { class: 'pill', style: { color: '#a6ecff' } }, `${l.bonus.elegantParts !== undefined ? 'or ' : 'ELEGANT: '}under ${l.bonus.elegantTime}s`) : null,
-        l.bonus?.absurdStages === 0 ? null : h('span', { class: 'pill', style: { color: '#ffc0a6' } }, `ABSURD: ${l.bonus?.absurdStages ?? 7}+ stage chain`),
+        elegantGoal(l) ? h('span', { class: 'pill elegant' }, `ELEGANT: ${elegantGoal(l)}`) : null,
+        l.bonus?.absurdStages === 0 ? null : h('span', { class: 'pill absurd' }, `ABSURD: ${l.bonus?.absurdStages ?? 7}+ stage chain`),
       ),
     ];
     const cur = this.cfg.difficulty;
-    if (cur && this.cfg.onDifficulty)
+    if (cur)
       body.push(
         h(
           'div',
-          { class: 'diff-pick', role: 'group', 'aria-label': 'Difficulty' },
-          DIFFICULTIES.map((d) =>
-            h(
-              'button',
-              {
-                class: `diff-btn ${d} ${d === cur ? 'on' : ''}`,
-                'data-diff': d,
-                'aria-pressed': d === cur ? 'true' : 'false',
-                onClick: () => {
-                  if (d === cur) return;
-                  this.app.sfx('click');
-                  this.switchingDifficulty = true;
-                  m.close();
-                  this.cfg.onDifficulty!(d);
-                },
-              },
-              h('b', null, DIFFICULTY_LABELS[d]),
-              h('small', null, DIFFICULTY_BLURBS[d]),
-            ),
-          ),
+          { class: 'brief-diff' },
+          h('span', { class: 'muted' }, 'Difficulty'),
+          difficultyBadge(cur, this.app),
+          h('button', { class: 'linkish', type: 'button', onClick: () => (this.app.sfx('ui'), this.app.openSettings('difficulty')) }, 'change'),
         ),
       );
-    const m = modal(this.app.ui, {
+    modal(this.app.ui, {
       title: this.cfg.title,
       body,
       strip: 'hazard',
       actions: [{ label: 'Let’s build', kind: 'primary', icon: 'wrench', onClick: () => {} }],
       onClose: () => {
-        if (this.switchingDifficulty || this.dead) return;
+        if (this.dead) return;
         if (l.metadata?.tutorial && !this.guideShowing) this.nextHint(true);
         this.guide?.update();
       },
@@ -987,6 +990,25 @@ export class PlayScreen {
     this.cfg.onSolved?.(r);
     this.ctl.run?.setPaused(true);
     const stamp = (cls: string, title: string, on: boolean, why: string) => h('div', { class: `stamp ${cls} ${on ? 'on' : ''}` }, h('b', null, title), h('small', null, why));
+    // Stars: one for solving, one for ELEGANT, one for ABSURD (when the level offers it).
+    const starsOn = [true, r.elegant.earned, ...(r.absurd.available ? [r.absurd.earned] : [])];
+    const earned = starsOn.filter(Boolean).length;
+    const hero = h(
+      'div',
+      { class: 'result-hero' },
+      h(
+        'div',
+        { class: 'stars', role: 'img', 'aria-label': `${earned} of ${starsOn.length} stars` },
+        starsOn.map((on, i) => h('span', { class: `star ${on ? 'on' : ''}`, style: { animationDelay: `${0.12 + i * 0.22}s` } }, '★')),
+      ),
+      h(
+        'div',
+        { class: 'result-line' },
+        h('span', null, `Solved in ${r.time?.toFixed(1)}s with ${plural(r.parts, 'part')}`),
+        this.cfg.difficulty ? difficultyBadge(this.cfg.difficulty) : null,
+      ),
+      r.hintTier ? h('span', { class: 'hint-note' }, `Solved with hints (up to ${hintTierLabel(r.hintTier)})`) : null,
+    );
     const receipt = h(
       'div',
       { class: 'receipt' },
@@ -994,9 +1016,11 @@ export class PlayScreen {
       receiptRows(r, this.ctl.run?.sim).map((c) => h('div', { class: `r-row${c.goal ? ' goal' : ''}` }, h('span', null, `${c.time.toFixed(1)}s`), h('span', null, c.label))),
       h('div', { class: 'r-total' }, h('span', null, `${plural(r.stages, 'stage')} · ${plural(r.domains.length, 'domain')}`), h('span', null, `${plural(r.parts, 'part')} · ${r.time?.toFixed(1)}s`)),
     );
+    // The way forward comes first (and takes the focus); then replay, then back to building.
     const actions: { label: string; kind?: string; onClick: () => void | boolean; icon?: string }[] = [];
     if (this.cfg.kind === 'test') actions.push({ label: 'Back to editor', kind: 'primary', onClick: () => this.cfg.onReturn?.() });
-    actions.push({ label: 'Keep tinkering', onClick: () => this.ctl.reset() });
+    else if (this.cfg.onNext) actions.push({ label: this.cfg.nextLabel ?? 'Next puzzle', kind: 'primary', icon: 'play', onClick: () => this.cfg.onNext!() });
+    else actions.push({ label: `Back to ${(this.cfg.exitLabel ?? 'Menu').toLowerCase()}`, kind: 'primary', icon: 'back', onClick: () => this.exit() });
     actions.push({
       label: 'Watch replay',
       icon: 'rewind',
@@ -1008,21 +1032,15 @@ export class PlayScreen {
         run.setPaused(false);
       },
     });
-    if (this.cfg.onNext) actions.push({ label: 'Next puzzle', kind: 'primary', icon: 'play', onClick: () => this.cfg.onNext!() });
+    actions.push({ label: 'Keep tinkering', onClick: () => this.ctl.reset() });
     this.app.sfx('success' as SfxName);
     this.resultModal = modal(this.app.ui, {
       title: pickTitle(r),
       strip: 'hazard',
+      cls: 'results',
       body: [
-        h('div', { class: 'stamps' }, stamp('s', 'SOLVED', true, `in ${r.time?.toFixed(1)}s`), stamp('e', 'ELEGANT', r.elegant.earned, r.elegant.reason), r.absurd.available ? stamp('a', 'ABSURD', r.absurd.earned, r.absurd.reason) : null),
-        r.hintTier || this.cfg.difficulty
-          ? h(
-              'div',
-              { class: 'result-notes' },
-              this.cfg.difficulty ? h('span', { class: `diff-badge ${this.cfg.difficulty}` }, DIFFICULTY_LABELS[this.cfg.difficulty]) : null,
-              r.hintTier ? h('span', { class: 'hint-note' }, `Solved with hints (up to ${hintTierLabel(r.hintTier)})`) : null,
-            )
-          : null,
+        hero,
+        h('div', { class: 'stamps' }, stamp('s', 'SOLVED', true, 'Job done!'), stamp('e', 'ELEGANT', r.elegant.earned, r.elegant.reason), r.absurd.available ? stamp('a', 'ABSURD', r.absurd.earned, r.absurd.reason) : null),
         receipt,
         physicsInMachine([...new Set([...(this.cfg.concepts ?? []), ...conceptsInRun(r.chain, (id) => this.ctl.run?.sim.entities.get(id)?.type, 6 - (this.cfg.concepts?.length ?? 0))])]),
       ],
@@ -1044,6 +1062,10 @@ const receiptRows = (r: AttemptResult, sim: Simulation | undefined) => {
   }
   return rows.sort((a, b) => a.time - b.time || (a.goal ? 1 : 0) - (b.goal ? 1 : 0));
 };
+
+/** "≤ 3 parts or under 4s": the briefing's one-line ELEGANT target, or '' when the level has none. */
+const elegantGoal = (l: LevelDef) =>
+  [l.bonus?.elegantParts !== undefined ? `≤ ${plural(l.bonus.elegantParts, 'part')}` : '', l.bonus?.elegantTime !== undefined ? `under ${l.bonus.elegantTime}s` : ''].filter(Boolean).join(' or ');
 
 const pickTitle = (r: AttemptResult) => {
   if (r.absurd.earned && r.elegant.earned) return 'Magnificently pointless.';

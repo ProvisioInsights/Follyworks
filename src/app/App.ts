@@ -13,6 +13,7 @@ import { RunController } from '../game/RunController';
 import { mergeProgress, type AttemptResult } from '../game/scoring';
 import { SaveStore, type Settings } from '../persistence/save';
 import { WorkshopScene } from '../render/WorkshopScene';
+import { difficultyChooser } from '../ui/difficulty';
 import { h, installTooltips, modal, toast } from '../ui/dom';
 import { labIntro, labScreen } from '../ui/lab';
 import { PlayScreen } from '../ui/PlayScreen';
@@ -31,6 +32,10 @@ export class App implements AppContext {
   private demo: { run: RunController; unhook: () => void; doneAt: number } | null = null;
   /** The open campaign level as derived for its difficulty (null outside the campaign). */
   private derived: ReturnType<typeof applyDifficulty> | null = null;
+  /** Campaign index of the open mission (null outside the campaign). */
+  private missionIndex: number | null = null;
+  /** Where Back on the first-time difficulty chooser returns to. */
+  private home: 'menu' | 'campaign' = 'menu';
   /** Chapter whose era picks the theme on 'auto' (undefined: sandbox, editor, custom levels). */
   private themeChapter: number | undefined = undefined;
   /** Theme picked in the sandbox or editor for this visit only (overrides the setting there). */
@@ -149,8 +154,8 @@ export class App implements AppContext {
     }
   }
 
-  openSettings() {
-    settingsDialog(this);
+  openSettings(focus?: 'difficulty') {
+    settingsDialog(this, focus);
   }
 
   sfx(name: string, opts?: { vol?: number; pitch?: number }) {
@@ -161,6 +166,7 @@ export class App implements AppContext {
 
   private teardown() {
     this.derived = null;
+    this.missionIndex = null;
     this.screen?.destroy();
     this.screen = null;
     this.play?.destroy();
@@ -174,6 +180,7 @@ export class App implements AppContext {
     this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = mainMenu(this);
+    this.home = 'menu';
     this.audio.setMusicIntensity(0.2);
   }
 
@@ -182,6 +189,7 @@ export class App implements AppContext {
     this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = campaignScreen(this);
+    this.home = 'campaign';
   }
 
   showLevels() {
@@ -196,12 +204,25 @@ export class App implements AppContext {
     return CAMPAIGN.length;
   }
 
-  playCampaign(index: number, difficulty?: Difficulty) {
+  get missionDifficulty(): Difficulty | null {
+    return this.derived?.difficulty ?? null;
+  }
+
+  restartMission() {
+    if (this.missionIndex !== null) this.playCampaign(this.missionIndex);
+  }
+
+  /**
+   * Open a campaign mission on the global difficulty. The very first time (no difficulty chosen
+   * yet) the full-screen chooser asks once, saves the answer and then opens the mission.
+   */
+  playCampaign(index: number) {
     const entry = CAMPAIGN[index];
     if (!entry) return this.showCampaign();
+    if (!this.settings.difficultyChosen) return this.chooseDifficulty(index);
     this.teardown();
     this.setThemeContext(entry.chapter);
-    const derived = applyDifficulty(entry, difficulty ?? this.settings.difficulty);
+    const derived = applyDifficulty(entry, this.settings.difficulty);
     const d = derived.difficulty;
     const level = derived.level;
     const key = buildKey(level.id, d);
@@ -210,6 +231,7 @@ export class App implements AppContext {
     const chapter = CHAPTERS.find((c) => c.index === entry.chapter);
     const progress = this.store.progress(level.id);
     this.derived = derived;
+    this.missionIndex = index;
     this.play = new PlayScreen(this, {
       kind: 'campaign',
       level,
@@ -219,15 +241,27 @@ export class App implements AppContext {
       brief: true,
       difficulty: d,
       solution: derived.solution,
-      onDifficulty: (nd) => {
-        this.updateSettings({ difficulty: nd });
-        this.playCampaign(index, nd);
-      },
       onExit: () => this.showCampaign(),
       exitLabel: 'Puzzles',
       onNext: index + 1 < CAMPAIGN.length ? () => this.playCampaign(index + 1) : undefined,
       onSolved: (r) => this.record(level.id, r, d),
       onBuildChanged: (b) => this.store.setBuild(key, b),
+    });
+  }
+
+  /** The one-time "How tricky do you like it?" screen in front of the first campaign mission. */
+  private chooseDifficulty(index: number) {
+    const back = this.home;
+    this.teardown();
+    this.setThemeContext(this.demoChapter());
+    this.startDemo();
+    this.screen = difficultyChooser(this, {
+      onPick: (d) => {
+        this.updateSettings({ difficulty: d, difficultyChosen: true });
+        this.store.flush();
+        this.playCampaign(index);
+      },
+      onBack: () => (back === 'campaign' ? this.showCampaign() : this.showMenu()),
     });
   }
 
@@ -260,6 +294,7 @@ export class App implements AppContext {
       brief: true,
       briefIntro: () => labIntro(entry),
       concepts: [entry.concept],
+      nextLabel: 'Next lesson',
       onExit: () => this.showLab(),
       exitLabel: 'Lab',
       onNext: index + 1 < LAB.length ? () => this.playLab(index + 1) : undefined,

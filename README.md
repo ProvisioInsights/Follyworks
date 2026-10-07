@@ -5,7 +5,7 @@
 Follyworks is a 2D physics contraption puzzle game for the browser. Each puzzle asks for one small, specific thing ("get the crate into the shipping bay", "wake the cat"). You drag parts from a limited parts bin into a cutaway workshop, press RUN, and watch your machine succeed, fail, or do something you did not expect. Then you rewind, nudge a ramp, and try again.
 
 - **66 missions**: a 6-mission guided tutorial, then six groups of 10 (Workshop Basics, Levers & Lines, Moving Parts, Hot Air & Sparks, Ridiculous Machines, Lasers & Light). Each group mixes gravity, springs, ropes, gears, air, heat, magnets and electricity, and missions get busier and need more parts as you go.
-- **Easy / Normal / Hard for every mission**, picked in the briefing: Easy adds time, spare parts and one part already in place; Hard cuts the clock, trims the bin and caps parts at the simplest known solution. Beaten difficulties show on the campaign map.
+- **One difficulty, chosen once**: the first campaign mission asks "How tricky do you like it?" (Easy / Normal / Hard) and every mission uses that until you change it in Settings. Easy adds time, spare parts and one part already in place; Hard cuts the clock, trims the bin and caps parts at the simplest known solution. Beaten difficulties show on the campaign map.
 - **Tiered hints**: a nudge, then the parts you'll need, then glowing outlines of where parts go, one at a time. Ghost outlines withhold ELEGANT.
 - **Optional on-screen guidance** in the tutorial: a step card, an arrow at the right part or button, and a glowing outline of one good spot. Hide it from the card, the compass button, or Settings.
 - **47 parts** plus three connectors (rope, drive belt, wire): balls, dominoes, planks, seesaws, trampolines, buckets, pulleys, gears, motors, conveyors, fans, balloons, candles, rockets, cannons, dynamite, magnets, batteries, switches, pressure plates, timers, logic gates, light bulbs, a boxing glove, a cactus, a small walking robot called Bolt, a goofy gang (a squawking rubber chicken, a mousetrap catapult, a toaster that fires toast, a whistling teapot, bowling pins, Whiskers the cat, a bell, and a basketball with its hoop), and a light lab of lasers, mirrors, beam splitters, prisms, colour filters, lenses and light sensors.
@@ -59,7 +59,7 @@ node e2e/acceptance.mjs      # move/rotate/duplicate/delete, pan/zoom, slow moti
                              # level rename/duplicate/import/delete, test-and-return, saves surviving reload, corrupt save
 node e2e/campaign.mjs        # plays every level with its reference solution in the real browser
 node e2e/transform.mjs       # knob, end swing, corner turn, R reset, selection toolbar by mouse; overlap refusal; goal tags
-node e2e/difficulty.mjs      # difficulty picker, HUD badge, every hint tier, per-difficulty progress and map badges
+node e2e/difficulty.mjs      # first-time chooser, Settings change + restart, badges, every hint tier, per-difficulty progress and map badges
 ```
 
 Each takes an optional URL argument and exits non-zero on failure. Set `SHOTS=<dir>` to save screenshots. Set `CHROMIUM=<path>` if Chromium is not at `/opt/pw-browsers/chromium`.

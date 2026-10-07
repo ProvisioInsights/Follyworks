@@ -7,6 +7,7 @@ import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/
 import { buildKey, DIFFICULTIES, DIFFICULTY_LABELS } from '../game/difficulty';
 import { LAB } from '../game/levels/lab';
 import { ENVIRONMENTS } from '../render/art/environment';
+import { difficultyPicker } from './difficulty';
 import { h, icon, modal, toast } from './dom';
 
 export interface Screen {
@@ -361,8 +362,35 @@ const importDialog = (app: AppContext, refresh: () => void) => {
 
 // ------------------------------------------------------------------ settings
 
-export const settingsDialog = (app: AppContext) => {
+export const settingsDialog = (app: AppContext, focus?: 'difficulty') => {
   const s = app.settings;
+  // Difficulty: one setting for every campaign mission. A mission already open keeps the
+  // difficulty it was started on until it is entered again (or restarted from here).
+  const diffNote = h('div', { class: 'sd-note' });
+  const noteDiff = () => {
+    const open = app.missionDifficulty;
+    const want = app.settings.difficulty;
+    diffNote.replaceChildren(
+      ...(open && open !== want
+        ? [
+            h('span', null, `This puzzle is still on ${DIFFICULTY_LABELS[open]}. ${DIFFICULTY_LABELS[want]} starts next time you open a puzzle.`),
+            h('button', { class: 'btn small primary sd-restart', type: 'button', onClick: () => (m.close(), app.restartMission()) }, icon('reset', 16), `Restart it on ${DIFFICULTY_LABELS[want]}`),
+          ]
+        : []),
+    );
+  };
+  const diffSection = h(
+    'div',
+    { class: 'settings-diff', 'data-section': 'difficulty' },
+    h('div', { class: 'sd-head' }, h('span', { class: 'sd-label' }, 'Difficulty'), h('span', { class: 'muted' }, 'for every puzzle')),
+    difficultyPicker(s.difficulty, (d) => {
+      app.sfx('click');
+      app.updateSettings({ difficulty: d, difficultyChosen: true });
+      noteDiff();
+    }),
+    diffNote,
+  );
+  noteDiff();
   const slider = (label: string, key: 'master' | 'sfx' | 'music') => {
     const inp = h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(s[key]), 'aria-label': label }) as HTMLInputElement;
     inp.addEventListener('input', () => app.updateSettings({ [key]: Number(inp.value) }));
@@ -398,9 +426,10 @@ export const settingsDialog = (app: AppContext) => {
     noteFor(themeSel.value);
     app.updateSettings({ theme: themeSel.value as ThemeSetting });
   });
-  modal(app.ui, {
+  const m = modal(app.ui, {
     title: 'Settings',
     body: [
+      diffSection,
       h(
         'div',
         { class: 'settings-grid' },
@@ -455,4 +484,9 @@ export const settingsDialog = (app: AppContext) => {
     actions: [{ label: 'Done', kind: 'primary', onClick: () => {} }],
     width: 560,
   });
+  if (focus === 'difficulty') {
+    diffSection.classList.add('flash');
+    diffSection.scrollIntoView({ block: 'nearest' });
+    (diffSection.querySelector('.diff-btn.on') as HTMLElement | null)?.focus();
+  }
 };
