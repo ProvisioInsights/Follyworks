@@ -177,14 +177,18 @@
   border-color: #000;
   color: #000;
 }
+[data-theme='arcade'] .menu-buttons {
+  width: 400px;
+}
 [data-theme='arcade'] .menu-buttons .btn {
   min-height: 54px;
   font-size: calc(15px * var(--ts));
 }
 [data-theme='arcade'] .menu-buttons .btn small {
   font-family: var(--font-ui);
-  font-size: calc(17px * var(--ts));
+  font-size: calc(15px * var(--ts));
   text-transform: none;
+  padding-left: 10px;
 }
 
 /* ------------------------------------------------------------------ chips, tiles, inputs */
