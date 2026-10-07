@@ -53,6 +53,8 @@ export interface OverlayState {
   manip?: ManipReadout | null;
   /** The corner turn zone under the pointer, for a small hint arc. */
   hoverCorner?: Vec | null;
+  /** The player is using a finger: handles draw a size up to match their larger reach. */
+  touch?: boolean;
   /** Goal highlighted from the HUD. */
   focusGoal?: number | null;
 }
@@ -223,7 +225,7 @@ export class Overlays {
     if (st.handles && st.mode === 'build') {
       const k = 1 / Math.max(0.3, st.zoom ?? 1);
       if (st.manip) this.drawManip(tp, st.manip, k);
-      this.drawHandles(tp, st.handles, k, st.hoverCorner ?? null);
+      this.drawHandles(tp, st.handles, st.touch ? k * 1.4 : k, st.hoverCorner ?? null);
     }
   }
 

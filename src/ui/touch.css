@@ -1,0 +1,411 @@
+/* Touch screens and small screens (tablets and phones). Loaded after the three chrome styles
+   (styles.css, modern.css, arcade.css) and written with `html[data-ui]` selectors so it wins
+   over any of them. Parts on the stage keep their size: fingers get larger reach in
+   EditorController instead, and the HUD around the stage gets out of the way. */
+
+/* ------------------------------------------------------------------ every touch device */
+
+html,
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+/* The stage takes every finger itself: one finger edits, two pinch, twist and pan. */
+#stage canvas {
+  touch-action: none;
+}
+
+/* Keep clear of notches and the home indicator when the page runs full screen. */
+#ui {
+  top: env(safe-area-inset-top, 0px);
+  right: env(safe-area-inset-right, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: env(safe-area-inset-left, 0px);
+}
+
+/* Buttons react at once (no double-tap-to-zoom wait). */
+button,
+.btn,
+.icon-btn,
+input[type='range'] {
+  touch-action: manipulation;
+}
+
+/* A bin item can be dragged sideways onto the stage, while an up-down swipe still scrolls the bin. */
+html[data-ui] .bin-item {
+  touch-action: pan-y;
+}
+
+@media (pointer: coarse) {
+  /* turn / flip / copy / delete are on the toolbar beside the part; no second and third copy */
+  html[data-ui] .tools .sel-dupe,
+  html[data-ui] .props .actions:has(.icon-btn) {
+    display: none;
+  }
+  /* The floating selection toolbar is the main way to turn, flip, copy and delete by touch. */
+  html[data-ui] .sel-bar .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  html[data-ui] .sel-bar .icon-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+  html[data-ui] .seg button {
+    min-width: 40px;
+  }
+  html[data-ui] .bin-cat {
+    padding: 6px 10px;
+  }
+}
+
+/* ------------------------------------------------------------------ tablets and small laptops */
+
+/* Below desktop widths the room is limited by width, not height, so every pixel the bin takes
+   comes off the room. One slim column of parts instead of two. */
+@media (max-width: 1280px) and (min-height: 521px) {
+  html[data-ui] .leftcol {
+    width: 128px;
+  }
+  html[data-ui] .bin {
+    width: auto;
+  }
+  html[data-ui] .props .desc {
+    display: none;
+  }
+  html[data-ui] .bin {
+    padding: 8px 6px 6px;
+  }
+  html[data-ui] .bin-head .muted {
+    display: none;
+  }
+  html[data-ui] .bin-list {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  html[data-ui] .bin-item canvas {
+    width: 48px;
+    height: 48px;
+  }
+  html[data-ui] .tools {
+    left: 150px;
+  }
+}
+
+/* ------------------------------------------------------------------ phones held sideways */
+
+/* The slim rail and the part-settings button only exist here. */
+.mrail,
+.sel-bar .sel-tune {
+  display: none;
+}
+
+/* A phone held sideways is wider than the room, so the spare space is at the sides. The HUD moves
+   into those two gutters (parts on the left, everything else on the right) and the room gets the
+   full height. No top bar, no bottom bar. PlayScreen.compactHud() uses the same query. */
+@media (max-height: 520px) {
+  /* --- right gutter: leave, hint, more; Run (and run controls) at the bottom */
+  .layer.play > .mrail {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 16px;
+    background: var(--glass, rgba(20, 16, 12, 0.86));
+    -webkit-backdrop-filter: var(--blur, none);
+    backdrop-filter: var(--blur, none);
+    border: 1px solid var(--edge);
+    pointer-events: auto;
+    z-index: 4;
+  }
+  html[data-ui] .mrail .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* the full top bar becomes the "more" sheet, left of the rail */
+  html[data-ui] .topbar {
+    display: none;
+  }
+  html[data-ui] .layer.play.more-open > .topbar {
+    display: flex;
+    left: auto;
+    right: 62px;
+    top: 6px;
+    height: auto;
+    width: max-content;
+    max-width: calc(100vw - 150px);
+    padding: 0;
+    background: none;
+    border: none;
+    z-index: 6;
+  }
+  html[data-ui] .more-open > .topbar .tb-right [aria-label^='Hint'],
+  html[data-ui] .more-open > .topbar .tb-left,
+  html[data-ui] .more-open > .topbar .goals {
+    display: none;
+  }
+  html[data-ui] .more-open > .topbar .tb-right {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 6px;
+    border-radius: 16px;
+  }
+
+  /* goal chips stay off: every goal is tagged in the room itself */
+
+  /* Run is the big button at the bottom of the right gutter; during a run, pause / step / rewind
+     stack above it. The timeline, speed and chain count need a wider screen. */
+  html[data-ui] .dock {
+    left: auto;
+    right: 6px;
+    bottom: 6px;
+    transform: none;
+    flex-direction: column-reverse;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 18px;
+  }
+  html[data-ui] .dock > .sep,
+  html[data-ui] .dock .seg,
+  html[data-ui] .dock .timeline,
+  html[data-ui] .dock .chain,
+  html[data-ui] .dock .sep {
+    display: none;
+  }
+  html[data-ui] .dock > div:last-child {
+    display: none !important;
+  }
+  html[data-ui] .dock > div {
+    flex-direction: column;
+    gap: 2px !important;
+  }
+  html[data-ui] .dock .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+  html[data-ui] .run-btn {
+    width: 52px;
+    min-width: 0;
+    height: 52px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+  }
+  html[data-ui] .run-btn .rb-label {
+    display: none;
+  }
+  html[data-ui] .run-btn svg {
+    width: 26px;
+    height: 26px;
+    margin: 0;
+  }
+
+  /* --- left gutter: a strip of parts, undo / redo / fit underneath */
+  html[data-ui] .leftcol {
+    top: 6px;
+    left: 6px;
+    bottom: 132px;
+    width: 66px;
+    gap: 6px;
+  }
+  html[data-ui] .bin {
+    width: auto;
+    min-height: 0;
+    padding: 4px;
+    border-radius: 16px;
+  }
+  html[data-ui] .bin-head,
+  html[data-ui] .bin-search,
+  html[data-ui] .bin-cats,
+  html[data-ui] .bin-foot {
+    display: none;
+  }
+  html[data-ui] .bin-list {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 0;
+  }
+  html[data-ui] .bin-item {
+    padding: 4px 1px 3px;
+    border-radius: 12px;
+  }
+  html[data-ui] .bin-item canvas {
+    width: 38px;
+    height: 38px;
+  }
+  html[data-ui] .bin-item .n {
+    font-size: 9.5px;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+  html[data-ui] .bin-item .count {
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+  }
+
+  html[data-ui] .tools {
+    left: 6px;
+    bottom: 6px;
+    width: 66px;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    border-radius: 16px;
+  }
+  html[data-ui] .tools .sep,
+  html[data-ui] .tools .sel-dupe,
+  html[data-ui] .tools [aria-label^='Snap'],
+  html[data-ui] .tools [aria-label^='Ghost'],
+  html[data-ui] .tools [aria-label^='Show physics'] {
+    display: none;
+  }
+  html[data-ui] .tools .icon-btn {
+    width: 40px;
+    height: 38px;
+  }
+
+  /* --- part settings: opened from the selection toolbar, floating beside the strip */
+  .sel-bar .sel-tune {
+    display: inline-flex;
+  }
+  html[data-ui] .leftcol > .props {
+    display: none !important;
+  }
+  html[data-ui] .layer.play.props-open .leftcol > .props:not([style*='none']) {
+    display: flex !important;
+    position: absolute;
+    top: 0;
+    left: calc(100% + 6px);
+    width: 220px;
+    max-height: calc(100vh - 20px);
+    padding: 8px;
+    gap: 6px;
+    font-size: calc(12px * var(--ts));
+    z-index: 5;
+  }
+  html[data-ui] .props h3 {
+    font-size: calc(15px * var(--ts));
+  }
+  html[data-ui] .props .desc,
+  html[data-ui] .props .science {
+    display: none;
+  }
+
+  /* --- tutorial guide: a slim card along the ceiling */
+  html[data-ui] .guide-card {
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 240px);
+    width: max-content;
+    padding: 5px 8px;
+    gap: 8px;
+  }
+  html[data-ui] .guide-card .guide-text {
+    font-size: calc(13px * var(--ts));
+    line-height: 1.25;
+  }
+  html[data-ui] .guide-card .guide-step {
+    min-width: 26px;
+    height: 26px;
+  }
+}
+
+/* Short screens: the difficulty chooser starts at the top (centred, it would cut its own title off),
+   and dialogs use the whole height with tighter padding. */
+@media (max-height: 520px) {
+  html[data-ui] .modal {
+    max-height: calc(100vh - 12px);
+    width: min(640px, calc(100vw - 24px));
+  }
+  html[data-ui] .modal-head {
+    padding: 10px 16px 2px;
+  }
+  html[data-ui] .modal-head h2 {
+    font-size: calc(22px * var(--ts));
+  }
+  html[data-ui] .modal-body {
+    padding-top: 4px;
+    padding-bottom: 6px;
+    font-size: calc(14px * var(--ts));
+  }
+  html[data-ui] .modal-foot {
+    padding-top: 6px;
+    padding-bottom: 10px;
+  }
+  html[data-ui] .diff-choose .dc-body {
+    place-items: start center;
+    padding: 8px 12px 16px;
+  }
+  html[data-ui] .dc-panel {
+    padding: 14px 18px 18px;
+  }
+  html[data-ui] .dc-panel h1 {
+    font-size: calc(26px * var(--ts));
+  }
+  html[data-ui] .dc-sub {
+    margin: 4px 0 14px;
+    font-size: calc(14px * var(--ts));
+  }
+  html[data-ui] .diff-card {
+    padding: 14px 10px 12px;
+    gap: 6px;
+  }
+}
+
+/* ------------------------------------------------------------------ phones held upright */
+
+.rotate-hint {
+  display: none;
+}
+@media (orientation: portrait) and (max-width: 700px) {
+  .layer.play > .rotate-hint {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+    text-align: center;
+    pointer-events: auto;
+    background: rgba(10, 12, 16, 0.94);
+    color: var(--cream);
+    font-weight: 800;
+    font-size: 20px;
+  }
+  .rotate-hint .rh-phone {
+    width: 46px;
+    height: 80px;
+    border: 4px solid var(--brass, #ffa94d);
+    border-radius: 10px;
+    animation: rh-turn 2.4s ease-in-out infinite;
+  }
+}
+@keyframes rh-turn {
+  0%,
+  25% {
+    transform: rotate(0deg);
+  }
+  55%,
+  85% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}

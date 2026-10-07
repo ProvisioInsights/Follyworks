@@ -160,6 +160,7 @@ export class PlayController {
       zoom: this.scene.zoom,
       manip: this.mode === 'build' ? ed.manip : null,
       hoverCorner: this.mode === 'build' ? ed.hoverCorner : null,
+      touch: ed.touch,
       focusGoal: this.focusGoal,
     };
   }

@@ -21,6 +21,8 @@ const BAR_TURN = Math.PI / 12;
 const GAP = 12;
 /** Height of the rotate knob above a part, in screen px (ROT_HANDLE_GAP + knob radius). */
 const KNOB_ROOM = 42;
+/** The same with a finger: the knob sits further out and draws a size up (see EditorController). */
+const KNOB_ROOM_TOUCH = 62;
 
 type Rect = { l: number; t: number; r: number; b: number };
 
@@ -28,7 +30,7 @@ export class SelectionBar {
   private host: SelectionBarHost;
   readonly el: HTMLElement;
   private badge: HTMLElement;
-  private btns: Record<'rotL' | 'rotR' | 'flip' | 'dup' | 'del', HTMLElement>;
+  private btns: Record<'rotL' | 'rotR' | 'flip' | 'dup' | 'del' | 'tune', HTMLElement>;
   private unhook: () => void;
   private key = '';
 
@@ -41,6 +43,8 @@ export class SelectionBar {
       flip: iconBtn('flip', 'Flip <kbd>F</kbd>', () => ed().flip()),
       dup: iconBtn('copy', 'Duplicate <kbd>Ctrl</kbd>+<kbd>D</kbd>', () => ed().duplicate()),
       del: iconBtn('trash', 'Delete <kbd>Del</kbd>', () => ed().deleteSelection()),
+      // phones only (touch.css): the part's settings open beside the bin instead of living under it
+      tune: iconBtn('wrench', 'Part settings', () => host.root.classList.toggle('props-open'), { class: 'icon-btn sel-tune' }),
     };
     this.btns.del.classList.add('danger');
     this.el = h('div', { class: 'panel sel-bar', role: 'toolbar', 'aria-label': 'Selected part' }, ...Object.values(this.btns));
@@ -102,7 +106,7 @@ export class SelectionBar {
     const free = this.freeRect();
     const cx = (sel.l + sel.r) / 2;
     const cy = (sel.t + sel.b) / 2;
-    const knob = ed.handles()?.rotate ? KNOB_ROOM : 0;
+    const knob = ed.handles()?.rotate ? (ed.touch ? KNOB_ROOM_TOUCH : KNOB_ROOM) : 0;
     const candidates = [
       { x: cx - bw / 2, y: sel.t - knob - GAP - bh },
       { x: cx - bw / 2, y: sel.b + GAP },
