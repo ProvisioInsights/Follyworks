@@ -480,7 +480,7 @@ const g1g: CampaignEntry = {
     schemaVersion: LEVEL_SCHEMA_VERSION,
     id: 'g1-bounce-house',
     name: 'Bounce House',
-    description: 'Bounce the basketball off a trampoline and through the hoop, then let it fall on the toaster lever. The DING wakes Whiskers, and Whiskers has dominoes to knock over.',
+    description: 'Bounce the basketball off a trampoline onto the long tray. It rings the bell on its way down to the hoop, the DING wakes Whiskers, and Whiskers knocks the dominoes into the toaster lever.',
     environment: 'garage',
     world: world(),
     fixedObjects: [
@@ -628,7 +628,7 @@ const g1h: CampaignEntry = {
     {
       objects: [
         o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG),
-        o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG),
+        o('plank-b', 'plank', 590, 170, { length: 100 }, 90 * DEG),
         o('trap-a', 'mousetrap', 538, 625),
         o('plank-c', 'plank', 900, 200, { length: 58 }),
         o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG),
@@ -639,7 +639,7 @@ const g1h: CampaignEntry = {
     {
       objects: [
         o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG),
-        o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG),
+        o('plank-b', 'plank', 590, 170, { length: 100 }, 90 * DEG),
         o('trap-a', 'mousetrap', 538, 625),
         o('plank-c', 'plank', 900, 200, { length: 58 }),
         o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG),
@@ -649,11 +649,11 @@ const g1h: CampaignEntry = {
     },
   ],
   counterexamples: [
-    { why: 'the hole in the ramp is left open', build: { objects: [o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-c', 'plank', 900, 200, { length: 58 }), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'the hole in the ramp is left open', build: { objects: [o('plank-b', 'plank', 590, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-c', 'plank', 900, 200, { length: 58 }), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
     { why: 'nothing stops the ball, so it flies past the shaft', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-c', 'plank', 900, 200, { length: 58 }), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
-    { why: 'no mousetrap: the ball just lands at the bottom of the shaft', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG), o('plank-c', 'plank', 900, 200, { length: 58 }), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
-    { why: 'nothing bridges the gap, so Whiskers falls off the shelf', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
-    { why: 'nothing turns Whiskers round, so the cat runs off into the laundry basket', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 585, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-c', 'plank', 900, 200, { length: 58 })], connections: [] } },
+    { why: 'no mousetrap: the ball just lands at the bottom of the shaft', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 590, 170, { length: 100 }, 90 * DEG), o('plank-c', 'plank', 900, 200, { length: 58 }), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'nothing bridges the gap, so Whiskers falls off the shelf', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 590, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-d', 'plank', 1048, 160, { length: 60 }, 90 * DEG)], connections: [] } },
+    { why: 'nothing turns Whiskers round, so the cat runs off into the laundry basket', build: { objects: [o('plank-a', 'plank', 340, 149, { length: 74 }, 10 * DEG), o('plank-b', 'plank', 590, 170, { length: 100 }, 90 * DEG), o('trap-a', 'mousetrap', 538, 625), o('plank-c', 'plank', 900, 200, { length: 58 })], connections: [] } },
   ],
 };
 
