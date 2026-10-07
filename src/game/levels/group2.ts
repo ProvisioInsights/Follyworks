@@ -226,7 +226,7 @@ const springFever: CampaignEntry = {
     {
       objects: [
         o('s-trap', 'mousetrap', 400, 488),
-        o('s-tramp', 'trampoline', 745, 278, { power: 0.5 }),
+        o('s-tramp', 'trampoline', 740, 278, { power: 0.5 }),
         o('s-bridge', 'plank', 830, 287, { length: 76 }, -0.245),
         o('s-trap-2', 'mousetrap', 1062, 620, {}, 0, true),
       ],
