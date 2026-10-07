@@ -628,7 +628,7 @@ const threePointer: CampaignEntry = {
       o('g4g-ramp-2', 'plank', 600, 515, { length: 70 }, 20 * DEG),
       // a prop under the upper gap: a plank set too low will not fit, and the drops either side forgive the rest
       o('g4g-prop-a', 'wall', 527, 501, { w: 10, h: 20, material: 'wood' }),
-      o('g4g-tube-l', 'wall', 690, 345, { w: 12, h: 310, material: 'steel' }),
+      o('g4g-tube-l', 'wall', 690, 350, { w: 12, h: 300, material: 'steel' }),
       o('g4g-tube-r', 'wall', 740, 400, { w: 12, h: 320, material: 'steel' }),
       o('g4g-game-on', 'light_bulb', 200, 300),
       o('g4g-scoreboard', 'light_bulb', 1000, 330),

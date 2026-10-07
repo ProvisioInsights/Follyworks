@@ -58,8 +58,10 @@ with both its reference and ABSURD builds.
 A second run with another random seed showed a few levels clearing the bar only narrowly. 6-5, 6-6
 and 6-7 were reworked to pass on both seeds; 6-6 Make A Wish now has three laser and candle pairs
 instead of four, because four beams through one lens could not be made forgiving. The Hot Air and
-Ridiculous Machines levels that were close to the line (4-2, 4-6, 4-7, 4-8, 4-9, 5-2) are being
-widened in a follow-up. fun-audit.md is the run after the first pass.
+Ridiculous Machines levels that were close to the line (4-2, 4-6, 4-7, 4-8, 4-9, 5-2) were then
+widened too: every part in them now works at least 62% of the time placed ±12 px off, on both
+seeds at 24 samples (before, the fiddliest part in five of them was at ±6 px). fun-audit.md is
+the run after the first pass.
 
 Not touched yet: the all-or-nothing flags (best answered by a failure explainer in the UI), the
 Physics Lab lessons (L2's 7 s of rolling is the lesson itself) and "silent on RUN".
