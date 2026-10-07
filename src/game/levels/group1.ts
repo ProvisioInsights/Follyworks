@@ -472,4 +472,99 @@ const g1f: CampaignEntry = {
   ],
 };
 
-export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f];
+// ---------------------------------------------------------------- 7: trampoline alley-oop, toast, cat, dominoes
+
+const g1g: CampaignEntry = {
+  chapter: 1,
+  level: {
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    id: 'g1-bounce-house',
+    name: 'Bounce House',
+    description: 'Bounce the basketball off a trampoline and through the hoop, then let it fall on the toaster lever. The DING wakes Whiskers, and Whiskers has dominoes to knock over.',
+    environment: 'garage',
+    world: world(),
+    fixedObjects: [
+      block('g1g-shelf', 270, 150, 220, 14),
+      block('g1g-roof', 300, 86, 180, 10, 'steel'),
+      block('g1g-backstop', 500, 160, 14, 150, 'brick'),
+      slope('g1g-funnel-l', 400, 230, 438, 280, 'steel', 8),
+      slope('g1g-funnel-r', 500, 235, 482, 280, 'steel', 8),
+      block('g1g-chute-l', 436, 298, 8, 36, 'steel'),
+      block('g1g-chute-r', 484, 298, 8, 36, 'steel'),
+      slope('g1g-tray-a', 680, 397, 760, 409),
+      slope('g1g-tray-b', 880, 426, 975, 440),
+      o('g1g-bell', 'bell', 1034, 425),
+      slope('g1g-catch-l', 962, 470, 990, 515, 'steel', 8),
+      slope('g1g-catch-r', 1062, 470, 1034, 515, 'steel', 8),
+      block('g1g-tube-l', 988, 535, 8, 40, 'steel'),
+      block('g1g-tube-r', 1036, 535, 8, 40, 'steel'),
+      o('g1g-hoop', 'basketball_hoop', 1012, 574),
+      block('g1g-lane-a', 695, 260, 290, 14),
+      block('g1g-lane-b', 1015, 260, 210, 14),
+      o('g1g-toaster', 'toaster', 645, 233, { slices: 1, power: 300 }, -15 * DEG),
+      block('g1g-cat-guard', 690, 246, 6, 14, 'steel'),
+      o('g1g-plate', 'bucket', 580, 231),
+    ],
+    startingObjects: [
+      o('g1g-bball', 'basketball', 355, 127),
+      o('g1g-cat', 'cat', 1060, 239, {}, 0, true),
+      o('g1g-dom-1', 'domino', 700, 224),
+      o('g1g-dom-2', 'domino', 730, 224),
+      o('g1g-dom-3', 'domino', 760, 224),
+      o('g1g-dom-4', 'domino', 790, 224),
+      o('g1g-chicken', 'rubber_chicken', 580, 236),
+    ],
+    connections: [],
+    inventory: [
+      { type: 'ball', count: 1 },
+      { type: 'plank', count: 3 },
+      { type: 'trampoline', count: 1 },
+      { type: 'domino', count: 2 },
+    ],
+    goals: [
+      { kind: 'containerCount', container: 'g1g-hoop', count: 1, filter: { id: 'g1g-bball' }, label: 'Bounce the basketball through the hoop' },
+      { kind: 'activate', target: { id: 'g1g-toaster' }, label: 'Make the toast pop' },
+    ],
+    restrictions: { timeLimit: 25 },
+    bonus: { elegantParts: 5, elegantTime: 10, absurdStages: 16 },
+    hints: [
+      'The basketball comes straight down the chute. A trampoline tilted a notch to the right throws it up onto the long tray.',
+      'The tray has a hole in it. Fill it, and the basketball rolls into the bell and drops into the hoop.',
+      'The bell wakes Whiskers, who runs left. Cats do not jump gaps, but they do knock over dominoes.',
+    ],
+    metadata: meta(7, 'Boing, DING, swish, clatter, DING.'),
+  },
+  solutions: [
+    {
+      objects: [
+        o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG),
+        o('ball-a', 'ball', 30, 40),
+        o('tramp-a', 'trampoline', 460, 560, {}, 15 * DEG),
+        o('plank-b', 'plank', 820, 416, { length: 112 }, 10 * DEG),
+        o('plank-c', 'plank', 875, 260, { length: 68 }),
+      ],
+      connections: [],
+    },
+    // ABSURD: two extra dominoes stretch the row, so Whiskers has more to topple.
+    {
+      objects: [
+        o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG),
+        o('ball-a', 'ball', 30, 40),
+        o('tramp-a', 'trampoline', 460, 560, {}, 15 * DEG),
+        o('plank-b', 'plank', 820, 416, { length: 112 }, 10 * DEG),
+        o('plank-c', 'plank', 875, 260, { length: 68 }),
+        o('dom-a', 'domino', 820, 224),
+        o('dom-b', 'domino', 945, 224),
+      ],
+      connections: [],
+    },
+  ],
+  counterexamples: [
+    { why: 'no trampoline: the basketball just bounces at the bottom', build: { objects: [o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG), o('ball-a', 'ball', 30, 40), o('plank-b', 'plank', 820, 416, { length: 112 }, 10 * DEG), o('plank-c', 'plank', 875, 260, { length: 68 })], connections: [] } },
+    { why: 'the hole in the tray is left open', build: { objects: [o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG), o('ball-a', 'ball', 30, 40), o('tramp-a', 'trampoline', 460, 560, {}, 15 * DEG), o('plank-c', 'plank', 875, 260, { length: 68 })], connections: [] } },
+    { why: 'nothing bridges the gap, so Whiskers falls off the shelf', build: { objects: [o('plank-a', 'plank', 89, 107, { length: 160 }, 20 * DEG), o('ball-a', 'ball', 30, 40), o('tramp-a', 'trampoline', 460, 560, {}, 15 * DEG), o('plank-b', 'plank', 820, 416, { length: 112 }, 10 * DEG)], connections: [] } },
+    { why: 'a domino dropped on the toaster lever pops the toast, but the basketball never moves', build: { objects: [o('dom-a', 'domino', 700, 150), o('tramp-a', 'trampoline', 460, 560, {}, 15 * DEG), o('plank-b', 'plank', 820, 416, { length: 112 }, 10 * DEG)], connections: [] } },
+  ],
+};
+
+export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f, g1g];
