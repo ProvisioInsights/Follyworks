@@ -8,6 +8,7 @@ import type { TextureBank } from './TextureBank';
 import { ROBOT_EYE } from './art/parts';
 import { LIGHT_RGB } from './art/opticsParts';
 import { laserFiring } from '../sim/optics';
+import { GOOFY_VIEWS } from './goofyViews';
 
 type Params = Record<string, string | number | boolean>;
 type Fn<T> = (e: Entity, t: number) => T;
@@ -31,6 +32,8 @@ export interface PartSpec {
   tint?: Fn<number>;
   /** Size override in world units (for fx textures). */
   size?: number;
+  /** Draw in front of other parts (the basketball net goes over the ball). */
+  front?: boolean;
 }
 
 export interface ViewSpec {
@@ -269,6 +272,7 @@ export const VIEW_SPECS: Record<string, ViewSpec> = {
     ],
   },
   wall: { parts: [{ tex: 'wall', params: (e) => ({ w: e.num('w'), h: e.num('h'), material: e.str('material') || 'concrete' }) }] },
+  ...GOOFY_VIEWS,
 };
 
 function punchExt(e: Entity, t: number) {
@@ -299,6 +303,8 @@ interface Built {
 export class EntityView {
   readonly entity: Entity;
   readonly root: Phaser.GameObjects.Container;
+  /** Layers drawn in front of other parts (null when the part has none). */
+  readonly frontRoot: Phaser.GameObjects.Container | null = null;
   private holders = new Map<string, Phaser.GameObjects.Container>();
   private upright: Phaser.GameObjects.Container;
   private parts: Built[] = [];
@@ -318,6 +324,10 @@ export class EntityView {
     this.spec = VIEW_SPECS[e.type] ?? { parts: [{ tex: e.def.art }] };
     this.root = scene.add.container(0, 0);
     parent.add(this.root);
+    if (this.spec.parts.some((ps) => ps.front)) {
+      this.frontRoot = scene.add.container(0, 0);
+      parent.add(this.frontRoot);
+    }
     this.upright = scene.add.container(0, 0);
     // Contrast rims go in first so they sit under every layer of the part. Only plain painted
     // layers get one (not glows, shines or other overlays).
@@ -327,11 +337,11 @@ export class EntityView {
       const img = scene.add.image(ps.x ?? 0, ps.y ?? 0, rim.key);
       img.setOrigin(rim.ox, rim.oy);
       img.setDisplaySize(rim.w, rim.h);
-      this.holderFor(ps.frame ?? 0).add(img);
+      this.holderFor(ps.frame ?? 0, ps.front).add(img);
       this.rims.set(ps, img);
     }
     for (const ps of this.spec.parts) {
-      const holder = ps.upright ? this.upright : this.holderFor(ps.frame ?? 0);
+      const holder = ps.upright ? this.upright : this.holderFor(ps.frame ?? 0, ps.front);
       const key = this.texKey(ps, 0);
       const info = this.bank.get(key, ps.params?.(e) ?? {}, { raw: ps.additive });
       const img = scene.add.image(ps.x ?? 0, ps.y ?? 0, info.key);
@@ -353,13 +363,13 @@ export class EntityView {
     return !!this.spec.mounted;
   }
 
-  private holderFor(frame: number | 'entity') {
-    const k = String(frame);
+  private holderFor(frame: number | 'entity', front = false) {
+    const k = front && this.frontRoot ? `^${frame}` : String(frame);
     let h = this.holders.get(k);
     if (!h) {
       h = this.scene.add.container(0, 0);
       this.holders.set(k, h);
-      this.root.add(h);
+      (front && this.frontRoot ? this.frontRoot : this.root).add(h);
     }
     return h;
   }
@@ -399,10 +409,12 @@ export class EntityView {
   sync(alpha: number, t: number, running: boolean) {
     const e = this.entity;
     this.root.setVisible(e.alive);
+    this.frontRoot?.setVisible(e.alive);
     if (!e.alive) return;
     const mirror = this.spec.mirror ? this.spec.mirror(e) : e.flip;
     const mainFrame = this.frame(0, alpha);
-    for (const [k, h] of this.holders) {
+    for (const [hk, h] of this.holders) {
+      const k = hk.startsWith('^') ? hk.slice(1) : hk;
       const f = k === 'entity' ? this.frame('entity', alpha) : this.frame(Number(k), alpha);
       h.setPosition(f.x + this.dragOffset.x, f.y + this.dragOffset.y);
       h.setRotation(f.rot + this.dragRotate);
@@ -470,6 +482,7 @@ export class EntityView {
 
   destroy() {
     this.root.destroy(true);
+    this.frontRoot?.destroy(true);
   }
 }
 
