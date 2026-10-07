@@ -24,6 +24,20 @@ interface P {
   rot: number;
   vr: number;
   stretch: boolean;
+  /** Height / width of the sprite (streamers are long ribbons). */
+  ar: number;
+  /** Tumble: the sprite's width pulses as if it were a spinning paper flake. */
+  flutter: number;
+  /** Sideways sway amplitude (px/s) for falling paper. */
+  sway: number;
+}
+
+/** A celebration waiting for the fanfare's big hit (see `celebrate`). */
+interface PendingCheer {
+  at: number;
+  w: number;
+  h: number;
+  spots: { x: number; y: number }[];
 }
 
 interface Label {
@@ -56,6 +70,9 @@ export class Fx {
   private rngState = 1;
   reducedMotion = false;
   labelsEnabled = true;
+  /** Seconds since this Fx was created (drives scheduled celebrations). */
+  private clock = 0;
+  private pending: PendingCheer | null = null;
 
   constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Container, addLayer: Phaser.GameObjects.Container) {
     this.scene = scene;
@@ -109,6 +126,9 @@ export class Fx {
       rot: 0,
       vr: 0,
       stretch: false,
+      ar: 1,
+      flutter: 0,
+      sway: 0,
       ...o,
     });
     p.img.setPosition(p.x, p.y);
@@ -153,12 +173,70 @@ export class Fx {
   }
 
   clear() {
+    this.pending = null;
     for (const p of this.pool) {
       p.live = false;
       p.img.setVisible(false);
     }
     for (const l of this.labels) l.text.destroy();
     this.labels = [];
+  }
+
+  // ------------------------------------------------------------------ celebrations
+
+  /**
+   * Mission solved: a sparkle pop at each goal spot now, then confetti cannons and streamers
+   * across the room `delay` seconds later, timed to land on the big chord of the solved stinger.
+   * Visual only; `cancelCelebration` (rewind, scrub, reset) drops a burst that has not fired yet.
+   */
+  celebrate(w: number, h: number, spots: { x: number; y: number }[], delay = 0.55) {
+    for (const s of spots.slice(0, 4)) this.burst('sparkle', s.x, s.y, 0, 0, 1);
+    this.pending = { at: this.clock + delay, w, h, spots: spots.slice(0, 4) };
+  }
+
+  cancelCelebration() {
+    this.pending = null;
+  }
+
+  /** True between `celebrate` and the big burst. */
+  get celebrating() {
+    return !!this.pending;
+  }
+
+  private bigCheer(c: PendingCheer) {
+    const R = this.range.bind(this);
+    const few = this.reducedMotion;
+    const colors = [0xf2c043, 0xe0543c, 0x4fb8f5, 0x6fe08a, 0xe07ad0, 0xfff2d8, 0xff9a3c];
+    // two paper cannons from the bottom corners, aimed up and inwards
+    const n = few ? 14 : 46;
+    for (const side of [-1, 1]) {
+      const x0 = side < 0 ? 30 : c.w - 30;
+      const y0 = c.h - 20;
+      this.spawn('fx_glow_warm', true, { x: x0, y: y0, s0: 60, s1: 160, max: 0.3, a0: 0.8 });
+      for (let i = 0; i < n; i++) {
+        const a = -Math.PI / 2 - side * R(0.18, 0.62);
+        const v = R(520, 1050) * Math.min(1.4, c.h / 600);
+        this.spawn('fx_square', false, {
+          x: x0 + R(-10, 10), y: y0, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 520, drag: 1.9, max: R(2.0, 3.2),
+          s0: R(7, 11), s1: R(6, 9), ar: R(0.45, 0.8), flutter: R(6, 14), sway: R(20, 60),
+          tint: colors[i % colors.length], rot: R(0, 6), vr: R(-9, 9),
+        });
+      }
+    }
+    // streamers drifting down from the top edge
+    const m = few ? 6 : 22;
+    for (let i = 0; i < m; i++) {
+      this.spawn('fx_square', false, {
+        x: R(0.05, 0.95) * c.w, y: R(-60, -10), vx: R(-40, 40), vy: R(60, 160), g: 90, drag: 0.6, max: R(2.6, 3.6),
+        s0: R(5, 7), s1: R(5, 7), ar: R(5, 9), flutter: R(3, 6), sway: R(30, 70),
+        tint: colors[i % colors.length], rot: R(-0.5, 0.5), vr: R(-2, 2),
+      });
+    }
+    // a warm ring of light around each goal, the "hooray" moment
+    for (const s of c.spots) {
+      this.spawn('fx_ring', true, { x: s.x, y: s.y, s0: 20, s1: 220, max: 0.5, a0: 0.7, tint: 0xfff0b0 });
+      this.spawn('fx_glow_warm', true, { x: s.x, y: s.y, s0: 90, s1: 200, max: 0.6, a0: 0.7 });
+    }
   }
 
   burst(kind: string, x: number, y: number, dx: number, dy: number, scale: number) {
@@ -245,12 +323,40 @@ export class Fx {
       case 'bounce':
         this.spawn('fx_ring', true, { x, y, s0: 8, s1: 46, max: 0.2, a0: 0.5 });
         break;
+      case 'sparkle': {
+        // a goal met: a bright ring, twinkling stars and a pinch of confetti
+        this.spawn('fx_ring', true, { x, y, s0: 10, s1: 110, max: 0.4, a0: 0.9, tint: 0xfff3b8 });
+        this.spawn('fx_glow_warm', true, { x, y, s0: 40, s1: 110, max: 0.35, a0: 0.8 });
+        const n = this.reducedMotion ? 5 : 10;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * Math.PI * 2 + R(-0.2, 0.2);
+          const v = R(90, 220);
+          this.spawn('fx_star', true, { x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, g: 160, drag: 2.6, max: R(0.55, 0.9), s0: R(14, 22), s1: 2, rot: R(0, 6), vr: R(-6, 6), tint: [0xfff3b8, 0xffffff, 0xffd36b][i % 3] });
+        }
+        for (let i = 0; i < (this.reducedMotion ? 4 : 12); i++) {
+          const a = R(-Math.PI * 0.9, -Math.PI * 0.1);
+          const v = R(160, 380);
+          this.spawn('fx_square', false, { x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 600, drag: 2, max: R(0.9, 1.4), s0: R(6, 9), s1: 5, ar: 0.6, flutter: R(8, 14), sway: 30, tint: [0xf2c043, 0xe0543c, 0x4fb8f5, 0x6fe08a][i % 4], rot: R(0, 6), vr: R(-10, 10) });
+        }
+        break;
+      }
+      case 'cheer':
+        // one part's happy glow when the mission is solved
+        this.spawn('fx_glow_warm', true, { x, y, s0: 30 * scale, s1: 90 * scale, max: 0.6, a0: 0.55 });
+        this.spawn('fx_star', true, { x: x + R(-12, 12), y: y - 10, vx: R(-30, 30), vy: R(-120, -60), g: 0, drag: 1.5, max: 0.7, s0: 16, s1: 2, vr: R(-5, 5), tint: 0xfff3b8 });
+        break;
       default:
         break;
     }
   }
 
   update(dt: number) {
+    this.clock += dt;
+    if (this.pending && this.clock >= this.pending.at) {
+      const c = this.pending;
+      this.pending = null;
+      this.bigCheer(c);
+    }
     for (const p of this.pool) {
       if (!p.live) continue;
       p.life += dt;
@@ -263,7 +369,7 @@ export class Fx {
       const d = Math.max(0, 1 - p.drag * dt);
       p.vx *= d;
       p.vy = p.vy * d + p.g * dt;
-      p.x += p.vx * dt;
+      p.x += p.vx * dt + (p.sway ? Math.sin(p.life * 3.1 + p.s0) * p.sway * dt : 0);
       p.y += p.vy * dt;
       p.rot += p.vr * dt;
       const s = p.s0 + (p.s1 - p.s0) * k;
@@ -274,7 +380,8 @@ export class Fx {
         p.img.setDisplaySize(Math.max(s, s * (0.6 + sp / 300)), Math.max(2, s * 0.35));
       } else {
         p.img.setRotation(p.rot);
-        p.img.setDisplaySize(s, s);
+        const fw = p.flutter ? 0.2 + 0.8 * Math.abs(Math.cos(p.life * p.flutter)) : 1;
+        p.img.setDisplaySize(s * fw, s * p.ar);
       }
       p.img.setAlpha(p.a0 * (k < 0.1 ? 1 : 1 - (k - 0.1) / 0.9));
     }

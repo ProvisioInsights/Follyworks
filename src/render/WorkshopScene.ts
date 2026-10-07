@@ -151,6 +151,25 @@ export class WorkshopScene extends Phaser.Scene {
     this.fx.event(ev);
   }
 
+  /** Parts doing their solved-mission hop: view id -> start time (scene real time). */
+  private cheers = new Map<string, { t0: number; glowed: boolean }>();
+
+  /**
+   * Mission solved: confetti and streamers (timed to the fanfare), a sparkle at each goal spot and
+   * a staggered hop and glow for the parts that took part. Visual only.
+   */
+  celebrate(spots: Vec[], partIds: string[], delay = 0.55) {
+    this.fx.celebrate(this.worldW, this.worldH, spots, delay);
+    this.cheers.clear();
+    partIds.slice(0, 24).forEach((id, i) => this.cheers.set(id, { t0: this.realTime + delay + i * 0.05, glowed: false }));
+  }
+
+  /** Rewind, scrub or reset: drop a celebration that has not finished. */
+  cancelCelebration() {
+    this.fx.cancelCelebration();
+    this.cheers.clear();
+  }
+
   // ------------------------------------------------------------------ camera
 
   setInsets(i: Insets) {
@@ -238,9 +257,29 @@ export class WorkshopScene extends Phaser.Scene {
     if (sim) {
       const t = this.running ? this.renderTime : this.realTime;
       for (const v of this.views.values()) v.sync(this.renderAlpha, t, this.running);
+      if (this.cheers.size) this.updateCheers();
       if (this.overlayState) this.overlays.draw({ ...this.overlayState, sim, t: this.realTime, alpha: this.renderAlpha });
     }
     this.fx.update(dt);
+  }
+
+  private updateCheers() {
+    const BOUNCE = 0.9;
+    for (const [id, c] of this.cheers) {
+      const u = (this.realTime - c.t0) / BOUNCE;
+      if (u >= 1) {
+        this.cheers.delete(id);
+        continue;
+      }
+      const v = this.views.get(id);
+      if (!v || u <= 0) continue;
+      if (!c.glowed) {
+        c.glowed = true;
+        const b = v.entity.body?.position ?? { x: v.entity.x, y: v.entity.y };
+        this.fx.burst('cheer', b.x, b.y, 0, 0, 1);
+      }
+      if (!this.fx.reducedMotion) v.applyCheer(u);
+    }
   }
 
   private drawFloor() {
