@@ -171,7 +171,7 @@ const g1c: CampaignEntry = {
     ],
     goals: [{ kind: 'activate', target: { type: 'bowling_pin' }, count: 4, label: 'Knock down four pins' }],
     restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 3, elegantTime: 5, absurdStages: 12 },
+    bonus: { elegantParts: 3, elegantTime: 5, absurdStages: 11 },
     hints: [
       'The bowling ball only needs a nudge to roll off its shelf. Even a rubber ball can manage that, if it arrives rolling.',
       'Without a bridge the bowling ball drops straight into the gutter. Lay a plank across the gap to the lane.',
@@ -181,18 +181,18 @@ const g1c: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('plank-a', 'plank', 170, 215, { length: 200 }, 20 * DEG),
+        o('plank-a', 'plank', 170, 212, { length: 200 }, 20 * DEG),
         o('ball-a', 'ball', 100, 130),
-        o('plank-b', 'plank', 680, 348, { length: 170 }),
+        o('plank-b', 'plank', 676, 348, { length: 144 }),
       ],
       connections: [],
     },
     // ABSURD: the same strike, plus a spare ball dunked in the gutter bucket for luck.
     {
       objects: [
-        o('plank-a', 'plank', 170, 215, { length: 200 }, 20 * DEG),
+        o('plank-a', 'plank', 170, 212, { length: 200 }, 20 * DEG),
         o('ball-a', 'ball', 100, 130),
-        o('plank-b', 'plank', 680, 348, { length: 170 }),
+        o('plank-b', 'plank', 676, 348, { length: 144 }),
         o('ball-b', 'ball', 675, 540),
       ],
       connections: [],
@@ -201,11 +201,11 @@ const g1c: CampaignEntry = {
   counterexamples: [
     {
       why: 'nothing bridges the gutter',
-      build: { objects: [o('plank-a', 'plank', 170, 215, { length: 200 }, 20 * DEG), o('ball-a', 'ball', 100, 130)], connections: [] },
+      build: { objects: [o('plank-a', 'plank', 170, 212, { length: 200 }, 20 * DEG), o('ball-a', 'ball', 100, 130)], connections: [] },
     },
     {
       why: 'a ball is just dropped on the shelf behind the bowling ball',
-      build: { objects: [o('ball-a', 'ball', 300, 130), o('plank-b', 'plank', 680, 348, { length: 170 })], connections: [] },
+      build: { objects: [o('ball-a', 'ball', 300, 130), o('plank-b', 'plank', 676, 348, { length: 144 })], connections: [] },
     },
   ],
 };
@@ -261,7 +261,7 @@ const g1d: CampaignEntry = {
   solutions: [
     {
       objects: [
-        o('plank-a', 'plank', 175, 262, { length: 200 }, 20 * DEG),
+        o('plank-a', 'plank', 166, 260, { length: 170 }, 20 * DEG),
         o('dom-a', 'domino', 500, 344),
         o('dom-b', 'domino', 580, 344),
       ],
@@ -270,7 +270,7 @@ const g1d: CampaignEntry = {
     // ABSURD: an extra domino at the front of the row, and a ball waiting in the bucket to be toasted.
     {
       objects: [
-        o('plank-a', 'plank', 175, 262, { length: 200 }, 20 * DEG),
+        o('plank-a', 'plank', 166, 260, { length: 170 }, 20 * DEG),
         o('dom-a', 'domino', 500, 344),
         o('dom-b', 'domino', 580, 344),
         o('dom-c', 'domino', 391, 344),
@@ -283,11 +283,11 @@ const g1d: CampaignEntry = {
     { why: 'a ball is dropped on the toaster lever', build: { objects: [o('ball-a', 'ball', 627, 100)], connections: [] } },
     {
       why: 'the middle of the domino row is left empty',
-      build: { objects: [o('plank-a', 'plank', 175, 262, { length: 200 }, 20 * DEG), o('dom-b', 'domino', 580, 344)], connections: [] },
+      build: { objects: [o('plank-a', 'plank', 166, 260, { length: 170 }, 20 * DEG), o('dom-b', 'domino', 580, 344)], connections: [] },
     },
     {
       why: 'the last domino is missing',
-      build: { objects: [o('plank-a', 'plank', 175, 262, { length: 200 }, 20 * DEG), o('dom-a', 'domino', 500, 344)], connections: [] },
+      build: { objects: [o('plank-a', 'plank', 166, 260, { length: 170 }, 20 * DEG), o('dom-a', 'domino', 500, 344)], connections: [] },
     },
   ],
 };
@@ -360,7 +360,7 @@ const g1e: CampaignEntry = {
         o('plank-a', 'plank', 60, 200, { length: 120 }, 25 * DEG),
         o('ball-a', 'ball', 35, 130),
         o('dom-a', 'domino', 260, 214),
-        o('dom-b', 'domino', 105, 214),
+        o('dom-b', 'domino', 124, 214),
         o('trap-a', 'mousetrap', 668, 623),
       ],
       connections: [],
@@ -379,4 +379,97 @@ const g1e: CampaignEntry = {
   ],
 };
 
-export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e];
+// ---------------------------------------------------------------- 6: the cat goes bowling
+
+const g1f: CampaignEntry = {
+  chapter: 1,
+  level: {
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    id: 'g1-cat-bowling',
+    name: 'Alley Cat',
+    description: 'The ball rolls itself, the bell rings itself, and Whiskers wakes up and runs. Unfortunately, Whiskers runs the wrong way. Turn the cat around and let it bowl.',
+    environment: 'basement',
+    world: world(),
+    fixedObjects: [
+      slope('g1f-start', 20, 80, 230, 140),
+      block('g1f-shaft-r', 300, 120, 10, 120),
+      o('g1f-oops-bucket', 'bucket', 265, FLOOR - 22),
+      block('g1f-pipe-l', 362, 415, 8, 290, 'steel'),
+      block('g1f-pipe-r', 410, 285, 8, 250, 'steel'),
+      o('g1f-dog-bowl', 'bucket', 386, FLOOR - 22),
+      block('g1f-cellar-roof', 502, 410, 176, 10, 'steel'),
+      block('g1f-cellar-r', 590, 520, 8, 220, 'steel'),
+      o('g1f-bell', 'bell', 540, 612),
+      o('g1f-laundry', 'bucket', 632, FLOOR - 22),
+      block('g1f-lane-a', 740, 487, 140, 14),
+      block('g1f-lane-b', 995, 487, 250, 14),
+    ],
+    startingObjects: [
+      o('g1f-ball', 'ball', 40, 60),
+      o('g1f-cat', 'cat', 770, 467, {}, 0, true),
+      o('g1f-chicken', 'rubber_chicken', 840, FLOOR - 17),
+      o('g1f-pin-1', 'bowling_pin', 900, 452),
+      o('g1f-pin-2', 'bowling_pin', 940, 452),
+      o('g1f-pin-3', 'bowling_pin', 980, 452),
+      o('g1f-pin-4', 'bowling_pin', 1020, 452),
+      o('g1f-pin-5', 'bowling_pin', 1060, 452),
+      o('g1f-pin-6', 'bowling_pin', 1100, 452),
+    ],
+    connections: [],
+    inventory: [
+      { type: 'plank', count: 4 },
+      { type: 'trampoline', count: 1 },
+    ],
+    goals: [{ kind: 'activate', target: { type: 'bowling_pin' }, count: 3, label: 'Knock down three pins' }],
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 4, elegantTime: 8, absurdStages: 10 },
+    hints: [
+      'The ball needs a bridge over the first hole, and something in the cellar to roll it into the bell.',
+      'Whiskers runs the way it is facing and turns round at walls. A plank stood on end makes a fine wall.',
+      'Cats do not jump gaps. Bridge the one in the lane.',
+    ],
+    metadata: meta(6, 'Strike, said the cat.'),
+  },
+  solutions: [
+    {
+      objects: [
+        o('plank-a', 'plank', 288, 238, { length: 120 }, 20 * DEG),
+        o('plank-b', 'plank', 425, 470, { length: 100 }, 25 * DEG),
+        o('plank-c', 'plank', 685, 436, { length: 80 }, 90 * DEG),
+        o('plank-d', 'plank', 840, 487, { length: 58 }),
+      ],
+      connections: [],
+    },
+    // ABSURD: a trampoline on the cellar floor gives the ball an extra boing on its way to the bell.
+    {
+      objects: [
+        o('plank-a', 'plank', 288, 238, { length: 120 }, 20 * DEG),
+        o('plank-b', 'plank', 425, 470, { length: 100 }, 25 * DEG),
+        o('plank-c', 'plank', 685, 436, { length: 80 }, 90 * DEG),
+        o('plank-d', 'plank', 840, 487, { length: 58 }),
+        o('tramp-a', 'trampoline', 470, 604),
+      ],
+      connections: [],
+    },
+  ],
+  counterexamples: [
+    {
+      why: 'the first hole is not bridged, so the ball drops into the bucket',
+      build: { objects: [o('plank-b', 'plank', 425, 470, { length: 100 }, 25 * DEG), o('plank-c', 'plank', 685, 436, { length: 80 }, 90 * DEG), o('plank-d', 'plank', 840, 487, { length: 58 })], connections: [] },
+    },
+    {
+      why: 'nothing in the cellar rolls the ball into the bell',
+      build: { objects: [o('plank-a', 'plank', 288, 238, { length: 120 }, 20 * DEG), o('plank-c', 'plank', 685, 436, { length: 80 }, 90 * DEG), o('plank-d', 'plank', 840, 487, { length: 58 })], connections: [] },
+    },
+    {
+      why: 'nothing turns the cat round, so it runs into the laundry basket',
+      build: { objects: [o('plank-a', 'plank', 288, 238, { length: 120 }, 20 * DEG), o('plank-b', 'plank', 425, 470, { length: 100 }, 25 * DEG), o('plank-d', 'plank', 840, 487, { length: 58 })], connections: [] },
+    },
+    {
+      why: 'the lane gap is not bridged, so the cat lands on the chicken',
+      build: { objects: [o('plank-a', 'plank', 288, 238, { length: 120 }, 20 * DEG), o('plank-b', 'plank', 425, 470, { length: 100 }, 25 * DEG), o('plank-c', 'plank', 685, 436, { length: 80 }, 90 * DEG)], connections: [] },
+    },
+  ],
+};
+
+export const GROUP_1: CampaignEntry[] = [g1a, g1b, g1c, g1d, g1e, g1f];
