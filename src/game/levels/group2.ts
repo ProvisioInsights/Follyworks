@@ -732,82 +732,107 @@ const twoBirds: CampaignEntry = {
   ],
 };
 
-// ---------------------------------------------------------------- 2-9: falling weight hits the switch, mind the bounce
+// ---------------------------------------------------------------- 2-9: spring, bounce, swing, toast
 
-const switchHitter: CampaignEntry = {
+const toastOfTheTown: CampaignEntry = {
   chapter: 2,
   level: {
     schemaVersion: LEVEL_SCHEMA_VERSION,
-    id: 'g2-switch-hitter',
-    name: 'Switch Hitter',
+    id: 'g2-toast-of-the-town',
+    name: 'Toast of the Town',
     description:
-      'Hoist the crate to the loft and turn the lamp on. This switch is mounted sideways: it flicks ON when something drops down past its lever.',
-    environment: 'research',
+      'Sink a slice of toast through the hoop, then get Whiskers to ring the bell. The mousetrap throws the bowling ball short of the shelf, and the crate up there makes a fine pendulum.',
+    environment: 'garage',
     world: { ...STANDARD_WORLD },
     fixedObjects: [
-      o('g2i-beam', 'wall', 560, 52, { w: 620, h: 20, material: 'steel' }),
-      o('g2i-loft', 'wall', 190, 300, { w: 260, h: 20, material: 'wood' }),
-      o('g2i-loft-leg', 'wall', 70, 460, { w: 16, h: 300, material: 'wood' }),
-      o('g2i-pillar', 'wall', 712, 470, { w: 40, h: 320, material: 'brick' }),
+      o('g2i-beam', 'wall', 560, 30, { w: 1080, h: 20, material: 'steel' }),
+      o('g2i-ramp', 'plank', 130, 150, { length: 220 }, 0.3),
+      o('g2i-perch', 'wall', 275, 215, { w: 80, h: 14, material: 'wood' }),
+      o('g2i-pit', 'plank', 390, 400, { length: 150 }),
+      o('g2i-shelf', 'plank', 550, 186, { length: 150 }, 0.18),
+      o('g2i-shelf-2', 'plank', 665, 200, { length: 90 }),
+      o('g2i-pit-wall', 'wall', 474, 303, { w: 10, h: 194, material: 'wood' }),
+      o('g2i-lane', 'plank', 865, 293, { length: 170 }),
+      o('g2i-partition', 'wall', 795, 127, { w: 12, h: 176, material: 'wood' }),
+      o('g2i-hoop', 'basketball_hoop', 976, 136),
+      o('g2i-walk', 'plank', 920, 400, { length: 240 }),
+      o('g2i-walk-2', 'plank', 700, 400, { length: 80 }),
+      o('g2i-walk-3', 'plank', 560, 400, { length: 80 }),
+      o('g2i-bell', 'bell', 540, 374),
     ],
     startingObjects: [
-      o('g2i-crate', 'crate', 380, 608),
-      o('g2i-pulley', 'pulley', 380, 96),
-      o('g2i-battery', 'battery', 600, 601),
-      o('g2i-switch', 'toggle_switch', 752, 380, {}, Math.PI / 2),
-      o('g2i-lamp', 'light_bulb', 560, 150),
-      o('g2i-tramp', 'trampoline', 1010, 600, {}, -0.3),
-      o('g2i-hook', 'hook', 900, 74),
+      o('g2i-ball', 'bowling_ball', 40, 95),
+      o('g2i-trap', 'mousetrap', 270, 203, { power: 600 }),
+      o('g2i-crate', 'crate', 704, 172),
+      o('g2i-rubber', 'ball', 885, 273),
+      o('g2i-toaster', 'toaster', 980, 277, { slices: 1 }, 0, true),
+      o('g2i-catcher', 'bucket', 725, 330),
+      o('g2i-cat', 'cat', 850, 380),
     ],
-    connections: [wire('g2i-w1', 'g2i-battery', 'out', 'g2i-switch', 'in'), wire('g2i-w2', 'g2i-switch', 'out', 'g2i-lamp', 'in')],
+    connections: [],
     inventory: [
+      { type: 'trampoline', count: 2 },
+      { type: 'hook', count: 1 },
       { type: 'rope', count: 1 },
-      { type: 'pulley', count: 1 },
-      { type: 'bucket', count: 1 },
-      { type: 'bowling_ball', count: 1 },
-      { type: 'plank', count: 2 },
-      { type: 'ball', count: 2 },
+      { type: 'plank', count: 3 },
     ],
     goals: [
-      { kind: 'height', target: { id: 'g2i-crate' }, maxY: 330, label: 'Hoist the crate up to the loft' },
-      { kind: 'activate', target: { id: 'g2i-lamp' }, duration: 2, label: 'Keep the lamp lit for two seconds' },
+      { kind: 'containerCount', container: 'g2i-hoop', count: 1, filter: { type: 'toast' }, label: 'Sink the toast through the hoop' },
+      { kind: 'activate', target: { id: 'g2i-bell' }, label: 'Get Whiskers to ring the bell' },
     ],
-    restrictions: { timeLimit: 15 },
-    bonus: { elegantParts: 5, elegantTime: 4, absurdStages: 6 },
+    restrictions: { timeLimit: 20 },
+    bonus: { elegantParts: 6, elegantTime: 11, absurdStages: 11 },
     hints: [
-      'One counterweight can do both jobs: lift the crate on the way down, and swat the switch as it passes.',
-      'Hang the counterweight from a pulley right above the switch so it drops through the lever.',
-      'Rope the crate over its pulley, over your pulley above the switch lever, and down to an unbolted bucket with the bowling ball in it.',
+      'Bounce the bowling ball up onto the shelf so it shoves the crate off the edge. Tie the crate up first, so it swings instead of dropping.',
+      'The swinging crate knocks the rubber ball into the toaster lever. The DING wakes Whiskers, who always runs the wrong way first, and his walkway has two gaps.',
+      'Trampoline in the pit where the bowling ball lands; hook under the beam just left of the rubber ball, roped to the crate; a plank stood upright right of Whiskers, and one across each gap.',
     ],
-    metadata: { chapter: 2, order: 9, author: 'Follyworks', blurb: 'Down is on. Mind your head.' },
+    metadata: { chapter: 2, order: 9, author: 'Follyworks', blurb: 'Sprung, bounced, swung and lightly toasted.' },
   },
   solutions: [
     {
       objects: [
-        o('s-pulley', 'pulley', 800, 96),
-        o('s-bucket', 'bucket', 800, 240, { anchored: false }),
-        o('s-bowl', 'bowling_ball', 800, 230),
+        o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }),
+        o('s-hook', 'hook', 853, 52),
+        o('s-wall', 'plank', 900, 348, { length: 90 }, Math.PI / 2),
+        o('s-bridge', 'plank', 770, 400, { length: 56 }),
+        o('s-bridge-2', 'plank', 630, 400, { length: 56 }),
       ],
-      connections: [rope('s-rope', 'g2i-crate', 'hook', 's-bucket', 'handle', ['g2i-pulley', 's-pulley'])],
+      connections: [rope('s-rope', 's-hook', 'hook', 'g2i-crate', 'hook')],
     },
-    // ABSURD: a ball rides the counterweight down, and the rising crate headbutts another one.
+    // ABSURD: the bowling ball takes a second bounce on the way up.
     {
       objects: [
-        o('s-pulley', 'pulley', 800, 96),
-        o('s-bucket', 'bucket', 800, 240, { anchored: false }),
-        o('s-bowl', 'bowling_ball', 800, 230),
-        o('s-ball-a', 'ball', 800, 170),
-        o('s-ball-b', 'ball', 380, 420),
+        o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }),
+        o('s-tramp-2', 'trampoline', 390, 250, { power: 1.2 }, Math.PI / 12),
+        o('s-hook', 'hook', 853, 52),
+        o('s-wall', 'plank', 900, 348, { length: 90 }, Math.PI / 2),
+        o('s-bridge', 'plank', 770, 400, { length: 56 }),
+        o('s-bridge-2', 'plank', 630, 400, { length: 56 }),
       ],
-      connections: [rope('s-rope', 'g2i-crate', 'hook', 's-bucket', 'handle', ['g2i-pulley', 's-pulley'])],
+      connections: [rope('s-rope', 's-hook', 'hook', 'g2i-crate', 'hook')],
     },
   ],
   counterexamples: [
     {
-      why: 'the counterweight drops down beside the switch instead of through its lever',
+      why: 'with nothing to turn him round, Whiskers runs off the end of his walkway',
       build: {
-        objects: [o('s-pulley', 'pulley', 900, 96), o('s-bucket', 'bucket', 900, 240, { anchored: false }), o('s-bowl', 'bowling_ball', 900, 230)],
-        connections: [rope('s-rope', 'g2i-crate', 'hook', 's-bucket', 'handle', ['g2i-pulley', 's-pulley'])],
+        objects: [o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }), o('s-hook', 'hook', 853, 52), o('s-bridge', 'plank', 770, 400, { length: 56 }), o('s-bridge-2', 'plank', 630, 400, { length: 56 })],
+        connections: [rope('s-rope', 's-hook', 'hook', 'g2i-crate', 'hook')],
+      },
+    },
+    {
+      why: 'without the rope the crate just drops into the bucket',
+      build: {
+        objects: [o('s-tramp', 'trampoline', 410, 320, { power: 1.8 }), o('s-wall', 'plank', 900, 348, { length: 90 }, Math.PI / 2), o('s-bridge', 'plank', 770, 400, { length: 56 }), o('s-bridge-2', 'plank', 630, 400, { length: 56 })],
+        connections: [],
+      },
+    },
+    {
+      why: 'a plank ramp up to the shelf is too steep for the bowling ball to climb',
+      build: {
+        objects: [o('s-ramp', 'plank', 395, 230, { length: 170 }, -0.2), o('s-hook', 'hook', 853, 52), o('s-wall', 'plank', 900, 348, { length: 90 }, Math.PI / 2), o('s-bridge', 'plank', 770, 400, { length: 56 }), o('s-bridge-2', 'plank', 630, 400, { length: 56 })],
+        connections: [rope('s-rope', 's-hook', 'hook', 'g2i-crate', 'hook')],
       },
     },
   ],
@@ -901,4 +926,4 @@ const grandOpening: CampaignEntry = {
   ],
 };
 
-export const GROUP_2: CampaignEntry[] = [counterCulture, leverExpectations, springFever, pullTheOtherOne, wreckingSwing, pullTheCord, dumbwaiter, twoBirds, switchHitter, grandOpening];
+export const GROUP_2: CampaignEntry[] = [counterCulture, leverExpectations, springFever, pullTheOtherOne, wreckingSwing, pullTheCord, dumbwaiter, twoBirds, toastOfTheTown, grandOpening];
