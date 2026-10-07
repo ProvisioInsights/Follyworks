@@ -730,7 +730,6 @@ const relay: CampaignEntry = {
       { type: 'prism', count: 1 },
     ],
     goals: [
-      { kind: 'activate', target: { type: 'bell' }, label: 'Ring the bell' },
       { kind: 'activate', target: { type: 'bowling_pin' }, count: 4, label: 'Knock down 4 pins' },
     ],
     restrictions: { timeLimit: 20 },
