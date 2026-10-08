@@ -67,6 +67,19 @@ const COUNT_NOUN: Record<string, string> = {
   mousetrap: 'traps',
 };
 
+/** What "it happened" reads as for a part, in a miss sentence ("The bell never rang"). */
+const DID: Record<string, [never: string, did: string]> = {
+  bowling_pin: ['never went down', 'went down'],
+  candle: ['never lit', 'lit'],
+  cat: ['never woke up', 'woke up'],
+  bell: ['never rang', 'rang'],
+  light_bulb: ['never lit up', 'lit up'],
+  rubber_chicken: ['never squawked', 'squawked'],
+  teapot: ['never boiled', 'boiled'],
+  toaster: ['never popped', 'popped'],
+  mousetrap: ['never snapped', 'snapped'],
+};
+
 /** What a container counts: hoops count swishes, everything else what is inside. */
 const containerNoun = (type: string | null) => (type === 'basketball_hoop' ? 'swishes' : null);
 
@@ -238,11 +251,15 @@ export const describeMiss = (sim: Simulation): string | null => {
       if (need > 1) {
         const on = sim.select(g.target).filter((e) => e.isActive()).length;
         const type = (('id' in g.target ? sim.entities.get(g.target.id)?.type : null) ?? selectorType(g.target, sim.level));
-        return `Only ${on} of the ${need} ${COUNT_NOUN[type ?? ''] ?? 'targets'} ${on === 1 ? 'was' : 'were'} on at the same time.`;
+        const noun = COUNT_NOUN[type ?? ''] ?? 'targets';
+        const did = DID[type ?? '']?.[1];
+        if (did && !g.duration) return on === 0 ? `None of the ${need} ${noun} ${did}.` : `Only ${on} of the ${need} ${noun} ${did}.`;
+        return `Only ${on} of the ${need} ${noun} ${on === 1 ? 'was' : 'were'} on at the same time.`;
       }
+      const type = sim.select(g.target)[0]?.type ?? selectorType(g.target, sim.level) ?? '';
       return st.held > 0
         ? `${cap(describeSelector(g.target, sim))} switched on but didn’t stay on long enough.`
-        : `${cap(describeSelector(g.target, sim))} never switched on.`;
+        : `${cap(describeSelector(g.target, sim))} ${DID[type]?.[0] ?? 'never switched on'}.`;
     }
     case 'contact':
       return `${cap(describeSelector(g.a, sim))} never touched ${describeSelector(g.b, sim)}.`;
@@ -251,6 +268,7 @@ export const describeMiss = (sim: Simulation): string | null => {
       const n = containerTotal(sim, c, g.filter);
       if (!c || n === null) return 'The container didn’t make it.';
       if (c.def.tally) return n === 0 ? 'Nothing went through the hoop.' : `Only ${n} of the ${g.count} baskets went in.`;
+      if (n === 0) return `The ${c.def.name.toLowerCase()} is still empty.`;
       return `The ${c.def.name.toLowerCase()} holds ${n} of the ${g.count} needed.`;
     }
     case 'destroyed': {

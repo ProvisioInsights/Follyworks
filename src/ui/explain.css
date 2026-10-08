@@ -1,0 +1,62 @@
+/* "So close!" banner after an unsolved run (ui/PlayScreen.ts showTimeUp, game/explain.ts).
+   It sits where the old time-up banner did, wraps to at most two short lines, and never blocks
+   the stage: only the banner itself takes pointer input. */
+
+.banner.so-close {
+  max-width: min(680px, calc(100vw - 32px));
+  width: max-content;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 8px;
+  line-height: 1.35;
+  font-size: calc(14px * var(--ts, 1));
+  border-left: 4px solid #ffb54a;
+  z-index: 3; /* over the in-room goal tags */
+}
+.banner.so-close.tone-nothing {
+  border-left-color: #8fb8ff;
+}
+.banner.so-close .sc-text {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.banner.so-close .sc-text b {
+  margin-right: 2px;
+}
+.banner.so-close.tone-close .sc-text b {
+  color: #ffb54a;
+}
+.banner.so-close .sc-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+/* Phones held sideways: one compact row (text, then the two buttons), small type. */
+@media (max-height: 520px) {
+  html[data-ui] .banner.so-close {
+    top: 6px !important;
+    padding: 5px 8px 5px 10px;
+    font-size: 11.5px;
+    line-height: 1.25;
+    flex-wrap: nowrap;
+    gap: 8px;
+    max-width: calc(100vw - 230px);
+  }
+  html[data-ui] .banner.so-close .sc-text {
+    flex: 1 1 auto;
+  }
+  html[data-ui] .banner.so-close .sc-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  html[data-ui] .banner.so-close .sc-actions .btn {
+    padding: 3px 8px;
+    font-size: 11px;
+    min-height: 0;
+  }
+  html[data-ui] .banner.so-close .sc-actions .btn svg {
+    display: none;
+  }
+}
