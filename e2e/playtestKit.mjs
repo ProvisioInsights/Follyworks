@@ -166,7 +166,8 @@ async function tryAndFail(page, index) {
   await page.screenshot({ path: `${out}/playtest-card-phone-rated.png` });
   await card.locator('.pt-x').tap();
 
-  // finish from the tag with no API (the preview server answers 404): the file is saved instead
+  // finish from the tag with no API (forced to 404 here, since preview now emulates the API): the file is saved instead
+  await page.route('**/api/playtest', (route) => route.fulfill({ status: 404, body: 'not found' }));
   await page.locator('.pt-tag').tap();
   await page.locator('.pt-name').fill('Kim');
   const dl = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
