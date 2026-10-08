@@ -46,6 +46,17 @@ npm run preview    # serves dist/ at http://localhost:4173/
 
 `dist/` is a self-contained static site. Any static web host can serve it.
 
+## Deploy to Cloudflare
+
+The game is hosted as a Cloudflare Worker that only serves static assets (`wrangler.jsonc`), which fits the free plan: static asset requests are free and unlimited.
+
+```sh
+npx wrangler login   # once per machine, opens the browser
+npm run deploy       # builds, then uploads dist/ to the "follyworks" Worker
+```
+
+The first deploy prints the live `https://follyworks.<your-subdomain>.workers.dev` URL. Saves live in each player's browser storage, which is tied to the exact domain, so settle on the final custom domain before inviting players.
+
 ## Tests
 
 ```sh
