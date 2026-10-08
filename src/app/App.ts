@@ -19,6 +19,7 @@ import { h, installTooltips, modal, toast } from '../ui/dom';
 import { secretBanner } from '../ui/secret';
 import { labIntro, labScreen } from '../ui/lab';
 import { PlayScreen } from '../ui/PlayScreen';
+import { installPlaytestKit } from '../ui/playtestKit';
 import { campaignScreen, levelsScreen, mainMenu, settingsDialog, type Screen } from '../ui/screens';
 import type { AppContext } from './context';
 
@@ -89,6 +90,7 @@ export class App implements AppContext {
     if (this.store.recovered) toast('Your save data was damaged, so we started fresh. A backup of the old data was kept.', 'warn', 6000);
     (window as any).__follyworks = this; // handy for debugging and automated tests
     this.showMenu();
+    installPlaytestKit(this);
     document.getElementById('boot')?.remove();
   }
 

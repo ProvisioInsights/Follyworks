@@ -7,3 +7,5 @@ tests/scratch/
 .claude/worktrees/
 docs/fun/fun-audit.partial.*
 .wrangler
+# playtest logs pulled from the live site or sent by players (personal data, kept local)
+/playtests/

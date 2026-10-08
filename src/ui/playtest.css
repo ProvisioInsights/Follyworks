@@ -1,0 +1,199 @@
+/* Playtest mode (ui/playtestKit.ts): the corner tag, the face rating and the leave-a-puzzle card.
+   Uses the shared tokens, so it follows the modern HUD and every era chrome. */
+
+.pt-tag {
+  position: fixed;
+  left: 50%;
+  bottom: max(4px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--edge-hi);
+  background: rgba(10, 12, 18, 0.62);
+  color: var(--cream-dim);
+  font: 700 11px/18px var(--font-ui);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0.8;
+}
+/* out of the way of dialog buttons (it sat on the results card's footer on a phone) */
+body:has(.modal-back) .pt-tag {
+  display: none;
+}
+.pt-tag:hover,
+.pt-tag:focus-visible {
+  opacity: 1;
+}
+.pt-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 6px var(--red);
+}
+
+.pt-chip {
+  flex: none;
+  font: 800 10px/16px var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--panel-3);
+  color: var(--cream-dim);
+}
+.pt-q {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+.pt-q .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.pt-rate {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pt-faces {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.pt-face {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--panel-3);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    transform 0.12s ease-out,
+    border-color 0.12s;
+}
+.pt-face:hover {
+  transform: scale(1.08);
+}
+.pt-face.on {
+  border-color: currentColor;
+  transform: scale(1.12);
+}
+.pt-rate.rated .pt-face:not(.on) {
+  opacity: 0.45;
+}
+.pt-more {
+  display: none;
+  gap: 6px;
+}
+.pt-rate.rated .pt-more {
+  display: flex;
+}
+.pt-comment,
+.pt-name {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--edge-hi);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--cream);
+}
+.pt-thanks {
+  display: none;
+  text-align: center;
+  font-weight: 700;
+  color: var(--green);
+}
+.pt-rate.done .pt-more {
+  display: none;
+}
+.pt-rate.done .pt-thanks {
+  display: block;
+}
+
+/* inside the results card */
+.pt-inline {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px dashed var(--edge-hi);
+}
+.pt-inline .pt-q {
+  justify-content: center;
+}
+
+/* after leaving a puzzle unsolved */
+.pt-card {
+  position: fixed;
+  left: 50%;
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 24px));
+  transform: translateX(-50%);
+  z-index: 45;
+  width: min(380px, calc(100vw - 24px));
+  padding: 10px 12px 12px;
+  animation: toastIn 0.18s ease-out;
+}
+.pt-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.pt-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+.pt-status:empty {
+  display: none;
+}
+.pt-settings {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--edge-hi);
+}
+.pt-settings .grow {
+  flex: 1;
+}
+
+@media (max-height: 520px) {
+  .pt-card {
+    bottom: 8px;
+    padding: 8px 10px 10px;
+  }
+  .pt-rate {
+    margin-top: 4px;
+    gap: 6px;
+  }
+  .pt-face {
+    width: 40px;
+    height: 40px;
+  }
+}

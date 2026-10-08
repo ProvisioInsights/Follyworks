@@ -108,3 +108,8 @@ Material design and architecture decisions, with the reason for each. Newest las
 - **The playtest log stays on the device.** `src/telemetry/playtest.ts` records sessions in localStorage only; players export it by hand. No analytics service, so nothing needs consent and nothing leaves the browser.
 - **The audit's thresholds are provisional until real playtests exist.** They were set so flags pick out outliers. `npm run fun:playtests` puts audit scores beside player behaviour so the thresholds can be moved toward what people actually did.
 
+## Playtest kit
+
+- **Playtest mode is a URL switch, not a setting.** `?playtest` turns it on for that browser until the player presses *Finish playtest*, starts a fresh log with a new player id (so John's own play on the device is not mixed in) and is dropped from the address bar so a reload never resets it. Players see only a small tag and a skippable face rating per mission: inside the results card when solved, as a small card (gone after 30 s untouched) when they leave unsolved; each mission is asked about once.
+- **Finishing sends the whole log as JSON to `/api/playtest`, and falls back to a file.** Only a 2xx that is not an HTML page counts as sent, because a static host or dev server can answer an unknown POST with its index page. On failure the log downloads as `follyworks-playtest-<name>-<id>.json` and the player is told to send it to John. Logs stay version 1; the new fields (`comment` on a session, `name` on the log) are optional, so old logs still parse.
+

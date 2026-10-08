@@ -14,6 +14,7 @@
     "e2e": "node e2e/smoke.mjs",
     "fun:audit": "vitest run --config vitest.fun.config.ts tools/fun/audit",
     "fun:playtests": "vitest run --config vitest.fun.config.ts tools/fun/playtests",
+    "playtests:pull": "node tools/playtests/pull.mjs",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {

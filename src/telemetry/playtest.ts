@@ -1,15 +1,19 @@
-// Playtest log: what players actually do in each mission, kept on this device only (localStorage,
-// never sent anywhere). It records the behaviour that stands in for fun in this genre:
+// Playtest log: what players actually do in each mission, kept on this device (localStorage) and
+// only ever sent when a player in playtest mode presses "Finish playtest". It records the
+// behaviour that stands in for fun in this genre:
 //
 //   did they get to RUN quickly          time to first run
 //   is the build-run-fix loop snappy     seconds of building between runs
 //   did they push through or give up     runs and minutes before solving, or leaving unsolved
 //   did they need help                   highest hint tier
 //   did they keep playing for its own sake   runs after the first solve (ABSURD hunting, tinkering)
-//   what did they say                    an optional 1–5 rating
+//   what did they say                    an optional 1–5 rating and one-line comment
 //
 // summarize() turns a log (or several players' exported logs) into per-level signals.
-// Export from the browser console: __follyworksPlaytest.download(). See docs/fun/MEASURING_FUN.md.
+// Export from the browser console: __follyworksPlaytest.download(), or in playtest mode
+// (?playtest, ui/playtestKit.ts) with "Finish playtest". See docs/fun/MEASURING_FUN.md.
+
+import { downloadLog } from './playtestSend';
 
 export type RunEnd = 'solved' | 'settled' | 'timeup' | 'reset';
 
@@ -44,6 +48,8 @@ export interface SessionRecord {
   rewinds: number;
   /** 1–5, when the player rated the mission. */
   rating?: number;
+  /** What was fun or annoying, in the player's words (playtest mode's rating card). */
+  comment?: string;
   /** True while the session is still open (it was not closed cleanly, e.g. the tab was shut). */
   open?: boolean;
 }
@@ -52,10 +58,16 @@ export interface PlaytestLog {
   v: 1;
   /** Random id so logs from several players can be merged without double counting. */
   player: string;
+  /** First name or nickname the player gave when finishing a playtest. */
+  name?: string;
   sessions: SessionRecord[];
 }
 
+/** 'solved': a session's first solve. 'ended': a session closed (solved or left). */
+export type PlaytestEvent = 'solved' | 'ended';
+
 const KEY = 'follyworks.playtest';
+const newPlayerId = () => Math.random().toString(36).slice(2, 10);
 const MAX_SESSIONS = 600;
 
 type Clock = () => number;
@@ -68,6 +80,7 @@ export class Playtest {
   private runStart = 0;
   private storage: Pick<Storage, 'getItem' | 'setItem'> | null;
   private now: Clock;
+  private subs = new Set<(ev: PlaytestEvent, s: SessionRecord) => void>();
 
   constructor(storage: Pick<Storage, 'getItem' | 'setItem'> | null, now: Clock = () => Date.now()) {
     this.storage = storage;
@@ -83,7 +96,7 @@ export class Playtest {
     } catch {
       /* a broken log is replaced, never fatal */
     }
-    return { v: 1, player: Math.random().toString(36).slice(2, 10), sessions: [] };
+    return { v: 1, player: newPlayerId(), sessions: [] };
   }
 
   private save() {
@@ -101,6 +114,16 @@ export class Playtest {
 
   get current() {
     return this.cur;
+  }
+
+  /** Hear about solves and closed sessions (playtest mode's rating card). Returns an unsubscribe. */
+  listen(fn: (ev: PlaytestEvent, s: SessionRecord) => void) {
+    this.subs.add(fn);
+    return () => void this.subs.delete(fn);
+  }
+
+  private emit(ev: PlaytestEvent, s: SessionRecord) {
+    for (const fn of this.subs) fn(ev, s);
   }
 
   begin(level: string, kind: string) {
@@ -136,8 +159,10 @@ export class Playtest {
     r.end = end;
     r.lasted = this.secs(this.runStart);
     Object.assign(r, info);
-    if (end === 'solved' && s.solvedAt === null) s.solvedAt = this.secs(s.start);
+    const first = end === 'solved' && s.solvedAt === null;
+    if (first) s.solvedAt = this.secs(s.start);
     this.save();
+    if (first) this.emit('solved', s);
   }
 
   /** Back to building. */
@@ -160,7 +185,15 @@ export class Playtest {
   rate(stars: number, level?: string) {
     const s = this.cur ?? [...this.log.sessions].reverse().find((x) => !level || x.level === level);
     if (!s) return;
-    s.rating = Math.max(1, Math.min(5, Math.round(stars)));
+    this.rateSession(s, stars);
+  }
+
+  /** Rate one session of this log, with an optional comment (trimmed, one line, 300 chars). */
+  rateSession(s: SessionRecord, stars?: number, comment?: string) {
+    if (!this.log.sessions.includes(s)) return;
+    if (stars !== undefined) s.rating = Math.max(1, Math.min(5, Math.round(stars)));
+    const c = comment?.replace(/\s+/g, ' ').trim().slice(0, 300);
+    if (c) s.comment = c;
     this.save();
   }
 
@@ -173,6 +206,7 @@ export class Playtest {
     delete s.open;
     this.cur = null;
     this.save();
+    this.emit('ended', s);
   }
 
   clear() {
@@ -181,14 +215,16 @@ export class Playtest {
     this.save();
   }
 
+  /** Start over as a new player (a new id), e.g. for the next tester on the same device. */
+  fresh() {
+    this.log = { v: 1, player: newPlayerId(), sessions: [] };
+    this.cur = null;
+    this.save();
+  }
+
   /** Download the log as a JSON file, for sending to whoever is collecting playtests. */
   download() {
-    const blob = new Blob([JSON.stringify(this.log)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `follyworks-playtest-${this.log.player}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    downloadLog(this.log);
   }
 
   summary() {
@@ -220,6 +256,8 @@ export interface LevelSignals {
   /** Share of solvers who also earned ABSURD. */
   absurdRate: number;
   rating: number | null;
+  /** What players wrote on the rating card, oldest first ("3/5 the seesaw was fiddly"). */
+  comments: string[];
   /** Plain-language flags. */
   flags: string[];
 }
@@ -286,6 +324,7 @@ export const summarize = (logs: PlaytestLog[]): LevelSignals[] => {
       replayRate: share(untilSolve.filter((u) => u.replay).length, solvers.length),
       absurdRate: share(untilSolve.filter((u) => u.absurd).length, solvers.length),
       rating: ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null,
+      comments: all.filter((s) => s.comment).map((s) => (s.rating ? `${s.rating}/5 ${s.comment}` : s.comment!)),
       flags: [],
     };
     const L = PLAY_LIMITS;

@@ -8,6 +8,7 @@ import { buildKey, DIFFICULTIES, DIFFICULTY_LABELS } from '../game/difficulty';
 import { LAB } from '../game/levels/lab';
 import { ENVIRONMENTS } from '../render/art/environment';
 import { difficultyPicker } from './difficulty';
+import { playtestSettingsRow } from './playtestKit';
 import { h, icon, modal, toast } from './dom';
 
 export interface Screen {
@@ -461,6 +462,7 @@ export const settingsDialog = (app: AppContext, focus?: 'difficulty') => {
         ...check('Show physics shapes', 'showForces', 'Collision outlines and motion arrows'),
         ...check('Unlock all puzzles', 'unlockAll'),
       ),
+      playtestSettingsRow(() => m.close()),
       h(
         'div',
         { style: { marginTop: '18px', display: 'flex', gap: '8px' } },
