@@ -12,6 +12,7 @@ import { applyDifficulty, buildKey, type Difficulty } from '../game/difficulty';
 import { LAB, labCode } from '../game/levels/lab';
 import { RunController } from '../game/RunController';
 import { mergeProgress, type AttemptResult } from '../game/scoring';
+import { CloudSync } from '../persistence/cloud';
 import { SaveStore, type Settings } from '../persistence/save';
 import { WorkshopScene } from '../render/WorkshopScene';
 import { difficultyChooser } from '../ui/difficulty';
@@ -24,6 +25,7 @@ import type { AppContext } from './context';
 
 export class App implements AppContext {
   store = new SaveStore();
+  cloud = new CloudSync(this.store);
   audio = new AudioEngine();
   scene!: WorkshopScene;
   canvas!: HTMLCanvasElement;
@@ -46,6 +48,8 @@ export class App implements AppContext {
   private konami = new KonamiDetector();
   /** Theme setting to return to when the code switches the arcade theme off again. */
   private preArcadeTheme: ThemeSetting = 'auto';
+  /** Redraws the menu screen on show (menu, campaign or levels), for cloud merges. */
+  private reshow: (() => void) | null = null;
 
   constructor() {
     this.ui = document.getElementById('ui')!;
@@ -56,6 +60,9 @@ export class App implements AppContext {
   }
 
   async start() {
+    // Cloud save: pull while the renderer boots, so another device's progress is usually in before the menu shows.
+    this.cloud.onChange = () => this.onCloudChange();
+    const synced = this.cloud.start();
     installTooltips();
     const scene = new WorkshopScene();
     this.game = new Phaser.Game({
@@ -88,6 +95,7 @@ export class App implements AppContext {
     document.addEventListener('visibilitychange', () => document.hidden && this.store.flush());
     if (this.store.recovered) toast('Your save data was damaged, so we started fresh. A backup of the old data was kept.', 'warn', 6000);
     (window as any).__follyworks = this; // handy for debugging and automated tests
+    await Promise.race([synced, new Promise((r) => setTimeout(r, 800))]);
     this.showMenu();
     document.getElementById('boot')?.remove();
   }
@@ -195,6 +203,13 @@ export class App implements AppContext {
     else toast('Insert coin! Arcade theme on.');
   }
 
+  /** Another device's progress was merged in: re-apply settings and redraw a menu screen if one is up. */
+  private onCloudChange() {
+    if (!this.scene) return;
+    this.applySettings();
+    if (!this.play && !this.ui.querySelector('.modal-back')) this.reshow?.();
+  }
+
   openSettings(focus?: 'difficulty') {
     settingsDialog(this, focus);
   }
@@ -210,6 +225,7 @@ export class App implements AppContext {
     this.missionIndex = null;
     this.screen?.destroy();
     this.screen = null;
+    this.reshow = null;
     this.play?.destroy();
     this.play = null;
     this.stopDemo();
@@ -221,6 +237,7 @@ export class App implements AppContext {
     this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = mainMenu(this);
+    this.reshow = () => this.showMenu();
     this.home = 'menu';
     this.audio.setMusicIntensity(0.2);
   }
@@ -230,6 +247,7 @@ export class App implements AppContext {
     this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = campaignScreen(this);
+    this.reshow = () => this.showCampaign();
     this.home = 'campaign';
   }
 
@@ -238,6 +256,7 @@ export class App implements AppContext {
     this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = levelsScreen(this, () => this.showLevels());
+    this.reshow = () => this.showLevels();
   }
 
   /** For automated tests (e2e/campaign.mjs). */

@@ -6,7 +6,7 @@ import { THEMES, type ThemeSetting, type UiStyle } from '../core/themes';
 import type { BuildDef, LevelDef } from '../core/types';
 
 export const SAVE_KEY = 'follyworks.save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /** Campaign difficulty (see game/difficulty.ts). Normal is the level as authored. */
 export const DIFFICULTIES = ['easy', 'normal', 'hard'] as const;
@@ -119,6 +119,19 @@ export interface SaveData {
   editorLevelId: string | null;
   /** Physics Lab bookkeeping. Lesson results live in `progress`, keyed by their lab- level id. */
   lab: LabSave;
+  /** When each piece last changed, so two devices' saves can be merged (see persistence/merge.ts). */
+  sync: SyncStamps;
+}
+
+/**
+ * Change times (ISO) per piece of the save, filled in by SaveStore on every flush by comparing
+ * with what it last wrote, so no caller has to remember to stamp anything. Keys:
+ * 'settings', 'p:<level>' progress, 'b:<key>' builds, 'l:<id>' custom levels, 's:<id>' sandbox slots.
+ */
+export interface SyncStamps {
+  stamps: Record<string, string>;
+  /** Pieces deleted on this device (or a device it merged with), and when. Same keys. */
+  removed: Record<string, string>;
 }
 
 export interface LabSave {
@@ -140,6 +153,7 @@ export const defaultSave = (): SaveData => ({
   sandboxSlots: [],
   editorLevelId: null,
   lab: { lastPlayed: null },
+  sync: { stamps: {}, removed: {} },
 });
 
 /** Minimal storage interface so tests can inject a fake. */
@@ -211,15 +225,47 @@ const parseDifficultyProgress = (raw: unknown): DifficultyProgress => {
   };
 };
 
-/** Upgrade older save versions. v1 stored custom levels as an id->level map. */
+/**
+ * Upgrade older save versions. v1 stored custom levels as an id->level map. v3 added `sync`;
+ * older saves have no change times, which the merge treats as older than any stamped change.
+ */
 export const migrateSave = (raw: Record<string, any>): Record<string, any> => {
   const v = typeof raw.version === 'number' ? raw.version : 1;
   if (v < 2) {
     if (isObj(raw.customLevels)) raw.customLevels = Object.values(raw.customLevels);
     raw.version = 2;
   }
+  if (v < 3) {
+    raw.sync = { stamps: {}, removed: {} };
+    raw.version = 3;
+  }
   return raw;
 };
+
+const parseStampMap = (raw: unknown): Record<string, string> => {
+  const out: Record<string, string> = {};
+  if (isObj(raw)) for (const [k, v] of Object.entries(raw)) if (typeof v === 'string' && v.length <= 40) out[k] = v;
+  return out;
+};
+
+export const parseSync = (raw: unknown): SyncStamps => ({
+  stamps: parseStampMap(isObj(raw) ? raw.stamps : null),
+  removed: parseStampMap(isObj(raw) ? raw.removed : null),
+});
+
+/** Each syncable piece of a save as JSON, keyed as in SyncStamps. */
+export const syncPieces = (d: SaveData): Map<string, string> => {
+  const m = new Map<string, string>();
+  m.set('settings', JSON.stringify(d.settings));
+  for (const [k, v] of Object.entries(d.progress)) m.set(`p:${k}`, JSON.stringify(v));
+  for (const [k, v] of Object.entries(d.builds)) m.set(`b:${k}`, JSON.stringify(v));
+  for (const l of d.customLevels) m.set(`l:${l.id}`, JSON.stringify(l));
+  for (const s of d.sandboxSlots) m.set(`s:${s.id}`, JSON.stringify(s));
+  return m;
+};
+
+/** Tombstones older than this are forgotten; a device offline for longer may bring a deletion back. */
+const TOMBSTONE_DAYS = 180;
 
 export const parseSave = (text: string | null): { data: SaveData; recovered: boolean } => {
   if (!text) return { data: defaultSave(), recovered: false };
@@ -271,6 +317,7 @@ export const parseSave = (text: string | null): { data: SaveData; recovered: boo
   }
   data.editorLevelId = typeof r.editorLevelId === 'string' ? r.editorLevelId : null;
   data.lab = parseLabSave(r.lab);
+  data.sync = parseSync(r.sync);
   return { data, recovered };
 };
 
@@ -280,6 +327,9 @@ export class SaveStore {
   recovered = false;
   private kv: KV | null;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  /** Each piece as last stamped, to spot what changed since (see restamp). */
+  private shadow: Map<string, string>;
+  private listeners: (() => void)[] = [];
 
   constructor(kv?: KV | null) {
     this.kv = kv === undefined ? safeLocalStorage() : kv;
@@ -292,6 +342,7 @@ export class SaveStore {
     const { data, recovered } = parseSave(text);
     this.data = data;
     this.recovered = recovered;
+    this.shadow = syncPieces(data);
     if (recovered && text) {
       try {
         this.kv?.setItem(`${SAVE_KEY}.corrupt-${Date.now()}`, text);
@@ -312,12 +363,47 @@ export class SaveStore {
       clearTimeout(this.timer);
       this.timer = null;
     }
+    this.restamp();
+    let ok = true;
     try {
       this.kv?.setItem(SAVE_KEY, JSON.stringify(this.data));
-      return true;
     } catch {
-      return false;
+      ok = false;
     }
+    for (const fn of this.listeners) fn();
+    return ok;
+  }
+
+  /** Called after every flush (cloud sync listens here). */
+  onFlush(fn: () => void) {
+    this.listeners.push(fn);
+  }
+
+  /** Stamp every piece that changed or vanished since the last stamp with the current time. */
+  restamp(now = new Date().toISOString()) {
+    const cur = syncPieces(this.data);
+    const { stamps, removed } = this.data.sync;
+    for (const [k, v] of cur) {
+      if (this.shadow.get(k) === v) continue;
+      stamps[k] = now;
+      delete removed[k];
+    }
+    for (const k of this.shadow.keys()) {
+      if (cur.has(k)) continue;
+      removed[k] = now;
+      delete stamps[k];
+    }
+    const cutoff = new Date(Date.parse(now) - TOMBSTONE_DAYS * 864e5).toISOString();
+    for (const [k, t] of Object.entries(removed)) if (t < cutoff) delete removed[k];
+    this.shadow = cur;
+  }
+
+  /** Take over a merged save (from the cloud or a save code) without stamping it as a local change. */
+  adopt(data: SaveData) {
+    this.restamp();
+    Object.assign(this.data, data);
+    this.shadow = syncPieces(this.data);
+    this.flush();
   }
 
   progress(levelId: string): LevelProgress {
