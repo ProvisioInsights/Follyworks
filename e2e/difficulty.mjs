@@ -65,13 +65,14 @@ await page.evaluate(() => localStorage.clear());
 await page.reload();
 await ready();
 
-// ---- Settings: unlock all puzzles; the Difficulty control is there, but looking is not choosing
+// ---- Settings, then unlock all puzzles; the Difficulty control is there, but looking is not choosing
 await page.getByRole('button', { name: /Settings/ }).click();
 await wait(300);
 check(await page.locator('.settings-diff .diff-btn.normal.on').isVisible(), 'Settings has a Difficulty control, Normal by default');
 check((await page.locator('.settings-diff .diff-btn small').count()) === 3, 'each difficulty has a one-line blurb');
-await page.locator('.settings-grid span', { hasText: 'Unlock all puzzles' }).locator('xpath=following-sibling::label[1]').locator('input').check();
 await page.getByRole('button', { name: 'Done' }).click();
+// unlocking every puzzle is the SKELETONKEY cheat code now (typed on the title screen)
+await page.keyboard.type('skeletonkey');
 await wait(200);
 check((await settings()).difficultyChosen === false, 'opening Settings does not count as choosing a difficulty');
 

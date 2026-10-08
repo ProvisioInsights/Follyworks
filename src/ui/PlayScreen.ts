@@ -11,8 +11,9 @@ import { ENVIRONMENT_IDS } from '../core/level';
 import type { SessionKind } from '../editor/Session';
 import { PlayController } from '../game/PlayController';
 import { invalidPlacements } from '../game/placement';
-import type { AttemptResult } from '../game/scoring';
+import { isCheatRun, type AttemptResult } from '../game/scoring';
 import type { Difficulty } from '../game/difficulty';
+import { runCheats } from '../game/cheats';
 import { applyHintPenalty, ghostEntities, GHOST_TIER, HintLadder, hintTierLabel, type HintView } from '../game/hints';
 import type { Entity } from '../sim/Entity';
 import { pickableThemes, type ThemeId, type ThemeSetting } from '../core/themes';
@@ -157,6 +158,7 @@ export class PlayScreen {
       onTimeUp: () => this.showTimeUp(),
       onSettled: () => this.showTimeUp(true),
       onBuildChanged: (b, l) => cfg.onBuildChanged?.(b, l),
+      cheats: () => runCheats(app.settings.cheats.on),
     });
     this.ctl.editor.snap = app.settings.snap;
     this.build();
@@ -233,7 +235,7 @@ export class PlayScreen {
     const title = h(
       'div',
       { class: 'title' },
-      h('span', { class: 't' }, cfg.title, cfg.difficulty ? difficultyBadge(cfg.difficulty, this.app) : null),
+      h('span', { class: 't' }, cfg.title, cfg.difficulty ? difficultyBadge(cfg.difficulty, this.app) : null, cheatBadge()),
       h('span', { class: 'c' }, cfg.subtitle),
     );
     this.els.goals = h('div', { class: 'goals' });
@@ -284,6 +286,7 @@ export class PlayScreen {
       iconBtn('back', cfg.kind === 'test' ? 'Back to the editor' : 'Leave (your machine is saved)', () => this.exit()),
       this.hints.available && cfg.kind !== 'editor' ? iconBtn('bulb', 'Hint', () => this.nextHint()) : null,
       more,
+      cheatBadge(),
     );
     this.root.append(this.els.rail);
     // the "more" sheet closes on any press outside it
@@ -1050,16 +1053,19 @@ export class PlayScreen {
     this.ctl.run?.setPaused(true);
     const stamp = (cls: string, title: string, on: boolean, why: string) => h('div', { class: `stamp ${cls} ${on ? 'on' : ''}` }, h('b', null, title), h('small', null, why));
     // Stars: one for solving, one for ELEGANT, one for ABSURD (when the level offers it).
+    const cheated = isCheatRun(r);
     const starsOn = [true, r.elegant.earned, ...(r.absurd.available ? [r.absurd.earned] : [])];
     const earned = starsOn.filter(Boolean).length;
     const hero = h(
       'div',
       { class: 'result-hero' },
-      h(
-        'div',
-        { class: 'stars', role: 'img', 'aria-label': `${earned} of ${starsOn.length} stars` },
-        starsOn.map((on, i) => h('span', { class: `star ${on ? 'on' : ''}`, style: { animationDelay: `${0.12 + i * 0.22}s` } }, '★')),
-      ),
+      cheated
+        ? null
+        : h(
+            'div',
+            { class: 'stars', role: 'img', 'aria-label': `${earned} of ${starsOn.length} stars` },
+            starsOn.map((on, i) => h('span', { class: `star ${on ? 'on' : ''}`, style: { animationDelay: `${0.12 + i * 0.22}s` } }, '★')),
+          ),
       h(
         'div',
         { class: 'result-line' },
@@ -1094,12 +1100,14 @@ export class PlayScreen {
     actions.push({ label: 'Keep tinkering', onClick: () => this.ctl.reset() });
     this.app.sfx('success' as SfxName);
     this.resultModal = modal(this.app.ui, {
-      title: pickTitle(r),
+      title: cheated ? 'Cheat-powered success!' : pickTitle(r),
       strip: 'hazard',
       cls: 'results',
       body: [
         hero,
-        h('div', { class: 'stamps' }, stamp('s', 'SOLVED', true, 'Job done!'), stamp('e', 'ELEGANT', r.elegant.earned, r.elegant.reason), r.absurd.available ? stamp('a', 'ABSURD', r.absurd.earned, r.absurd.reason) : null),
+        cheated
+          ? h('div', { class: 'cheat-note' }, `Made with ${r.cheats!.join(' + ')}: fun to watch, but no stamps or progress are recorded.`)
+          : h('div', { class: 'stamps' }, stamp('s', 'SOLVED', true, 'Job done!'), stamp('e', 'ELEGANT', r.elegant.earned, r.elegant.reason), r.absurd.available ? stamp('a', 'ABSURD', r.absurd.earned, r.absurd.reason) : null),
         receipt,
         physicsInMachine([...new Set([...(this.cfg.concepts ?? []), ...conceptsInRun(r.chain, (id) => this.ctl.run?.sim.entities.get(id)?.type, 6 - (this.cfg.concepts?.length ?? 0))])]),
       ],
@@ -1121,6 +1129,9 @@ const receiptRows = (r: AttemptResult, sim: Simulation | undefined) => {
   }
   return rows.sort((a, b) => a.time - b.time || (a.goal ? 1 : 0) - (b.goal ? 1 : 0));
 };
+
+/** "CHEAT" pill for the HUD; CSS shows it only while a physics cheat is on (html[data-cheat]). */
+const cheatBadge = () => h('span', { class: 'cheat-badge', tip: 'A physics cheat is on: runs earn no stamps (Settings › Cheats)' }, 'CHEAT');
 
 /** "≤ 3 parts or under 4s": the briefing's one-line ELEGANT target, or '' when the level has none. */
 const elegantGoal = (l: LevelDef) =>

@@ -170,6 +170,7 @@ export class AudioEngine {
   private music: Music | null = null;
   private musicWanted = false;
   private musicIntensity = 0;
+  private musicLively = false;
   private theme: MusicTheme = 'modern';
   private musicTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -270,6 +271,7 @@ export class AudioEngine {
     this.music = new Music(ctx, this.musicIn, this.musicWetIn, this.nb);
     this.music.setTheme(this.theme);
     this.music.setIntensity(this.musicIntensity);
+    this.music.setLively(this.musicLively);
     this.ready = true;
     this.tokenT = this.now();
     this.applyVolumes(true);
@@ -664,6 +666,14 @@ export class AudioEngine {
   /** Diagnostics: current music voices, tempo, live players and limiter drops. */
   get musicStats(): { voices: number; bpm: number; players: number; dropped: number } {
     return this.music ? this.music.stats : { voices: 0, bpm: 0, players: 0, dropped: 0 };
+  }
+
+  /** DISCOFEVER cheat: livelier music (faster and fuller) until switched off. */
+  setMusicLively(on: boolean): void {
+    try {
+      this.musicLively = on;
+      this.music?.setLively(on);
+    } catch { /* ignore */ }
   }
 
   setMusicIntensity(x: number): void {

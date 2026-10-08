@@ -81,6 +81,11 @@ export interface Noise {
 export interface SimOptions {
   /** Skip connections/objects that fail to resolve instead of throwing. Always true in game. */
   lenient?: boolean;
+  /**
+   * Physics cheats (game/cheats.ts): a gravity multiplier and a minimum restitution for every
+   * body. Fixed for the whole run, so a run stays deterministic and rewind replays it exactly.
+   */
+  physics?: { gravity?: number; bounce?: number };
 }
 
 const MATERIALS = ['metal', 'wood', 'rubber', 'glass', 'paper', 'robot', 'stone'];
@@ -126,10 +131,18 @@ export class Simulation {
   private wallBodies: MBody[] = [];
   /** Number of parts the player placed (for scoring). */
   readonly placedParts: number;
+  /** Effective gravity (the level's, times any cheat multiplier). Parts that need it read this. */
+  readonly gravity: number;
+  /** Minimum restitution given to every body as it is added (0 = as built). */
+  private readonly minBounce: number;
+  readonly options: SimOptions;
 
-  constructor(level: LevelDef, build: BuildDef, _opts: SimOptions = {}) {
+  constructor(level: LevelDef, build: BuildDef, opts: SimOptions = {}) {
     this.level = level;
     this.build = build;
+    this.options = opts;
+    this.gravity = (level.world.gravity ?? 1) * (opts.physics?.gravity ?? 1);
+    this.minBounce = opts.physics?.bounce ?? 0;
     this.bounds = { x: 0, y: 0, w: level.world.width, h: level.world.height };
     this.engine = M.Engine.create({
       enableSleeping: false,
@@ -138,7 +151,7 @@ export class Simulation {
       constraintIterations: 4,
     });
     this.engine.gravity.x = 0;
-    this.engine.gravity.y = level.world.gravity ?? 1;
+    this.engine.gravity.y = this.gravity;
     this.world = this.engine.world;
     this.goals = new GoalTracker(level.goals ?? []);
 
@@ -203,6 +216,7 @@ export class Simulation {
     (body as any).__refAngle = body.angle;
     body.plugin = body.plugin ?? {};
     body.plugin.entity = e;
+    if (this.minBounce > 0 && !body.isSensor) body.restitution = Math.max(body.restitution, this.minBounce);
     e.bodies.push(body);
     this.owners.set(body.id, e);
     for (const p of body.parts) this.owners.set(p.id, e);

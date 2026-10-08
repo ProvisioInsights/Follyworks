@@ -7,7 +7,7 @@ import type { BuildDef, LevelDef, Vec } from '../core/types';
 import { History } from '../sim/history';
 import { STEP_MS } from '../sim/matter';
 import { goalMarker } from '../sim/goals';
-import { Simulation } from '../sim/Simulation';
+import { Simulation, type SimOptions } from '../sim/Simulation';
 import type { WorkshopScene } from '../render/WorkshopScene';
 import { scoreAttempt, type AttemptResult } from './scoring';
 
@@ -31,6 +31,15 @@ export interface RunCallbacks {
   /** Everything stopped moving without solving the level (fired once per run). */
   onSettled?(): void;
   onTick(): void;
+}
+
+/** Cheats a run is made with (game/cheats.ts). */
+export interface RunCheats {
+  physics?: SimOptions['physics'];
+  /** Codes of the outcome-changing cheats in force: the result carries them and earns nothing. */
+  blockers?: string[];
+  /** Cosmetic slow motion: wall-clock multiplier on top of the speed control. */
+  timeScale?: number;
 }
 
 export class RunController {
@@ -61,14 +70,18 @@ export class RunController {
   private scrubIndex = -1;
   private lastScrubTick = -1;
   private goalRegionCenter: Vec | null = null;
+  private simOpts: SimOptions;
+  private cheats: RunCheats;
 
-  constructor(scene: WorkshopScene, level: LevelDef, build: BuildDef, audio: AudioEngine | null, cb: RunCallbacks) {
+  constructor(scene: WorkshopScene, level: LevelDef, build: BuildDef, audio: AudioEngine | null, cb: RunCallbacks, cheats: RunCheats = {}) {
     this.scene = scene;
     this.audio = audio;
     this.cb = cb;
     this.level = level;
     this.build = build;
-    this.sim = new Simulation(level, build, { lenient: true });
+    this.cheats = cheats;
+    this.simOpts = { lenient: true, physics: cheats.physics };
+    this.sim = new Simulation(level, build, this.simOpts);
     this.sim.capturePrev();
     this.history.record(this.sim, true);
     this.timeLimit = level.restrictions?.timeLimit ?? (level.goals.length ? 30 : Infinity);
@@ -99,7 +112,7 @@ export class RunController {
       this.stepBack(3);
       this.scene.renderAlpha = 1;
     } else if (!this.paused && !this.scrubbing && !this.timedOut) {
-      this.acc += dt * this.speed;
+      this.acc += dt * this.speed * (this.cheats.timeScale ?? 1);
       while (this.acc >= STEP && steps < MAX_STEPS_PER_FRAME) {
         this.advance();
         this.acc -= STEP;
@@ -134,6 +147,7 @@ export class RunController {
     this.flushEvents(true);
     if (this.sim.goals.solved && !this.solvedResult) {
       this.solvedResult = scoreAttempt(this.sim.level, this.sim.goals.solvedAt, this.sim.placedParts, this.sim.chain);
+      if (this.cheats.blockers?.length) this.solvedResult.cheats = [...this.cheats.blockers];
       this.solvedWallClock = performance.now();
       this.audio?.play('goal');
       this.celebrate();
@@ -266,7 +280,7 @@ export class RunController {
     this.needsResync = false;
     const target = this.sim.tick;
     this.stillTicks = 0;
-    const fresh = new Simulation(this.level, this.build, { lenient: true });
+    const fresh = new Simulation(this.level, this.build, this.simOpts);
     while (fresh.tick < target) fresh.step();
     fresh.events.length = 0;
     fresh.capturePrev();

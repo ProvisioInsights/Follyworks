@@ -2,6 +2,7 @@
 
 import type { AudioEngine } from '../audio/AudioEngine';
 import type { CloudSync } from '../persistence/cloud';
+import type { CheatId } from '../game/cheats';
 import type { Difficulty } from '../persistence/save';
 import type { SaveStore, Settings } from '../persistence/save';
 import type { WorkshopScene } from '../render/WorkshopScene';
@@ -31,5 +32,11 @@ export interface AppContext {
   playCustom(levelId: string): void;
   editLevel(levelId: string): void;
   openSandbox(slotId?: string): void;
+  /** A cheat code was entered (keyboard or the hidden code box): toggle it, with a toast. */
+  enterCheat(id: CheatId): void;
+  /** Settings switch for a found cheat. */
+  setCheat(id: CheatId, on: boolean): void;
+  cheatOn(id: CheatId): boolean;
+  allCheatsOff(): void;
   sfx(name: string, opts?: { vol?: number; pitch?: number }): void;
 }
