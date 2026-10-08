@@ -21,6 +21,7 @@ import { h, installTooltips, modal, toast } from '../ui/dom';
 import { secretBanner } from '../ui/secret';
 import { labIntro, labScreen } from '../ui/lab';
 import { PlayScreen } from '../ui/PlayScreen';
+import { installPlaytestKit } from '../ui/playtestKit';
 import { campaignScreen, levelsScreen, mainMenu, settingsDialog, type Screen } from '../ui/screens';
 import type { AppContext } from './context';
 
@@ -98,6 +99,7 @@ export class App implements AppContext {
     (window as any).__follyworks = this; // handy for debugging and automated tests
     await Promise.race([synced, new Promise((r) => setTimeout(r, 800))]);
     this.showMenu();
+    installPlaytestKit(this);
     document.getElementById('boot')?.remove();
   }
 

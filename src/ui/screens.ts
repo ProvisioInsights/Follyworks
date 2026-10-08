@@ -10,6 +10,7 @@ import { ENVIRONMENTS } from '../render/art/environment';
 import { cloudSection } from './cloudPanel';
 import { cheatsSection, hiddenCodeBox } from './cheats';
 import { difficultyPicker } from './difficulty';
+import { playtestSettingsRow } from './playtestKit';
 import { h, icon, modal, toast } from './dom';
 
 export interface Screen {
@@ -467,6 +468,7 @@ export const settingsDialog = (app: AppContext, focus?: 'difficulty') => {
       ),
       cloudSection(app, () => m.close()),
       cheatsSection(app),
+      playtestSettingsRow(() => m.close()),
       h(
         'div',
         { style: { marginTop: '18px', display: 'flex', gap: '8px' } },
