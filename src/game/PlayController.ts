@@ -10,7 +10,7 @@ import type { OverlayState } from '../render/Overlays';
 import type { Entity } from '../sim/Entity';
 import { playtest } from '../telemetry/playtest';
 import { EditorController, type EditorFeedback } from './EditorController';
-import { RunController } from './RunController';
+import { RunController, type RunCheats } from './RunController';
 import type { AttemptResult } from './scoring';
 
 export type Mode = 'build' | 'run';
@@ -27,6 +27,8 @@ export interface PlayOptions {
   onTimeUp: () => void;
   onSettled?: () => void;
   onBuildChanged: (build: BuildDef, level: LevelDef) => void;
+  /** Cheats in force when RUN is pressed (fixed for that run). */
+  cheats?: () => RunCheats;
 }
 
 export class PlayController {
@@ -104,7 +106,7 @@ export class PlayController {
         this.opts.onSettled?.();
       },
       onTick: () => this.emit(),
-    });
+    }, this.opts.cheats?.());
     this.opts.audio?.setMusicIntensity(0.75);
     this.emit();
   }

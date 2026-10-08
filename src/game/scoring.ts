@@ -18,6 +18,11 @@ export interface AttemptResult {
   absurd: { earned: boolean; available: boolean; reason: string; target: number };
   /** Highest hint tier used before this solve (0 = none; see game/hints.ts). Set by the HUD. */
   hintTier?: number;
+  /**
+   * Codes of the physics cheats the run was made with (game/cheats.ts). A cheated solve still
+   * celebrates but earns no stamps and records no progress.
+   */
+  cheats?: string[];
 }
 
 /** Unique stages in order of first occurrence. */
@@ -77,7 +82,11 @@ export const scoreAttempt = (level: LevelDef, solvedAt: number | null, parts: nu
   return { solved, time: solvedAt, parts, stages, domains, chain: stagesList, elegant, absurd };
 };
 
+/** A run made with physics cheats: it celebrates, but no stamp is awarded or recorded. */
+export const isCheatRun = (r: AttemptResult) => !!r.cheats?.length;
+
 export const mergeProgress = (prev: LevelProgress, r: AttemptResult, difficulty: Difficulty = 'normal'): LevelProgress => {
+  if (isCheatRun(r)) return prev;
   const p = { ...prev, attempts: prev.attempts + 1, byDifficulty: { ...prev.byDifficulty } };
   if (!r.solved) return p;
   const d = { ...p.byDifficulty[difficulty] };

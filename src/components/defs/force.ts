@@ -113,7 +113,7 @@ registerComponent({
   },
   step(e, sim) {
     // Fixed buoyant force (mass-units * px/s^2) so balloons can lift light loads.
-    const g = 1000 * (sim.level.world.gravity ?? 1);
+    const g = 1000 * sim.gravity;
     sim.push(e.body, 0, -(g * 0.25 + 900 * e.num('lift')));
     // Gentle upright wobble damping.
     M.Body.setAngularVelocity(e.body, e.body.angularVelocity * 0.9);

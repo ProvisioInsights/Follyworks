@@ -9,6 +9,7 @@ import type { Entity } from '../sim/Entity';
 import type { Simulation, SimEvent } from '../sim/Simulation';
 import { EnvironmentView } from './Environment';
 import { Fx } from './Fx';
+import { GooglyEyes } from './googly';
 import { Overlays, type OverlayState } from './Overlays';
 import { roomFor } from './skin';
 import { TextureBank } from './TextureBank';
@@ -28,6 +29,8 @@ export class WorkshopScene extends Phaser.Scene {
   env!: EnvironmentView;
   fx!: Fx;
   overlays!: Overlays;
+  /** GOOGLYEYES cheat (visual only). */
+  googly!: GooglyEyes;
   private layers!: Record<'bg' | 'under' | 'mounted' | 'views' | 'over' | 'fx' | 'fxAdd' | 'front' | 'top', Phaser.GameObjects.Container>;
   private views = new Map<string, EntityView>();
   private sim: Simulation | null = null;
@@ -39,6 +42,8 @@ export class WorkshopScene extends Phaser.Scene {
   /** Fitted zoom for the current world; user zoom is relative to it. */
   private fitZoom = 1;
   private userZoom = 1;
+  /** TINYTOOLS / BIGTOOLS cheat: a cosmetic multiplier on the fitted zoom. */
+  private cheatZoom = 1;
   private pan = { x: 0, y: 0 };
   private worldW = 1600;
   private worldH = 900;
@@ -67,6 +72,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.env = new EnvironmentView(this, this.layers.bg, this.layers.front);
     this.fx = new Fx(this, this.layers.fx, this.layers.fxAdd);
     this.overlays = new Overlays(this, this.layers.under, this.layers.over, this.layers.top);
+    this.googly = new GooglyEyes(this, this.layers.over);
     this.cameras.main.setBackgroundColor('#0d0a08');
     this.scale.on('resize', () => this.applyCamera());
     this.ready?.();
@@ -124,6 +130,7 @@ export class WorkshopScene extends Phaser.Scene {
   /** Show a simulation. Views are rebuilt (textures are cached, so this is cheap). */
   setSim(sim: Simulation) {
     this.sim = sim;
+    this.googly?.reset();
     for (const v of this.views.values()) v.destroy();
     this.views.clear();
     for (const e of sim.list) this.addView(e);
@@ -185,7 +192,15 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   get zoom() {
-    return this.fitZoom * this.userZoom;
+    return this.fitZoom * this.userZoom * this.cheatZoom;
+  }
+
+  /** Cheat camera: below 1 pulls back to a doll's-house view, above 1 moves in and follows runs. */
+  setCheatZoom(z: number) {
+    if (z === this.cheatZoom) return;
+    this.cheatZoom = z;
+    this.pan = { x: 0, y: 0 };
+    this.applyCamera();
   }
 
   zoomAt(factor: number, screen: Vec) {
@@ -221,8 +236,9 @@ export class WorkshopScene extends Phaser.Scene {
     const z = this.zoom;
     cam.setZoom(z);
     // keep pan within reason
-    const maxPanX = (this.worldW * 0.6) * Math.max(0, this.userZoom - 0.5);
-    const maxPanY = (this.worldH * 0.6) * Math.max(0, this.userZoom - 0.5);
+    const uz = this.userZoom * this.cheatZoom;
+    const maxPanX = (this.worldW * 0.6) * Math.max(0, uz - 0.5);
+    const maxPanY = (this.worldH * 0.6) * Math.max(0, uz - 0.5);
     this.pan.x = Phaser.Math.Clamp(this.pan.x, -maxPanX - 100, maxPanX + 100);
     this.pan.y = Phaser.Math.Clamp(this.pan.y, -maxPanY - 100, maxPanY + 100);
     const cx = this.worldW / 2 + this.pan.x;
@@ -260,8 +276,32 @@ export class WorkshopScene extends Phaser.Scene {
       for (const v of this.views.values()) v.sync(this.renderAlpha, t, this.running);
       if (this.cheers.size) this.updateCheers();
       if (this.overlayState) this.overlays.draw({ ...this.overlayState, sim, t: this.realTime, alpha: this.renderAlpha });
+      if (this.cheatZoom > 1 && this.running) this.followAction(sim, dt);
     }
+    this.googly.draw(sim ? this.views.values() : [], this.renderAlpha, dt);
     this.fx.update(dt);
+  }
+
+  /** BIGTOOLS: ease the close-up camera toward whatever is moving fastest (speed-weighted centre). */
+  private followAction(sim: Simulation, dt: number) {
+    let sx = 0;
+    let sy = 0;
+    let sw = 0;
+    for (const b of sim.tracked) {
+      const v = Math.hypot(b.velocity.x, b.velocity.y);
+      if (v < 0.4 || b.position.y > this.worldH + 50) continue;
+      const w = v * v;
+      sx += b.position.x * w;
+      sy += b.position.y * w;
+      sw += w;
+    }
+    if (!sw) return;
+    const tx = sx / sw - this.worldW / 2;
+    const ty = sy / sw - this.worldH / 2;
+    const k = 1 - Math.exp(-dt * 2.2);
+    this.pan.x += (tx - this.pan.x) * k;
+    this.pan.y += (ty - this.pan.y) * k;
+    this.applyCamera();
   }
 
   private updateCheers() {

@@ -4,6 +4,7 @@
 import { parseBuild, parseLevel } from '../core/level';
 import { THEMES, type ThemeSetting, type UiStyle } from '../core/themes';
 import type { BuildDef, LevelDef } from '../core/types';
+import { emptyCheats, parseCheatState, type CheatState } from '../game/cheats';
 
 export const SAVE_KEY = 'follyworks.save';
 export const SAVE_VERSION = 2;
@@ -38,6 +39,8 @@ export interface Settings {
   uiStyle: UiStyle;
   /** The secret arcade theme has been unlocked (Konami code). */
   arcadeUnlocked: boolean;
+  /** Cheat codes found and switched on (game/cheats.ts). Skeleton key is `unlockAll`, Konami is the arcade theme. */
+  cheats: CheatState;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -58,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'auto',
   uiStyle: 'modern',
   arcadeUnlocked: false,
+  cheats: emptyCheats(),
 };
 
 export interface LevelProgress {
@@ -177,7 +181,17 @@ export const parseSettings = (raw: unknown): Settings => {
       r.theme === 'auto' || THEMES.some((t) => t.id === r.theme && (!t.secret || r.arcadeUnlocked === true)) ? (r.theme as ThemeSetting) : d.theme,
     uiStyle: r.uiStyle === 'modern' || r.uiStyle === 'era' ? r.uiStyle : d.uiStyle,
     arcadeUnlocked: bool(r.arcadeUnlocked, d.arcadeUnlocked),
+    cheats: parseCheats(r),
   };
+};
+
+/** Older saves have no `cheats`; their "Unlock all" switch and the arcade theme count as found. */
+const parseCheats = (r: Record<string, any>): CheatState => {
+  const c = parseCheatState(r.cheats);
+  if (r.cheats !== undefined) return c;
+  if (r.unlockAll === true && !c.found.includes('skeletonkey')) c.found.push('skeletonkey');
+  if (r.arcadeUnlocked === true && !c.found.includes('konami')) c.found.push('konami');
+  return c;
 };
 
 const parseProgress = (raw: unknown): LevelProgress => {

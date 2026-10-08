@@ -7,6 +7,7 @@ import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/
 import { buildKey, DIFFICULTIES, DIFFICULTY_LABELS } from '../game/difficulty';
 import { LAB } from '../game/levels/lab';
 import { ENVIRONMENTS } from '../render/art/environment';
+import { cheatsSection, hiddenCodeBox } from './cheats';
 import { difficultyPicker } from './difficulty';
 import { h, icon, modal, toast } from './dom';
 
@@ -23,13 +24,16 @@ export const mainMenu = (app: AppContext): Screen => {
   const nextIdx = CAMPAIGN.findIndex((c, i) => !p[c.level.id]?.solved && isUnlocked(i, p, app.settings.unlockAll));
   const btn = (label: string, sub: string, ic: string, onClick: () => void, cls = '') =>
     h('button', { class: `btn ${cls}`, onClick: () => (app.sfx('ui'), onClick()) }, icon(ic), label, sub ? h('small', null, sub) : null);
+  // Seven quick taps on the logo open the secret code box (cheat codes without a keyboard).
+  const logo = h('div', { class: 'logo' }, 'FOLLY', h('br'), 'WORKS');
+  hiddenCodeBox(logo, app);
   const root = h(
     'div',
     { class: 'menu' },
     h(
       'div',
       { class: 'menu-col' },
-      h('div', { class: 'logo' }, 'FOLLY', h('br'), 'WORKS'),
+      logo,
       h('div', { class: 'tagline' }, 'Build the unnecessary.'),
       h(
         'div',
@@ -397,7 +401,7 @@ export const settingsDialog = (app: AppContext, focus?: 'difficulty') => {
     inp.addEventListener('change', () => app.sfx('click'));
     return [h('span', null, label), inp];
   };
-  const check = (label: string, key: 'muted' | 'reducedMotion' | 'snap' | 'showForces' | 'ghostTrails' | 'unlockAll' | 'tips' | 'guidance', note?: string) => {
+  const check = (label: string, key: 'muted' | 'reducedMotion' | 'snap' | 'showForces' | 'ghostTrails' | 'tips' | 'guidance', note?: string) => {
     const cb = h('input', { type: 'checkbox', checked: s[key] }) as HTMLInputElement;
     cb.addEventListener('change', () => app.updateSettings({ [key]: cb.checked }));
     return [h('span', null, label, note ? h('div', { class: 'muted', style: { fontSize: '12px' } }, note) : null), h('label', null, cb)];
@@ -459,8 +463,8 @@ export const settingsDialog = (app: AppContext, focus?: 'difficulty') => {
         ...check('Snap to grid', 'snap'),
         ...check('Ghost trails', 'ghostTrails', 'Show where things went last run'),
         ...check('Show physics shapes', 'showForces', 'Collision outlines and motion arrows'),
-        ...check('Unlock all puzzles', 'unlockAll'),
       ),
+      cheatsSection(app),
       h(
         'div',
         { style: { marginTop: '18px', display: 'flex', gap: '8px' } },
