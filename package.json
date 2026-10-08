@@ -13,7 +13,8 @@
     "test": "vitest run",
     "e2e": "node e2e/smoke.mjs",
     "fun:audit": "vitest run --config vitest.fun.config.ts tools/fun/audit",
-    "fun:playtests": "vitest run --config vitest.fun.config.ts tools/fun/playtests"
+    "fun:playtests": "vitest run --config vitest.fun.config.ts tools/fun/playtests",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",
@@ -27,6 +28,7 @@
     "@playwright/test": "^1.63.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.3",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "wrangler": "^4.148.0"
   }
 }

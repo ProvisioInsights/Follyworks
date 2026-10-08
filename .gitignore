@@ -6,3 +6,4 @@ test-results
 tests/scratch/
 .claude/worktrees/
 docs/fun/fun-audit.partial.*
+.wrangler
