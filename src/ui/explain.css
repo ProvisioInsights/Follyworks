@@ -3,7 +3,7 @@
    the stage: only the banner itself takes pointer input. */
 
 .banner.so-close {
-  max-width: min(680px, calc(100vw - 32px));
+  max-width: min(760px, calc(100vw - 32px));
   width: max-content;
   box-sizing: border-box;
   flex-wrap: wrap;

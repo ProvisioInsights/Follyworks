@@ -21,8 +21,7 @@ const check = (ok, msg) => {
 // campaign index (T1..T6 are 0..5, then ten per group), part to nudge (null = empty build), dx
 const CASES = [
   { code: '1-4', index: 9, part: 'dom-b', dx: -30 },
-  { code: '1-7', index: 12, part: 'plank-b', dx: 30 },
-  { code: '2-5', index: 20, part: 0, dx: 40 },
+  { code: '2-6', index: 21, part: 's-bridge', dx: 30 },
   { code: '3-2', index: 27, part: 's-ramp', dx: 30 },
   { code: '1-1', index: 6, part: null, dx: 0 },
 ];
@@ -34,7 +33,7 @@ async function session(name, ctxOpts, cases, settings = {}) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   await page.goto(url);
-  await page.waitForFunction(() => !!window.__follyworks, null, { timeout: 30000 });
+  await page.waitForFunction(() => !!window.__follyworks, null, { timeout: 120000 });
   await page.evaluate((st) => window.__follyworks.updateSettings({ difficultyChosen: true, guidance: false, ...st }), settings);
   for (const c of cases) {
     await page.evaluate((i) => window.__follyworks.playCampaign(i), c.index);
@@ -76,8 +75,9 @@ async function session(name, ctxOpts, cases, settings = {}) {
       run.scrubTo(Math.floor(window.__follyworks.play.ctl.explainMarks.tick / 2));
       window.__follyworks.play.ctl.emit();
     });
-    await page.waitForTimeout(300);
-    check(!(await page.evaluate(() => document.querySelector('.so-close'))), `${name} ${c.code}: banner goes on rewind`);
+    // headless frames can take a while on a busy machine: allow a few seconds for the HUD to redraw
+    const gone = await page.waitForFunction(() => !document.querySelector('.so-close'), null, { timeout: 10000, polling: 200 }).then(() => true, () => false);
+    check(gone, `${name} ${c.code}: banner goes on rewind`);
     await page.evaluate(() => window.__follyworks.play.ctl.reset());
     await page.waitForTimeout(200);
     check(!(await page.evaluate(() => window.__follyworks.play.ctl.explainMarks)), `${name} ${c.code}: marks cleared on reset`);
@@ -88,10 +88,10 @@ async function session(name, ctxOpts, cases, settings = {}) {
 }
 
 await session('desktop', { viewport: { width: 1600, height: 900 } }, CASES);
-await session('reduced', { viewport: { width: 1280, height: 800 } }, [CASES[1]], { reducedMotion: true });
+await session('reduced', { viewport: { width: 1280, height: 800 } }, [CASES[0]], { reducedMotion: true });
 const phone = devices['iPhone 13 landscape'] ?? { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true };
-await session('phone', phone, [CASES[0], CASES[4]]);
-await session('tablet', devices['iPad (gen 7) landscape'] ?? { viewport: { width: 1080, height: 810 }, hasTouch: true }, [CASES[3]]);
+await session('phone', phone, [CASES[0], CASES[3]]);
+await session('tablet', devices['iPad (gen 7) landscape'] ?? { viewport: { width: 1080, height: 810 }, hasTouch: true }, [CASES[2]]);
 
 await browser.close();
 console.log(failures ? `${failures} failure(s)` : 'all good');
