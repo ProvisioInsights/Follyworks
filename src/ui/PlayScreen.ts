@@ -1,7 +1,6 @@
 // The in-game HUD around one PlayController: top bar with goals, parts bin, edit tools,
 // transport dock with timeline, properties panel, briefing, hints and results.
 
-import { describeMiss } from '../sim/goals';
 import type { AppContext } from '../app/context';
 import type { SfxName } from '../audio/AudioEngine';
 import { CONNECTION_TOOLS, isToolType } from '../components';
@@ -14,6 +13,7 @@ import { invalidPlacements } from '../game/placement';
 import { isCheatRun, type AttemptResult } from '../game/scoring';
 import type { Difficulty } from '../game/difficulty';
 import { runCheats } from '../game/cheats';
+import { explainRun, referenceFor } from '../game/explain';
 import { applyHintPenalty, ghostEntities, GHOST_TIER, HintLadder, hintTierLabel, type HintView } from '../game/hints';
 import type { Entity } from '../sim/Entity';
 import { pickableThemes, type ThemeId, type ThemeSetting } from '../core/themes';
@@ -29,6 +29,7 @@ import { GuideCoach } from './GuideCoach';
 import { conceptsInRun } from '../content/runConcepts';
 import type { ConceptId } from '../content/science';
 import { physicsInMachine, scienceSection } from './science';
+import './explain.css';
 import { difficultyBadge } from './difficulty';
 
 export interface PlayConfig {
@@ -450,10 +451,12 @@ export class PlayScreen {
     const ctl = this.ctl;
     const running = ctl.mode === 'run';
     const run = ctl.run;
-    if (!running && this.timeUpEl) {
+    // the "So close!" banner goes as soon as the player rewinds, scrubs or goes back to building
+    if (this.timeUpEl && (!running || run?.rewinding || run?.scrubbing || (ctl.explainMarks && run && run.sim.tick < ctl.explainMarks.tick))) {
       this.timeUpEl.remove();
       this.timeUpEl = null;
     }
+    this.placeBanner();
     // run button
     const rb = this.els.runBtn;
     clear(rb);
@@ -1022,21 +1025,25 @@ export class PlayScreen {
     });
   }
 
-  /** Time-up banner; `stalled` is the early version shown when everything stopped moving. */
+  /**
+   * The run ended unsolved (`stalled`: everything stopped; otherwise time ran out): a short "So
+   * close!" banner that says how far the machine got and where it stopped (game/explain.ts), with
+   * those parts marked in the room. Not modal; rewinding or editing puts it away.
+   */
   private showTimeUp(stalled = false) {
     this.timeUpEl?.remove();
+    const run = this.ctl.run;
+    if (!run) return;
+    const x = explainRun(run.sim, referenceFor(this.session.level, this.cfg.solution));
+    this.ctl.explainMarks = { stop: x.stopAt, rest: x.restAt, tick: run.sim.tick };
     const el = h(
       'div',
-      { class: 'panel banner' },
-      h(
-        'span',
-        null,
-        stalled ? h('b', null, 'Everything’s stopped. ') : h('b', null, 'Time’s up. '),
-        (this.ctl.run && describeMiss(this.ctl.run.sim)) ?? (stalled ? 'The goal isn’t met.' : 'The machine didn’t finish the job (yet).'),
-        stalled ? ' Rewind to see where it went wrong.' : '',
+      { class: `panel banner so-close tone-${x.tone}`, role: 'status', 'aria-live': 'polite' },
+      h('span', { class: 'sc-text' }, h('b', null, stalled ? x.title : `Time’s up. ${x.title}`), ' ', x.text),
+      h('span', { class: 'sc-actions' },
+        h('button', { class: 'btn small', onClick: () => close(() => (stalled ? undefined : (this.ctl.run?.extendTime(), (this.ctl.explainMarks = null)))) }, 'Keep watching'),
+        h('button', { class: 'btn small primary', onClick: () => close(() => this.ctl.reset()) }, icon('reset'), 'Back to building'),
       ),
-      h('button', { class: 'btn small', onClick: () => close(() => (stalled ? undefined : this.ctl.run?.extendTime())) }, 'Keep watching'),
-      h('button', { class: 'btn small primary', onClick: () => close(() => this.ctl.reset()) }, icon('reset'), 'Back to building'),
     );
     const close = (fn: () => void) => {
       el.remove();
@@ -1045,6 +1052,15 @@ export class PlayScreen {
     };
     this.timeUpEl = el;
     this.root.append(el);
+    this.placeBanner();
+  }
+
+  /** Keep the banner clear of the hint bar when both are up. */
+  private placeBanner() {
+    const el = this.timeUpEl;
+    if (!el) return;
+    const tip = this.els.tip;
+    el.style.top = tip.style.display !== 'none' && tip.isConnected ? `${tip.getBoundingClientRect().bottom - this.root.getBoundingClientRect().top + 8}px` : '';
   }
 
   private showResults(raw: AttemptResult) {
