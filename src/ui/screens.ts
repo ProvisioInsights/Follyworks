@@ -7,6 +7,7 @@ import { CAMPAIGN, CHAPTERS, isUnlocked, levelCode, solvedCount } from '../game/
 import { buildKey, DIFFICULTIES, DIFFICULTY_LABELS } from '../game/difficulty';
 import { LAB } from '../game/levels/lab';
 import { ENVIRONMENTS } from '../render/art/environment';
+import { cloudSection } from './cloudPanel';
 import { difficultyPicker } from './difficulty';
 import { h, icon, modal, toast } from './dom';
 
@@ -461,6 +462,7 @@ export const settingsDialog = (app: AppContext, focus?: 'difficulty') => {
         ...check('Show physics shapes', 'showForces', 'Collision outlines and motion arrows'),
         ...check('Unlock all puzzles', 'unlockAll'),
       ),
+      cloudSection(app, () => m.close()),
       h(
         'div',
         { style: { marginTop: '18px', display: 'flex', gap: '8px' } },

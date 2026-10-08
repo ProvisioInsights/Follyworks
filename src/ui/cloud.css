@@ -1,0 +1,76 @@
+/* Settings: "Play on another device" (ui/cloudPanel.ts). Sits in a .settings-diff box. */
+.cloud-box {
+  margin: 18px 0 0;
+}
+.cloud-head {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.cloud-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(13px * var(--ts));
+  color: var(--cream-dim);
+}
+.cloud-status::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7d7468;
+}
+.cloud-status[data-status='saved']::before {
+  background: #5fbf6a;
+}
+.cloud-status[data-status='saving']::before {
+  background: #e0a94a;
+}
+.cloud-help {
+  margin: 6px 0 10px;
+  font-size: calc(13px * var(--ts));
+  color: var(--cream-dim);
+}
+.cloud-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.cloud-row[hidden] {
+  display: none;
+}
+.cloud-row .btn {
+  min-height: 40px;
+}
+.cloud-code {
+  flex: 1 1 210px;
+  min-width: 0;
+  min-height: 40px;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace !important;
+  font-size: calc(17px * var(--ts)) !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cloud-codes {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--edge);
+}
+.cloud-codes .muted {
+  flex: 1 1 100%;
+  font-size: calc(13px * var(--ts));
+}
+.cloud-msg:not(:empty) {
+  margin: 8px 0 0;
+  font-size: calc(13px * var(--ts));
+  color: var(--cream-dim);
+}
+.cloud-savecode {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}

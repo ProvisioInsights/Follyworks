@@ -1,12 +1,14 @@
 // What screens need from the application shell.
 
 import type { AudioEngine } from '../audio/AudioEngine';
+import type { CloudSync } from '../persistence/cloud';
 import type { Difficulty } from '../persistence/save';
 import type { SaveStore, Settings } from '../persistence/save';
 import type { WorkshopScene } from '../render/WorkshopScene';
 
 export interface AppContext {
   store: SaveStore;
+  cloud: CloudSync;
   audio: AudioEngine;
   scene: WorkshopScene;
   canvas: HTMLCanvasElement;

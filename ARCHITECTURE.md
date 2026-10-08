@@ -39,7 +39,7 @@ The central rule is that **the simulation is pure data in, data out**. A level a
 | `src/render` | The Phaser scene, entity views, overlays (ropes, wires, sockets, goal zones, selection, ghost trails), particles and labels, environments, and the procedural art painters. |
 | `src/ui` | DOM screens and the in-game HUD. |
 | `src/audio` | The audio engine: one-shot effects, continuous machine loops and generative music, all synthesised. |
-| `src/persistence` | Versioned save document in `localStorage`. |
+| `src/persistence` | Versioned save document in `localStorage`, cloud sync, save codes. |
 
 ## Data model
 
@@ -130,6 +130,9 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - Loading never throws. Unknown or broken fields fall back to defaults field by field (an unknown `settings.theme` becomes `'auto'`).
 - An unreadable document is copied aside to `follyworks.save.corrupt-<time>` before defaults are used.
 - Writes are debounced and flushed on page unload.
+- `sync` records when each piece (settings, each level's progress, each build, custom level and sandbox slot) last changed, and what was deleted when. `SaveStore.flush` fills it in by comparing with what it last wrote, so callers never stamp anything. `persistence/merge.ts` uses it to merge two copies: mission results take the best of both per difficulty, everything else the newer copy, and a deletion wins over an older copy.
+- `persistence/cloud.ts` syncs the save with the Worker (`worker/api.ts`, D1 tables in `migrations/`) under a random device id (`persistence/cloudId.ts`, 80 bits, shown as `XXXX-XXXX-XXXX-XXXX`, kept in `follyworks.cloud`). It pulls and merges at boot (the menu waits up to 0.8 s for it), pushes at most every 20 s after saves and at once with `keepalive` when the tab is hidden. Writes carry `If-Match: "<rev>"`; a 412 means another device saved first, so it pulls, merges and retries. Offline or with no API it reports "Offline" and retries with backoff. Linking to another device's code merges that save in and adopts its id.
+- `persistence/saveCode.ts` turns the save into `FW1.` + base64url(deflate-raw JSON) (or `FW1j.` + base64url JSON without CompressionStream) and back through `parseSave`. Settings' "Play on another device" box (`ui/cloudPanel.ts`) holds the device code, linking and save codes.
 
 ## Audio
 
