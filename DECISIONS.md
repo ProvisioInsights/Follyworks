@@ -108,3 +108,7 @@ Material design and architecture decisions, with the reason for each. Newest las
 - **The playtest log stays on the device.** `src/telemetry/playtest.ts` records sessions in localStorage only; players export it by hand. No analytics service, so nothing needs consent and nothing leaves the browser.
 - **The audit's thresholds are provisional until real playtests exist.** They were set so flags pick out outliers. `npm run fun:playtests` puts audit scores beside player behaviour so the thresholds can be moved toward what people actually did.
 
+
+## Hosting
+
+- **The built game works offline after one visit.** A small hand-written service worker (`src/sw.js`, filled in by a Vite plugin in `vite.config.ts`) precaches every file of the build. The cache name is a hash of the file list, so each deploy installs a fresh cache and deletes the old one. Pages are fetched network first, so a new deploy shows up on the next load and the cached copy is only used when the network fails; hashed assets come straight from the cache. Requests under `/api/` are never touched, so server data such as cloud saves always comes from the network. Cache lookups ignore `Vary`, because servers send `Vary: Origin` and module scripts are requested with an Origin header the precache request did not have. It is only registered in production builds, never on the dev server.
