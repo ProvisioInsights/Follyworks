@@ -148,6 +148,9 @@ class Player implements PlayerApi {
 
   intensity = 0;
   target = 0;
+  /** DISCOFEVER cheat: tempo multiplier and intensity lift, applied at the next bar line. */
+  lively = false;
+  private livelyNow = false;
   /** no new notes after this time (fade-out) */
   dieAt = Infinity;
 
@@ -177,8 +180,13 @@ class Player implements PlayerApi {
     this.stepFn = def.create(this);
   }
 
+  /** The tempo actually played (a livelier one while the disco cheat is on). */
+  private get rate(): number {
+    return this.livelyNow ? this.bpm * 1.18 : this.bpm;
+  }
+
   get s16(): number {
-    return 60 / this.bpm / 4;
+    return 60 / this.rate / 4;
   }
 
   bus(level: number, wet: number, lowpass?: number): GainNode {
@@ -225,7 +233,7 @@ class Player implements PlayerApi {
   }
 
   private stepTime(n: number): number {
-    const spb = 60 / this.bpm;
+    const spb = 60 / this.rate;
     const beat = Math.floor(n / 4);
     const k = n % 4;
     const r = this.def.swing;
@@ -271,6 +279,10 @@ class Player implements PlayerApi {
         this.rebaseClock();
       }
       this.enterSection();
+    }
+    if (this.lively !== this.livelyNow) {
+      this.rebaseClock();
+      this.livelyNow = this.lively;
     }
   }
 
@@ -385,7 +397,7 @@ class Player implements PlayerApi {
       while (root > bassBase + 7) root -= 12;
       while (root < bassBase - 5) root += 12;
       const mel = this.melodyAt(step, tones);
-      const spb = 60 / this.bpm;
+      const spb = 60 / this.rate;
       const info: StepInfo = {
         t,
         step,
@@ -396,7 +408,7 @@ class Player implements PlayerApi {
         secBars: row.bars,
         kind: row.kind,
         E: row.E,
-        I: this.intensity,
+        I: this.livelyNow ? Math.min(1, this.intensity + 0.35) : this.intensity,
         spb,
         s16: spb / 4,
         stepsPerBar: spbar,
@@ -485,6 +497,7 @@ export class Music {
   private player: Player | null = null;
   private fading: Player[] = [];
   private target = 0;
+  private lively = false;
 
   constructor(ctx: BaseAudioContext, dest: AudioNode, wet: AudioNode, nb: NoiseBank) {
     this.ctx = ctx;
@@ -512,6 +525,12 @@ export class Music {
     if (this.player) this.player.target = this.target;
   }
 
+  /** DISCOFEVER: a faster, fuller arrangement (takes effect at the next bar line). */
+  setLively(on: boolean): void {
+    this.lively = on;
+    if (this.player) this.player.lively = on;
+  }
+
   /** Switch style; crossfades over `fade` seconds when the music is playing. */
   setTheme(id: unknown, fade = 2.5): void {
     const th = normTheme(id);
@@ -532,6 +551,7 @@ export class Music {
     }
     this.player = new Player(this.ctx, this.dest, this.wet, this.nb, STYLES[th], t + 0.1, fade, this.player ? this.player.intensity : this.target);
     this.player.target = this.target;
+    this.player.lively = this.lively;
   }
 
   private disposeLater(p: Player, sec: number): void {
@@ -547,6 +567,7 @@ export class Music {
     this.running = true;
     const t = this.ctx.currentTime + 0.05;
     this.player = new Player(this.ctx, this.dest, this.wet, this.nb, STYLES[this.theme], t, 2.5, this.target);
+    this.player.lively = this.lively;
   }
 
   stop(): void {

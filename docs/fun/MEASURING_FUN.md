@@ -39,21 +39,26 @@ most levels, and should be re-tuned once real playtest data exists (see below).
 
 ## 2. Playtesting with real people
 
-The game keeps a playtest log on the player's device only (localStorage, never sent anywhere).
-Code: `src/telemetry/playtest.ts`, fed from `PlayController` and the hint ladder. Per mission
-session it records time to first RUN, each run (seconds of building before it, how it ended,
-chain stages, ABSURD/ELEGANT), edits, rewinds, hint tier, when it was solved and an optional
-1–5 rating (`__follyworksPlaytest.rate(n)`; no rating prompt is on screen yet).
+The game keeps a playtest log on the player's device (localStorage). Code:
+`src/telemetry/playtest.ts`, fed from `PlayController` and the hint ladder. Per mission session it
+records time to first RUN, each run (seconds of building before it, how it ended, chain stages,
+ABSURD/ELEGANT), edits, rewinds, hint tier, when it was solved, and in playtest mode a 1–5 face
+rating and an optional one-line comment.
 
-To run a playtest:
+To run a playtest, follow [PLAYTEST_GUIDE.md](PLAYTEST_GUIDE.md). In short:
 
-1. Give each tester a fresh browser profile (or have them run `__follyworksPlaytest.clear()` in
-   the browser console) and let them play without help.
-2. Afterwards, in the browser console: `__follyworksPlaytest.download()`. It saves
-   `follyworks-playtest-<id>.json`.
-3. Put the files in a `playtests/` folder at the repo root and run `npm run fun:playtests`. It
-   writes [playtest-report.md](playtest-report.md), one row per level, with the audit score
-   beside each.
+1. Open the game with `?playtest` (a private window, so progress starts empty). A small
+   **Playtest** tag shows; after each mission a face rating asks how fun it was.
+2. The player finishes with the tag or Settings, *Finish playtest*. The log is POSTed to
+   `/api/playtest` and stored in the D1 table `playtests`; if that fails it is saved as
+   `follyworks-playtest-<name>-<id>.json` for them to send.
+3. `npm run playtests:pull` copies every stored log into `playtests/` (kept out of the repo); put
+   any emailed files there too. `npm run fun:playtests` then writes
+   [playtest-report.md](playtest-report.md), one row per level with the audit score beside each,
+   plus every comment.
+
+Outside playtest mode the log is still kept locally and can be exported from the browser console
+with `__follyworksPlaytest.download()`.
 
 What the player signals mean, best first:
 
@@ -65,7 +70,7 @@ What the player signals mean, best first:
 | **Seconds to first RUN** | Whether the briefing and the room make it obvious what to try. Flag over 90 s. |
 | **Runs and minutes to solve** | Difficulty as people feel it. Should rise gently through a group, with no spikes. Flag over 8 min. |
 | **Ghost hints** | How often people needed to be shown the answer. Flag at 50%. |
-| **Rating** | What they say. Useful in aggregate; flag under 3/5. |
+| **Rating** and comments | What they say. Useful in aggregate; flag under 3/5. Read the comments beside your session notes. |
 
 ## 3. Closing the loop
 

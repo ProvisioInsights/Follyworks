@@ -271,10 +271,12 @@ describe('versioning', () => {
     expect(data.customLevels.map((l) => l.id)).toEqual(['a']);
   });
 
-  it('migrateSave leaves v2 alone and does not mutate unrelated fields', () => {
-    const raw = { version: 2, customLevels: { a: 1 }, extra: 1 };
+  it('migrateSave leaves v3 alone and does not mutate unrelated fields', () => {
+    const raw = { version: 3, customLevels: { a: 1 }, extra: 1 };
     expect(migrateSave({ ...raw })).toEqual(raw);
-    expect(migrateSave({ version: 1, customLevels: { a: 1 } })).toEqual({ version: 2, customLevels: [1] });
+    const sync = { stamps: {}, removed: {} };
+    expect(migrateSave({ version: 1, customLevels: { a: 1 } })).toEqual({ version: 3, customLevels: [1], sync });
+    expect(migrateSave({ version: 2, customLevels: [], extra: 1 })).toEqual({ version: 3, customLevels: [], extra: 1, sync });
   });
 
   it('a save from a newer build loads what it understands without crashing', () => {

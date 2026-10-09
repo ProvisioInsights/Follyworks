@@ -57,6 +57,8 @@ export interface OverlayState {
   touch?: boolean;
   /** Goal highlighted from the HUD. */
   focusGoal?: number | null;
+  /** After a failed run: where the chain stopped and what came to rest short (game/explain.ts). */
+  explain?: { stop: string | null; rest: string | null; still: boolean } | null;
 }
 
 const ROPE = 0xc9a46a;
@@ -222,6 +224,7 @@ export class Overlays {
     }
     if (st.showForces) this.drawForces(tp, sim);
     if (st.guide && st.mode === 'build') this.drawGuide(tp, st.guide, st.t);
+    if (st.explain && st.mode === 'run') this.drawExplain(tp, sim, st.explain, st.t);
     if (st.handles && st.mode === 'build') {
       const k = 1 / Math.max(0.3, st.zoom ?? 1);
       if (st.manip) this.drawManip(tp, st.manip, k);
@@ -376,6 +379,44 @@ export class Overlays {
           g.lineBetween(b.x2, b.y2, b.x2 + Math.cos(a) * l, b.y2 + Math.sin(a) * l);
         }
       }
+    }
+  }
+
+  /**
+   * "So close!" marks: an amber outline and ring on the last part that did something, and a coral
+   * ring on what came to rest short. Rings pulse outwards unless motion is reduced.
+   */
+  private drawExplain(g: Phaser.GameObjects.Graphics, sim: Simulation, ex: NonNullable<OverlayState['explain']>, t: number) {
+    const marks: [string | null, number][] = [
+      [ex.stop, 0xffb54a],
+      [ex.rest, 0xff7a6b],
+    ];
+    for (const [id, col] of marks) {
+      const e = id ? sim.entities.get(id) : undefined;
+      if (!e?.alive || !e.bodies.length) continue;
+      let x0 = Infinity;
+      let y0 = Infinity;
+      let x1 = -Infinity;
+      let y1 = -Infinity;
+      for (const b of e.bodies) {
+        x0 = Math.min(x0, b.bounds.min.x);
+        y0 = Math.min(y0, b.bounds.min.y);
+        x1 = Math.max(x1, b.bounds.max.x);
+        y1 = Math.max(y1, b.bounds.max.y);
+      }
+      const cx = (x0 + x1) / 2;
+      const cy = (y0 + y1) / 2;
+      // big parts (a long plank) get a ring that fits them, small ones a ring you can still see
+      const r = Math.min(140, Math.max(22, Math.hypot(x1 - x0, y1 - y0) / 2 + 8));
+      this.outline(g, e, col, 0.95, 2.5);
+      g.lineStyle(5, 0x0b0806, 0.45);
+      g.strokeCircle(cx, cy, r);
+      g.lineStyle(3, col, 0.95);
+      g.strokeCircle(cx, cy, r);
+      if (ex.still) continue;
+      const k = (t * 0.9) % 1;
+      g.lineStyle(3, col, 0.8 * (1 - k));
+      g.strokeCircle(cx, cy, r + 4 + 22 * k);
     }
   }
 

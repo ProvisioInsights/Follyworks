@@ -48,14 +48,25 @@ npm run preview    # serves dist/ at http://localhost:4173/
 
 ## Deploy to Cloudflare
 
-The game is hosted as a Cloudflare Worker that only serves static assets (`wrangler.jsonc`), which fits the free plan: static asset requests are free and unlimited.
+The game is one Cloudflare Worker (`wrangler.jsonc`) that serves `dist/` as static assets and runs a small script (`worker/`) only for `/api/*`: cloud saves and playtest logs, stored in the D1 database `follyworks`. It fits the free plan: static asset requests are free and unlimited, and D1 allows 100,000 writes a day (each player pushes at most about every 20 seconds while playing).
 
 ```sh
-npx wrangler login   # once per machine, opens the browser
-npm run deploy       # builds, then uploads dist/ to the "follyworks" Worker
+npx wrangler login                                      # once per machine, opens the browser
+npx wrangler d1 migrations apply follyworks --remote    # once, and again after adding a file to migrations/
+npm run deploy                                          # builds, then uploads dist/ and the Worker
 ```
 
-The first deploy prints the live `https://follyworks.<your-subdomain>.workers.dev` URL. Saves live in each player's browser storage, which is tied to the exact domain, so settle on the final custom domain before inviting players.
+The live game is at https://follyworks.provisioinsights.workers.dev. Each browser keeps its save in local storage and, silently, in the cloud under a random device code. Settings, "Play on another device", shows that code; entering it on another device links the two so they share one save (no sign-up). If the API cannot be reached the game keeps saving locally and syncs later. Settings also offers save codes (Copy / Load save code) that move a save by hand with no server at all.
+
+Local check of the full setup (assets, API and a local D1):
+
+```sh
+npm run build
+npx wrangler d1 migrations apply follyworks --local
+npx wrangler dev                                        # http://localhost:8787/
+```
+
+`npm run dev` and `npm run preview` also answer `/api/*`: the Vite server runs the same handler over an in-memory SQLite database, so cloud saves work locally and reset when it restarts.
 
 ## Tests
 
@@ -76,6 +87,7 @@ node e2e/campaign.mjs        # plays every level with its reference solution in 
 node e2e/transform.mjs       # knob, end swing, corner turn, R reset, selection toolbar by mouse; overlap refusal; goal tags
 node e2e/playtest.mjs        # the local playtest log records a real session: runs, solve, edits
 node e2e/difficulty.mjs      # first-time chooser, Settings change + restart, badges, every hint tier, per-difficulty progress and map badges
+node e2e/cloudsave.mjs        # two browsers link by code and share progress; save codes on a phone (also: pass http://127.0.0.1:8787/ for `npx wrangler dev`)
 node e2e/touch.mjs           # real touch input on an emulated iPad and iPhone: drag from the bin, tap, move, knob, twist, pinch, tap-to-place, phone-upright prompt
 ```
 

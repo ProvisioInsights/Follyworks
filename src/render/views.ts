@@ -406,6 +406,12 @@ export class EntityView {
     return { x: bx - (off.x * c - off.y * s), y: by - (off.x * s + off.y * c), rot };
   }
 
+  /** Where the part's main body is drawn this frame (world position and rotation, with any drag). */
+  pose(alpha: number) {
+    const f = this.frame(0, alpha);
+    return { x: f.x + this.dragOffset.x, y: f.y + this.dragOffset.y, rot: f.rot + this.dragRotate };
+  }
+
   sync(alpha: number, t: number, running: boolean) {
     const e = this.entity;
     this.root.setVisible(e.alive);

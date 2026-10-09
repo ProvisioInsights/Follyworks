@@ -39,7 +39,7 @@ The central rule is that **the simulation is pure data in, data out**. A level a
 | `src/render` | The Phaser scene, entity views, overlays (ropes, wires, sockets, goal zones, selection, ghost trails), particles and labels, environments, and the procedural art painters. |
 | `src/ui` | DOM screens and the in-game HUD. |
 | `src/audio` | The audio engine: one-shot effects, continuous machine loops and generative music, all synthesised. |
-| `src/persistence` | Versioned save document in `localStorage`. |
+| `src/persistence` | Versioned save document in `localStorage`, cloud sync, save codes. |
 
 ## Data model
 
@@ -115,6 +115,7 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - `PlayScreen` is shared by campaign, sandbox, level editor and test play; `cfg.kind` switches features on and off.
 - `GoalMarkers` keeps a numbered tag in the room for each goal, positioned every frame from `goalMarker` (`sim/goals.ts`); the matching chips in the top bar highlight their goal on hover through `PlayController.focusGoal`.
 - `EditorController.handles()` gives the rotate knob, end/edge grips and corner turn zones of the selected part; `Overlays` draws them (plus the pivot and the 0/45/90° snap guide from `EditorController.manip`), and the controller's `reshape` drag edits them with the pure geometry in `game/manipulation.ts` (`endDrag`, `rotateAbout`), committing once through `Session.reshapeObject`. `ui/SelectionBar.ts` is the floating toolbar by the selection and the angle/length badge by the pointer, both DOM placed every frame inside the HUD insets.
+- When a run stalls or times out, `game/explain.ts` (pure: `explainRun(sim, referenceFor(level, solution))`) gives the "So close!" banner its words and names the parts to mark; `PlayScreen.showTimeUp` shows it and sets `PlayController.explainMarks`, which `Overlays.drawExplain` rings in the room.
 - `GuideCoach` draws tutorial guidance: a DOM card and arrow, plus the ghost outline through `PlayController.guideOverlay`.
 - `ui/science.ts` builds the "How it works" section in the properties panel and the "Physics in your machine" chips on the results card; `ui/lab.ts` has the lab list and lesson intro (passed to `PlayScreen` as `briefIntro`). Their styles are in `ui/science.css`.
 - `ui/difficulty.ts` has the one-time difficulty chooser (`App.playCampaign` shows it while `settings.difficultyChosen` is false), the Settings picker and the read-only badge used in the briefing, HUD and results. The badge opens Settings at the Difficulty control (`openSettings('difficulty')`); a change applies when a mission is next opened, or at once through Settings' "Restart it on …" (`App.restartMission`).
@@ -130,6 +131,9 @@ The simulation is deterministic for a given (level, build): the same inputs give
 - Loading never throws. Unknown or broken fields fall back to defaults field by field (an unknown `settings.theme` becomes `'auto'`).
 - An unreadable document is copied aside to `follyworks.save.corrupt-<time>` before defaults are used.
 - Writes are debounced and flushed on page unload.
+- `sync` records when each piece (settings, each level's progress, each build, custom level and sandbox slot) last changed, and what was deleted when. `SaveStore.flush` fills it in by comparing with what it last wrote, so callers never stamp anything. `persistence/merge.ts` uses it to merge two copies: mission results take the best of both per difficulty, everything else the newer copy, and a deletion wins over an older copy.
+- `persistence/cloud.ts` syncs the save with the Worker (`worker/api.ts`, D1 tables in `migrations/`) under a random device id (`persistence/cloudId.ts`, 80 bits, shown as `XXXX-XXXX-XXXX-XXXX`, kept in `follyworks.cloud`). It pulls and merges at boot (the menu waits up to 0.8 s for it), pushes at most every 20 s after saves and at once with `keepalive` when the tab is hidden. Writes carry `If-Match: "<rev>"`; a 412 means another device saved first, so it pulls, merges and retries. Offline or with no API it reports "Offline" and retries with backoff. Linking to another device's code merges that save in and adopts its id.
+- `persistence/saveCode.ts` turns the save into `FW1.` + base64url(deflate-raw JSON) (or `FW1j.` + base64url JSON without CompressionStream) and back through `parseSave`. Settings' "Play on another device" box (`ui/cloudPanel.ts`) holds the device code, linking and save codes.
 
 ## Audio
 

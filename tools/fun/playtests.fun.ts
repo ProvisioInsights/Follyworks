@@ -1,6 +1,7 @@
 // Playtest report: `npm run fun:playtests` reads every exported playtest log in playtests/
-// (or the folder in FUN_LOGS), merges them and writes docs/fun/playtest-report.md, with the
-// headless audit's score beside each level so predictions can be checked against real players.
+// (or the folder in FUN_LOGS; `npm run playtests:pull` fills it from the live site), merges them
+// and writes docs/fun/playtest-report.md, with the headless audit's score beside each level so
+// predictions can be checked against real players, and what players wrote on the rating card.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -35,6 +36,11 @@ it('summarizes playtest logs', () => {
       `| ${code.get(r.level) ?? ''} ${r.level} | ${r.players} | ${pct(r.solveRate)} | ${pct(r.quitRate)} | ${n1(r.runsToSolve)} | ${n1(r.minutesToSolve)} | ${n1(r.secondsPerTry)} | ${n1(r.secondsToFirstRun)} | ${pct(r.ghostRate)} | ${pct(r.replayRate)} | ${pct(r.absurdRate)} | ${n1(r.rating)} | ${scoreOf.get(r.level) ?? '–'} | ${r.flags.join('; ')} |`,
     );
   out.push('');
+  const said = rows.filter((r) => r.comments.length);
+  if (said.length) {
+    out.push('## What players said', '');
+    for (const r of said) out.push(`**${[code.get(r.level), r.level].filter(Boolean).join(' ')}**`, '', ...r.comments.map((c) => `- ${c}`), '');
+  }
   mkdirSync('docs/fun', { recursive: true });
   writeFileSync('docs/fun/playtest-report.md', out.join('\n'));
 });

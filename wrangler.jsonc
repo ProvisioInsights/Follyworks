@@ -1,12 +1,29 @@
-// Cloudflare deploy config: a Worker with no script that serves the Vite build in dist/ as
-// static assets. Static asset requests are free and unlimited, so the game runs no Worker code.
-// Deploy with `npm run deploy` after `npx wrangler login`.
+// Cloudflare deploy config: one Worker that serves the Vite build in dist/ as static assets and
+// runs a small script (worker/index.ts) only for /api/*: cloud saves and playtest logs, stored in
+// D1. Static asset requests are free and unlimited and never run the script.
+// Deploy with `npm run deploy` after `npx wrangler login`. The D1 tables come from migrations/;
+// apply them once (and after adding a migration) with
+//   npx wrangler d1 migrations apply follyworks --remote
+// Local: `npm run build && npx wrangler dev` serves the build and the API over a local D1.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "follyworks",
   "compatibility_date": "2026-10-01",
+  "main": "worker/index.ts",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Only API calls wake the script; everything else is served straight from the assets.
+    "run_worker_first": ["/api/*"]
+  },
+  // D1 (SQLite), not KV: KV's free tier allows only 1000 writes a day.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "follyworks",
+      "database_id": "10c56a69-40c6-4c51-b8fc-e257af522172",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

@@ -4,7 +4,6 @@ import Phaser from 'phaser';
 import { AudioEngine, type SfxName } from '../audio/AudioEngine';
 import { blankLevel, parseBuild } from '../core/level';
 import { chromeFor, themeFor, type ThemeId, type ThemeSetting } from '../core/themes';
-import { KonamiDetector } from './konami';
 import { deepClone, hashString } from '../core/util';
 import { emptyBuild, type BuildDef, type LevelDef } from '../core/types';
 import { CAMPAIGN, CHAPTERS, levelCode } from '../game/campaign';
@@ -12,6 +11,9 @@ import { applyDifficulty, buildKey, type Difficulty } from '../game/difficulty';
 import { LAB, labCode } from '../game/levels/lab';
 import { RunController } from '../game/RunController';
 import { mergeProgress, type AttemptResult } from '../game/scoring';
+import { CloudSync } from '../persistence/cloud';
+import { blocksStamps, CheatDetector, cheatDef, cheatZoom, runCheats, toggleCheat, type CheatId } from '../game/cheats';
+import { cheatToast, discoWash } from '../ui/cheats';
 import { SaveStore, type Settings } from '../persistence/save';
 import { WorkshopScene } from '../render/WorkshopScene';
 import { difficultyChooser } from '../ui/difficulty';
@@ -19,11 +21,13 @@ import { h, installTooltips, modal, toast } from '../ui/dom';
 import { secretBanner } from '../ui/secret';
 import { labIntro, labScreen } from '../ui/lab';
 import { PlayScreen } from '../ui/PlayScreen';
+import { installPlaytestKit } from '../ui/playtestKit';
 import { campaignScreen, levelsScreen, mainMenu, settingsDialog, type Screen } from '../ui/screens';
 import type { AppContext } from './context';
 
 export class App implements AppContext {
   store = new SaveStore();
+  cloud = new CloudSync(this.store);
   audio = new AudioEngine();
   scene!: WorkshopScene;
   canvas!: HTMLCanvasElement;
@@ -31,7 +35,7 @@ export class App implements AppContext {
   private game!: Phaser.Game;
   private screen: Screen | null = null;
   private play: PlayScreen | null = null;
-  private demo: { run: RunController; unhook: () => void; doneAt: number } | null = null;
+  private demo: { run: RunController; unhook: () => void; doneAt: number; cheats: string } | null = null;
   /** The open campaign level as derived for its difficulty (null outside the campaign). */
   private derived: ReturnType<typeof applyDifficulty> | null = null;
   /** Campaign index of the open mission (null outside the campaign). */
@@ -43,9 +47,11 @@ export class App implements AppContext {
   /** Theme picked in the sandbox or editor for this visit only (overrides the setting there). */
   private sessionTheme: ThemeSetting = 'auto';
   private musicTheme: ThemeId | null = null;
-  private konami = new KonamiDetector();
+  private cheatKeys = new CheatDetector();
   /** Theme setting to return to when the code switches the arcade theme off again. */
   private preArcadeTheme: ThemeSetting = 'auto';
+  /** Redraws the menu screen on show (menu, campaign or levels), for cloud merges. */
+  private reshow: (() => void) | null = null;
 
   constructor() {
     this.ui = document.getElementById('ui')!;
@@ -56,6 +62,9 @@ export class App implements AppContext {
   }
 
   async start() {
+    // Cloud save: pull while the renderer boots, so another device's progress is usually in before the menu shows.
+    this.cloud.onChange = () => this.onCloudChange();
+    const synced = this.cloud.start();
     installTooltips();
     const scene = new WorkshopScene();
     this.game = new Phaser.Game({
@@ -88,7 +97,9 @@ export class App implements AppContext {
     document.addEventListener('visibilitychange', () => document.hidden && this.store.flush());
     if (this.store.recovered) toast('Your save data was damaged, so we started fresh. A backup of the old data was kept.', 'warn', 6000);
     (window as any).__follyworks = this; // handy for debugging and automated tests
+    await Promise.race([synced, new Promise((r) => setTimeout(r, 800))]);
     this.showMenu();
+    installPlaytestKit(this);
     document.getElementById('boot')?.remove();
   }
 
@@ -125,6 +136,7 @@ export class App implements AppContext {
     }
     if (this.play) this.play.ctl.editor.snap = s.snap;
     this.refreshTheme();
+    this.applyCheats();
   }
 
   // ------------------------------------------------------------------ themes
@@ -166,13 +178,77 @@ export class App implements AppContext {
     }
   }
 
-  // ------------------------------------------------------------------ secret
+  // ------------------------------------------------------------------ cheats
 
   private onCheatKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT') && (t as HTMLInputElement).type !== 'range') return;
     if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (this.konami.push(e.key, e.code)) this.toggleArcade();
+    // Typed codes only count on the title and menu screens (letters are shortcuts while playing);
+    // the Konami code works everywhere, as it always has.
+    const id = this.cheatKeys.push(e.key, e.code, !this.play);
+    if (id) this.enterCheat(id);
+  }
+
+  cheatOn(id: CheatId): boolean {
+    const s = this.settings;
+    if (id === 'skeletonkey') return s.unlockAll;
+    if (id === 'konami') return s.arcadeUnlocked && this.theme === 'arcade';
+    return s.cheats.on.includes(id);
+  }
+
+  enterCheat(id: CheatId) {
+    if (id === 'konami') return this.toggleArcade();
+    const on = !this.cheatOn(id);
+    this.setCheat(id, on);
+    const def = cheatDef(id);
+    if (on) {
+      this.sfx('secret');
+      cheatToast('CHEAT ACTIVATED', `${def.code} · ${def.blurb}${def.physics ? ' · no stamps while on' : ''}`);
+    } else {
+      this.sfx('click');
+      cheatToast('CHEAT OFF', def.code);
+    }
+  }
+
+  setCheat(id: CheatId, on: boolean) {
+    const s = this.settings;
+    if (id === 'konami') {
+      if (on !== this.cheatOn('konami')) this.toggleArcade();
+      return;
+    }
+    const cheats = toggleCheat(s.cheats, id, on);
+    if (id === 'skeletonkey') {
+      this.updateSettings({ unlockAll: on, cheats: { ...cheats, on: s.cheats.on } });
+      // the campaign map shows what is unlocked
+      if (this.home === 'campaign' && this.screen && !this.play) this.showCampaign();
+      return;
+    }
+    this.updateSettings({ cheats });
+  }
+
+  allCheatsOff() {
+    const s = this.settings;
+    if (this.cheatOn('konami')) this.toggleArcade();
+    this.updateSettings({ unlockAll: false, cheats: { ...s.cheats, on: [] } });
+  }
+
+  /** Apply the cosmetic cheats to the scene, audio and page; restart the title machine on a physics change. */
+  private applyCheats() {
+    const on = this.settings.cheats.on;
+    const root = document.documentElement;
+    if (blocksStamps(on)) root.dataset.cheat = '';
+    else delete root.dataset.cheat;
+    discoWash(on.includes('discofever'));
+    this.audio.setMusicLively(on.includes('discofever'));
+    if (!this.scene) return;
+    this.scene.googly.enabled = on.includes('googlyeyes');
+    this.scene.setCheatZoom(cheatZoom(on));
+    const key = JSON.stringify(runCheats(on));
+    if (this.demo && this.demo.cheats !== key) {
+      this.stopDemo();
+      this.startDemo();
+    }
   }
 
   /** The Konami code: unlock the secret arcade theme, or toggle it on and off once unlocked. */
@@ -190,9 +266,17 @@ export class App implements AppContext {
     this.preArcadeTheme = s.theme;
     this.sessionTheme = 'auto';
     this.updateSettings({ arcadeUnlocked: true, theme: 'arcade' });
+    if (!s.cheats.found.includes('konami')) this.updateSettings({ cheats: { ...s.cheats, found: [...s.cheats.found, 'konami'] } });
     this.sfx('secret');
     if (first) secretBanner(this.ui);
     else toast('Insert coin! Arcade theme on.');
+  }
+
+  /** Another device's progress was merged in: re-apply settings and redraw a menu screen if one is up. */
+  private onCloudChange() {
+    if (!this.scene) return;
+    this.applySettings();
+    if (!this.play && !this.ui.querySelector('.modal-back')) this.reshow?.();
   }
 
   openSettings(focus?: 'difficulty') {
@@ -210,6 +294,7 @@ export class App implements AppContext {
     this.missionIndex = null;
     this.screen?.destroy();
     this.screen = null;
+    this.reshow = null;
     this.play?.destroy();
     this.play = null;
     this.stopDemo();
@@ -221,6 +306,7 @@ export class App implements AppContext {
     this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = mainMenu(this);
+    this.reshow = () => this.showMenu();
     this.home = 'menu';
     this.audio.setMusicIntensity(0.2);
   }
@@ -230,6 +316,7 @@ export class App implements AppContext {
     this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = campaignScreen(this);
+    this.reshow = () => this.showCampaign();
     this.home = 'campaign';
   }
 
@@ -238,6 +325,7 @@ export class App implements AppContext {
     this.setThemeContext(this.demoChapter());
     this.startDemo();
     this.screen = levelsScreen(this, () => this.showLevels());
+    this.reshow = () => this.showLevels();
   }
 
   /** For automated tests (e2e/campaign.mjs). */
@@ -524,13 +612,21 @@ export class App implements AppContext {
     this.scene.setEnvironment('backyard', level.world.width, level.world.height);
     this.scene.setInsets({ top: 30, left: Math.min(520, window.innerWidth * 0.36), right: 30, bottom: 30 });
     this.scene.resetView();
+    const cheats = runCheats(this.settings.cheats.on);
     const make = () =>
-      new RunController(this.scene, level, build, null, {
-        onSolved: () => {},
-        onTimeUp: () => {},
-        onTick: () => {},
-      });
-    const state = { run: make(), unhook: () => {}, doneAt: 0 };
+      new RunController(
+        this.scene,
+        level,
+        build,
+        null,
+        {
+          onSolved: () => {},
+          onTimeUp: () => {},
+          onTick: () => {},
+        },
+        cheats,
+      );
+    const state = { run: make(), unhook: () => {}, doneAt: 0, cheats: JSON.stringify(cheats) };
     state.unhook = this.scene.onFrame((dt) => {
       state.run.update(dt * 0.85);
       const s = state.run.sim;

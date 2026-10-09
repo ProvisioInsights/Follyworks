@@ -1,7 +1,6 @@
 // The in-game HUD around one PlayController: top bar with goals, parts bin, edit tools,
 // transport dock with timeline, properties panel, briefing, hints and results.
 
-import { describeMiss } from '../sim/goals';
 import type { AppContext } from '../app/context';
 import type { SfxName } from '../audio/AudioEngine';
 import { CONNECTION_TOOLS, isToolType } from '../components';
@@ -11,8 +10,10 @@ import { ENVIRONMENT_IDS } from '../core/level';
 import type { SessionKind } from '../editor/Session';
 import { PlayController } from '../game/PlayController';
 import { invalidPlacements } from '../game/placement';
-import type { AttemptResult } from '../game/scoring';
+import { isCheatRun, type AttemptResult } from '../game/scoring';
 import type { Difficulty } from '../game/difficulty';
+import { runCheats } from '../game/cheats';
+import { explainRun, referenceFor } from '../game/explain';
 import { applyHintPenalty, ghostEntities, GHOST_TIER, HintLadder, hintTierLabel, type HintView } from '../game/hints';
 import type { Entity } from '../sim/Entity';
 import { pickableThemes, type ThemeId, type ThemeSetting } from '../core/themes';
@@ -28,6 +29,7 @@ import { GuideCoach } from './GuideCoach';
 import { conceptsInRun } from '../content/runConcepts';
 import type { ConceptId } from '../content/science';
 import { physicsInMachine, scienceSection } from './science';
+import './explain.css';
 import { difficultyBadge } from './difficulty';
 
 export interface PlayConfig {
@@ -157,6 +159,7 @@ export class PlayScreen {
       onTimeUp: () => this.showTimeUp(),
       onSettled: () => this.showTimeUp(true),
       onBuildChanged: (b, l) => cfg.onBuildChanged?.(b, l),
+      cheats: () => runCheats(app.settings.cheats.on),
     });
     this.ctl.editor.snap = app.settings.snap;
     this.build();
@@ -233,7 +236,7 @@ export class PlayScreen {
     const title = h(
       'div',
       { class: 'title' },
-      h('span', { class: 't' }, cfg.title, cfg.difficulty ? difficultyBadge(cfg.difficulty, this.app) : null),
+      h('span', { class: 't' }, cfg.title, cfg.difficulty ? difficultyBadge(cfg.difficulty, this.app) : null, cheatBadge()),
       h('span', { class: 'c' }, cfg.subtitle),
     );
     this.els.goals = h('div', { class: 'goals' });
@@ -284,6 +287,7 @@ export class PlayScreen {
       iconBtn('back', cfg.kind === 'test' ? 'Back to the editor' : 'Leave (your machine is saved)', () => this.exit()),
       this.hints.available && cfg.kind !== 'editor' ? iconBtn('bulb', 'Hint', () => this.nextHint()) : null,
       more,
+      cheatBadge(),
     );
     this.root.append(this.els.rail);
     // the "more" sheet closes on any press outside it
@@ -447,10 +451,12 @@ export class PlayScreen {
     const ctl = this.ctl;
     const running = ctl.mode === 'run';
     const run = ctl.run;
-    if (!running && this.timeUpEl) {
+    // the "So close!" banner goes as soon as the player rewinds, scrubs or goes back to building
+    if (this.timeUpEl && (!running || run?.rewinding || run?.scrubbing || (ctl.explainMarks && run && run.sim.tick < ctl.explainMarks.tick))) {
       this.timeUpEl.remove();
       this.timeUpEl = null;
     }
+    this.placeBanner();
     // run button
     const rb = this.els.runBtn;
     clear(rb);
@@ -1019,21 +1025,25 @@ export class PlayScreen {
     });
   }
 
-  /** Time-up banner; `stalled` is the early version shown when everything stopped moving. */
+  /**
+   * The run ended unsolved (`stalled`: everything stopped; otherwise time ran out): a short "So
+   * close!" banner that says how far the machine got and where it stopped (game/explain.ts), with
+   * those parts marked in the room. Not modal; rewinding or editing puts it away.
+   */
   private showTimeUp(stalled = false) {
     this.timeUpEl?.remove();
+    const run = this.ctl.run;
+    if (!run) return;
+    const x = explainRun(run.sim, referenceFor(this.session.level, this.cfg.solution));
+    this.ctl.explainMarks = { stop: x.stopAt, rest: x.restAt, tick: run.sim.tick };
     const el = h(
       'div',
-      { class: 'panel banner' },
-      h(
-        'span',
-        null,
-        stalled ? h('b', null, 'Everything’s stopped. ') : h('b', null, 'Time’s up. '),
-        (this.ctl.run && describeMiss(this.ctl.run.sim)) ?? (stalled ? 'The goal isn’t met.' : 'The machine didn’t finish the job (yet).'),
-        stalled ? ' Rewind to see where it went wrong.' : '',
+      { class: `panel banner so-close tone-${x.tone}`, role: 'status', 'aria-live': 'polite' },
+      h('span', { class: 'sc-text' }, h('b', null, stalled ? x.title : `Time’s up. ${x.title}`), ' ', x.text),
+      h('span', { class: 'sc-actions' },
+        h('button', { class: 'btn small', onClick: () => close(() => (stalled ? undefined : (this.ctl.run?.extendTime(), (this.ctl.explainMarks = null)))) }, 'Keep watching'),
+        h('button', { class: 'btn small primary', onClick: () => close(() => this.ctl.reset()) }, icon('reset'), 'Back to building'),
       ),
-      h('button', { class: 'btn small', onClick: () => close(() => (stalled ? undefined : this.ctl.run?.extendTime())) }, 'Keep watching'),
-      h('button', { class: 'btn small primary', onClick: () => close(() => this.ctl.reset()) }, icon('reset'), 'Back to building'),
     );
     const close = (fn: () => void) => {
       el.remove();
@@ -1042,6 +1052,15 @@ export class PlayScreen {
     };
     this.timeUpEl = el;
     this.root.append(el);
+    this.placeBanner();
+  }
+
+  /** Keep the banner clear of the hint bar when both are up. */
+  private placeBanner() {
+    const el = this.timeUpEl;
+    if (!el) return;
+    const tip = this.els.tip;
+    el.style.top = tip.style.display !== 'none' && tip.isConnected ? `${tip.getBoundingClientRect().bottom - this.root.getBoundingClientRect().top + 8}px` : '';
   }
 
   private showResults(raw: AttemptResult) {
@@ -1050,16 +1069,19 @@ export class PlayScreen {
     this.ctl.run?.setPaused(true);
     const stamp = (cls: string, title: string, on: boolean, why: string) => h('div', { class: `stamp ${cls} ${on ? 'on' : ''}` }, h('b', null, title), h('small', null, why));
     // Stars: one for solving, one for ELEGANT, one for ABSURD (when the level offers it).
+    const cheated = isCheatRun(r);
     const starsOn = [true, r.elegant.earned, ...(r.absurd.available ? [r.absurd.earned] : [])];
     const earned = starsOn.filter(Boolean).length;
     const hero = h(
       'div',
       { class: 'result-hero' },
-      h(
-        'div',
-        { class: 'stars', role: 'img', 'aria-label': `${earned} of ${starsOn.length} stars` },
-        starsOn.map((on, i) => h('span', { class: `star ${on ? 'on' : ''}`, style: { animationDelay: `${0.12 + i * 0.22}s` } }, '★')),
-      ),
+      cheated
+        ? null
+        : h(
+            'div',
+            { class: 'stars', role: 'img', 'aria-label': `${earned} of ${starsOn.length} stars` },
+            starsOn.map((on, i) => h('span', { class: `star ${on ? 'on' : ''}`, style: { animationDelay: `${0.12 + i * 0.22}s` } }, '★')),
+          ),
       h(
         'div',
         { class: 'result-line' },
@@ -1094,12 +1116,14 @@ export class PlayScreen {
     actions.push({ label: 'Keep tinkering', onClick: () => this.ctl.reset() });
     this.app.sfx('success' as SfxName);
     this.resultModal = modal(this.app.ui, {
-      title: pickTitle(r),
+      title: cheated ? 'Cheat-powered success!' : pickTitle(r),
       strip: 'hazard',
       cls: 'results',
       body: [
         hero,
-        h('div', { class: 'stamps' }, stamp('s', 'SOLVED', true, 'Job done!'), stamp('e', 'ELEGANT', r.elegant.earned, r.elegant.reason), r.absurd.available ? stamp('a', 'ABSURD', r.absurd.earned, r.absurd.reason) : null),
+        cheated
+          ? h('div', { class: 'cheat-note' }, `Made with ${r.cheats!.join(' + ')}: fun to watch, but no stamps or progress are recorded.`)
+          : h('div', { class: 'stamps' }, stamp('s', 'SOLVED', true, 'Job done!'), stamp('e', 'ELEGANT', r.elegant.earned, r.elegant.reason), r.absurd.available ? stamp('a', 'ABSURD', r.absurd.earned, r.absurd.reason) : null),
         receipt,
         physicsInMachine([...new Set([...(this.cfg.concepts ?? []), ...conceptsInRun(r.chain, (id) => this.ctl.run?.sim.entities.get(id)?.type, 6 - (this.cfg.concepts?.length ?? 0))])]),
       ],
@@ -1121,6 +1145,9 @@ const receiptRows = (r: AttemptResult, sim: Simulation | undefined) => {
   }
   return rows.sort((a, b) => a.time - b.time || (a.goal ? 1 : 0) - (b.goal ? 1 : 0));
 };
+
+/** "CHEAT" pill for the HUD; CSS shows it only while a physics cheat is on (html[data-cheat]). */
+const cheatBadge = () => h('span', { class: 'cheat-badge', tip: 'A physics cheat is on: runs earn no stamps (Settings › Cheats)' }, 'CHEAT');
 
 /** "≤ 3 parts or under 4s": the briefing's one-line ELEGANT target, or '' when the level has none. */
 const elegantGoal = (l: LevelDef) =>

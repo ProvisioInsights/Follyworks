@@ -10,7 +10,7 @@ import type { OverlayState } from '../render/Overlays';
 import type { Entity } from '../sim/Entity';
 import { playtest } from '../telemetry/playtest';
 import { EditorController, type EditorFeedback } from './EditorController';
-import { RunController } from './RunController';
+import { RunController, type RunCheats } from './RunController';
 import type { AttemptResult } from './scoring';
 
 export type Mode = 'build' | 'run';
@@ -27,6 +27,8 @@ export interface PlayOptions {
   onTimeUp: () => void;
   onSettled?: () => void;
   onBuildChanged: (build: BuildDef, level: LevelDef) => void;
+  /** Cheats in force when RUN is pressed (fixed for that run). */
+  cheats?: () => RunCheats;
 }
 
 export class PlayController {
@@ -87,6 +89,7 @@ export class PlayController {
     this.editor.cancel();
     this.editor.enabled = false;
     this.mode = 'run';
+    this.explainMarks = null;
     this.runs++;
     playtest.run();
     this.opts.audio?.play('switch');
@@ -104,7 +107,7 @@ export class PlayController {
         this.opts.onSettled?.();
       },
       onTick: () => this.emit(),
-    });
+    }, this.opts.cheats?.());
     this.opts.audio?.setMusicIntensity(0.75);
     this.emit();
   }
@@ -115,6 +118,7 @@ export class PlayController {
     playtest.reset();
     this.run?.dispose();
     this.run = null;
+    this.explainMarks = null;
     this.mode = 'build';
     this.editor.enabled = true;
     this.scene.fx.clear();
@@ -162,11 +166,15 @@ export class PlayController {
       hoverCorner: this.mode === 'build' ? ed.hoverCorner : null,
       touch: ed.touch,
       focusGoal: this.focusGoal,
+      // marks show at the moment the run ended (or later), not while scrubbed back to watch it again
+      explain: this.mode === 'run' && this.run && this.explainMarks && this.run.sim.tick >= this.explainMarks.tick ? { ...this.explainMarks, still: this.scene.fx.reducedMotion } : null,
     };
   }
 
   /** Set by the HUD while tutorial guidance shows a ghost part or points into the room. */
   guideOverlay: OverlayState['guide'] = null;
+  /** Set by the HUD when a run ends unsolved: the parts to mark, from that tick on (game/explain.ts). */
+  explainMarks: { stop: string | null; rest: string | null; tick: number } | null = null;
   /** Ghost outlines revealed by tiered hints (game/hints.ts), drawn with the guide overlay. */
   hintGhosts: Entity[] = [];
 

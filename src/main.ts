@@ -12,6 +12,7 @@ import './ui/styles.css';
 import './ui/modern.css';
 import './ui/arcade.css';
 import './ui/touch.css';
+import './ui/cheats.css';
 import './components';
 import { App } from './app/App';
 
