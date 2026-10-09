@@ -27,6 +27,11 @@ const boot = async () => {
   await app.start();
 };
 
+// Offline play (built game only; the dev server must never be cached).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
+
 boot().catch((err) => {
   console.error(err);
   const el = document.getElementById('boot');
